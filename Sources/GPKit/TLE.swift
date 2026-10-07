@@ -5,6 +5,17 @@
 /// for. Anything else is refused with the reason, and the sets around it are read.
 public enum TLE {
 
+    /// What the reader does with the checksum digit in column 69 of each line.
+    public enum Checksum: Sendable, Hashable {
+        /// The digit must be the one the line computes to; a set whose digit is another is refused. The default.
+        case verify
+        /// The digit is not looked at, whatever character is there. For lines from a source known to write wrong
+        /// or blank checksums. Every other check is made as before: the length, the columns, each field's form.
+        /// A wrong digit is then no warning that a line was altered, so a changed digit elsewhere in the line is
+        /// read as the value it now spells.
+        case ignore
+    }
+
     /// Two-digit years 57 to 99 are 1957 to 1999, and 00 to 56 are 2000 to 2056.
     public static let yearPivot = 57
 
@@ -24,12 +35,13 @@ public enum TLE {
 
     // MARK: - Reading
 
-    /// Reads one element set from its two lines, with the name line if there is one.
-    public static func parse(name: String? = nil, line1: String, line2: String) throws(Refusal) -> ElementSet {
-        try parse(name: name.map { Array($0.utf8)[...] }, line1: Array(line1.utf8)[...], line2: Array(line2.utf8)[...])
+    /// Reads one element set from its two lines, with the name line if there is one. The checksums are verified
+    /// unless `checksum` is `.ignore`.
+    public static func parse(name: String? = nil, line1: String, line2: String, checksum: Checksum = .verify) throws(Refusal) -> ElementSet {
+        try parse(name: name.map { Array($0.utf8)[...] }, line1: Array(line1.utf8)[...], line2: Array(line2.utf8)[...], checksum: checksum)
     }
 
-    static func parse(name: ArraySlice<UInt8>?, line1: ArraySlice<UInt8>, line2: ArraySlice<UInt8>) throws(Refusal) -> ElementSet {
+    static func parse(name: ArraySlice<UInt8>?, line1: ArraySlice<UInt8>, line2: ArraySlice<UInt8>, checksum: Checksum) throws(Refusal) -> ElementSet {
         let l1 = Array(line1), l2 = Array(line2)
         let catalogField = l1.count >= 7 ? string(l1[2..<7]) : nil
         func refuse(_ kind: Refusal.Kind, _ message: String, field: String? = nil, text: ArraySlice<UInt8>? = nil) -> Refusal {
@@ -39,8 +51,8 @@ public enum TLE {
             guard line.count == 69 else { throw refuse(.lineLength, "line \(n) is \(line.count) characters, not 69") }
             guard line.allSatisfy({ $0 >= 0x20 && $0 <= 0x7E }) else { throw refuse(.lineLength, "line \(n) holds a character outside printable ASCII") }
             guard line[0] == 0x30 + UInt8(n), line[1] == 0x20 else { throw refuse(.layout, "line \(n) does not begin \"\(n) \"") }
-            let computed = checksum(line[...])
-            guard line[68] == 0x30 + UInt8(computed) else {
+            let computed = TLE.checksum(line[...])
+            guard checksum == .ignore || line[68] == 0x30 + UInt8(computed) else {
                 throw refuse(.checksum, "line \(n)'s checksum is \(string(line[68...])), and the line computes to \(computed)", field: "checksum", text: line[68...])
             }
         }
@@ -166,7 +178,7 @@ public enum TLE {
     /// Reads a file of element sets, with or without name lines. Each line 1 followed by a line 2 is a set, read
     /// or refused; a line 1 or a line 2 on its own is refused; a line that is neither, and is not the name of the
     /// set after it, is refused as a stray line. Reading goes on after every refusal.
-    static func readFile(_ bytes: [UInt8]) -> [ElementSetFile.Entry] {
+    static func readFile(_ bytes: [UInt8], checksum: Checksum) -> [ElementSetFile.Entry] {
         let lines = splitLines(bytes)
         func kind(_ line: ArraySlice<UInt8>) -> Int {
             line.starts(with: [0x31, 0x20]) ? 1 : (line.starts(with: [0x32, 0x20]) ? 2 : 0)
@@ -183,7 +195,7 @@ public enum TLE {
             case 1 where i + 1 < lines.count && kind(lines[i + 1]) == 2:
                 let name = i > 0 && kind(lines[i - 1]) == 0 && !trimmed(lines[i - 1]).isEmpty ? lines[i - 1] : nil
                 do throws(Refusal) {
-                    entries.append(.elementSet(try parse(name: name, line1: line, line2: lines[i + 1])))
+                    entries.append(.elementSet(try parse(name: name, line1: line, line2: lines[i + 1], checksum: checksum)))
                 } catch {
                     entries.append(.refusal(error.located(record: record, line: i + 1, catalogField: field(line))))
                 }

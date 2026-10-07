@@ -61,6 +61,11 @@ For a TLE that means: both lines 69 printable ASCII characters, both checksums r
 same, every separator column a space, and every field what its columns are for. A letter in a numeric field, a short
 line, a line 1 with no line 2 and a line that belongs to no set are each refused with that reason.
 
+The checksum is verified by default. `ElementSets.read(bytes, as: .tle, checksum: .ignore)`, and the same argument
+on `TLE.parse`, reads lines whose checksum digit is wrong or blank, for a source known to write them so. Every
+other check is still made. Without the checksum a line that was altered gives no sign of it: a digit changed
+elsewhere in the line is read as the value it now spells.
+
 A provider's own answer for "no data", CelesTrak's `No GP data found`, is not an error and not a refusal: the file
 has no entries, and `providerMessage` holds the answer.
 

@@ -33,6 +33,16 @@ func jsonString(_ text: String) -> String {
     return out + "\""
 }
 
+/// A JSON value as text: a string as it is, a number in digits. Foundation hands numbers back as different types
+/// on macOS and on Linux, so each is tried.
+func plainText(_ value: Any?) -> String? {
+    if let string = value as? String { return string }
+    if let integer = value as? Int { return String(integer) }
+    if let number = value as? NSNumber { return number.stringValue }
+    if let double = value as? Double { return "\(double)" }
+    return nil
+}
+
 func emit(_ text: String) {
     FileHandle.standardOutput.write(Data(text.utf8))
 }
@@ -101,7 +111,7 @@ case "vectors":
         emit("{\"error\":\"the request is not {op, input}\"}")
         exit(1)
     }
-    let text = (request["input"] as? String) ?? (request["input"] as? NSNumber)?.stringValue ?? ""
+    let text = plainText(request["input"]) ?? ""
     do {
         switch op {
         case "alpha5_decode":
@@ -137,11 +147,10 @@ case "vectors":
 case "write":
     guard let record = (try? JSONSerialization.jsonObject(with: input)) as? [String: Any] else { fail("the record is not a JSON object", code: 2) }
     func string(_ key: String) -> String? {
-        if let s = record[key] as? String { return s.isEmpty ? nil : s }
-        return (record[key] as? NSNumber)?.stringValue
+        plainText(record[key]).flatMap { $0.isEmpty ? nil : $0 }
     }
     func integer(_ key: String) -> Int? {
-        (record[key] as? NSNumber)?.intValue ?? (record[key] as? String).flatMap { Int($0) }
+        string(key).flatMap { Int($0) }
     }
     do {
         func decimal(_ key: String) throws(Refusal) -> ExactDecimal {

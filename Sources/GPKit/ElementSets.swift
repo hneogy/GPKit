@@ -48,7 +48,10 @@ public enum ElementSets {
     /// Each record comes back read or refused, so one bad record costs one record. The call itself throws only
     /// when the input as a whole cannot be taken for what it is said to be: bytes that are not UTF-8, an empty
     /// input, JSON or XML that does not parse, a file that ends inside a record.
-    public static func read<Bytes: Collection>(_ input: Bytes, as format: Format) throws(Refusal) -> ElementSetFile where Bytes.Element == UInt8 {
+    ///
+    /// `checksum` is for `.tle` and says what is done with each line's checksum digit: verified, which is the
+    /// default, or ignored. The other formats have no checksum, and the argument does nothing for them.
+    public static func read<Bytes: Collection>(_ input: Bytes, as format: Format, checksum: TLE.Checksum = .verify) throws(Refusal) -> ElementSetFile where Bytes.Element == UInt8 {
         let bytes = try validatedInput(input)
         let answer = string(trimmed(bytes[...]))
         if emptyAnswers.contains(answer) {
@@ -56,7 +59,7 @@ public enum ElementSets {
         }
         let entries: [ElementSetFile.Entry]
         switch format {
-        case .tle: entries = TLE.readFile(bytes)
+        case .tle: entries = TLE.readFile(bytes, checksum: checksum)
         case .csv: entries = try CSV.readFile(bytes)
         case .json: entries = try JSON.readFile(bytes)
         case .xml: entries = try XML.readFile(bytes)
@@ -66,7 +69,7 @@ public enum ElementSets {
     }
 
     /// Reads a file of element sets from text.
-    public static func read(_ text: String, as format: Format) throws(Refusal) -> ElementSetFile {
-        try read(Array(text.utf8), as: format)
+    public static func read(_ text: String, as format: Format, checksum: TLE.Checksum = .verify) throws(Refusal) -> ElementSetFile {
+        try read(Array(text.utf8), as: format, checksum: checksum)
     }
 }

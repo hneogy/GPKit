@@ -58,8 +58,8 @@ public struct ElementSetFile : Sendable, Hashable {
 }
 public enum ElementSets {
   public static let emptyAnswers: [String]
-  public static func read<Bytes>(_ input: Bytes, as format: Format) throws(Refusal) -> ElementSetFile where Bytes : Collection, Bytes.Element == UInt8
-  public static func read(_ text: String, as format: Format) throws(Refusal) -> ElementSetFile
+  public static func read<Bytes>(_ input: Bytes, as format: Format, checksum: TLE.Checksum = .verify) throws(Refusal) -> ElementSetFile where Bytes : Collection, Bytes.Element == UInt8
+  public static func read(_ text: String, as format: Format, checksum: TLE.Checksum = .verify) throws(Refusal) -> ElementSetFile
 }
 public struct Epoch : Sendable, Hashable, Comparable, CustomStringConvertible {
   public let year: Int
@@ -124,10 +124,14 @@ public struct Refusal : Error, Sendable, Hashable, CustomStringConvertible {
   public var description: String { get }
 }
 public enum TLE {
+  public enum Checksum : Sendable, Hashable {
+    case verify
+    case ignore
+  }
   public static let yearPivot: Int
   public static func fullYear(twoDigit year: Int) -> Int
   public static func checksum(of line: String) -> Int
-  public static func parse(name: String? = nil, line1: String, line2: String) throws(Refusal) -> ElementSet
+  public static func parse(name: String? = nil, line1: String, line2: String, checksum: TLE.Checksum = .verify) throws(Refusal) -> ElementSet
   public struct Lines : Sendable, Hashable {
     public let name: String?
     public let line1: String

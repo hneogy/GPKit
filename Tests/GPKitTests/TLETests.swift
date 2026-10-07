@@ -74,6 +74,30 @@ import GPKit
         #expect(kind(withChecksum(replacing(Sample.line1, 20..<23, with: "366")), Sample.line2) == .notAnEpoch)
     }
 
+    @Test func theChecksumIsVerifiedUnlessToldNotTo() throws {
+        let wrong = replacing(Sample.line1, 68..<69, with: "1")
+        let blank = replacing(Sample.line2, 68..<69, with: " ")
+        // verified by default, by parse and by a file's reader
+        #expect(refusal { _ = try TLE.parse(line1: wrong, line2: Sample.line2) }?.kind == .checksum)
+        #expect(refusal { _ = try TLE.parse(line1: wrong, line2: Sample.line2, checksum: .verify) }?.kind == .checksum)
+        #expect(try ElementSets.read("\(wrong)\n\(Sample.line2)\n", as: .tle).refusals.map(\.kind) == [.checksum])
+        #expect(try ElementSets.read("\(Sample.line1)\n\(blank)\n", as: .tle).refusals.map(\.kind) == [.checksum])
+        // ignored on request: the set is read as the record it carries
+        let reference = try TLE.parse(line1: Sample.line1, line2: Sample.line2)
+        #expect(try TLE.parse(line1: wrong, line2: blank, checksum: .ignore) == reference)
+        #expect(try ElementSets.read("\(wrong)\n\(blank)\n", as: .tle, checksum: .ignore).elementSets == [reference])
+        // and nothing else is let through with it
+        func kind(_ line1: String, _ line2: String) -> Refusal.Kind? {
+            refusal { _ = try TLE.parse(line1: line1, line2: line2, checksum: .ignore) }?.kind
+        }
+        #expect(kind(replacing(Sample.line1, 26..<27, with: "O"), Sample.line2) == .notAnEpoch)
+        #expect(kind(Sample.line1, replacing(Sample.line2, 29..<30, with: "")) == .lineLength)
+        #expect(kind(Sample.line1, replacing(Sample.line2, 2..<7, with: "25545")) == .catalogNumber)
+        #expect(kind(replacing(Sample.line1, 32..<34, with: "- "), Sample.line2) == .layout)
+        // the argument does nothing for a format that has no checksum
+        #expect(try ElementSets.read(Sample.csv, as: .csv, checksum: .ignore) == ElementSets.read(Sample.csv, as: .csv))
+    }
+
     @Test func aRefusalSaysWhatWhereAndWith() throws {
         let bad = withChecksum(replacing(Sample.line1, 26..<27, with: "O"))
         let file = try ElementSets.read([Sample.name, bad, Sample.line2].joined(separator: "\n"), as: .tle)
