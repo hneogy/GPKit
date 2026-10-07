@@ -1,0 +1,8 @@
+.build/
+.swiftpm/
+*.xcodeproj
+DerivedData/
+.DS_Store
+
+# full gpconf reports: an item's detail can quote provider values. The summaries in conformance/ are what is kept.
+gpconf-report*.json

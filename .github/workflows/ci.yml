@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: build, test, gpconf (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-26, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: swift --version
+
+      - name: Build
+        run: swift build
+
+      - name: Unit tests
+        run: swift test
+
+      # gpconf runs offline here. It is never fetched for in CI: a hosted runner's address is shared, and the
+      # corpus asks that its fetch not run in a loop or in CI. The cases that run from files shipped with the
+      # corpus are exercised; the ones that need provider files report not-fetched, which the check expects.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install gpconf
+        run: python -m pip install gpconf==0.6.1
+
+      - name: gpconf, offline
+        run: |
+          adapter="$PWD/.build/debug/gpkit-gpconf"
+          status=0
+          gpconf run --no-fetch-hint \
+            --cmd "'$adapter' parse {fmt}" \
+            --vectors-cmd "'$adapter' vectors" \
+            --write-cmd "'$adapter' write" \
+            --json gpconf-report.json || status=$?
+          # 0: no case failed. 1: a case failed, and the check below names it. Anything else: nothing could run.
+          if [ "$status" -gt 1 ]; then exit "$status"; fi
+
+      - name: The bar
+        run: python tools/check_gpconf.py gpconf-report.json

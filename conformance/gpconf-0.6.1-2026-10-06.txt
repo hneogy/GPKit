@@ -1,0 +1,30 @@
+GPKit against gpconf: the full run, from a copy of the corpus that holds its provider files (the maintainer's).
+Run on 2026-10-06, macOS 27.0.1 arm64, Apple Swift version 6.4, debug build.
+Statuses and counts only; the full report is not kept here, since an item's detail can quote provider values.
+
+gpconf 0.6.1, corpus 0.6.1
+  epoch-year-19xx                          pass
+  baseline-iss-five-formats                pass
+  six-digit-omm-saramago                   pass
+  tle-omits-six-digit-objects              pass
+  analyst-objects                          pass
+  nine-digit-supgp-launch-nominals         pass
+  supgp-celestrak-classification-c         pass
+  bstar-and-derivative-forms               pass
+  satcat-70000-cutoff                      not-exercised
+  csv-json-omitted-mandatory-fields        pass
+  mean-motion-derivative-convention        pass
+  tle-vs-omm-precision-loss                pass
+  omm-xml-schema                           pass
+  alpha5-encoding-vectors                  pass
+  alpha5-tle-derived                       pass
+  kvn-syntax-variants                      pass
+  tle-writer-alpha5                        pass
+  corrupt-input                            pass
+  cases 18, pass 17, pass-tolerance 0, fail 0, skip 0, not-fetched 0, not-available 0, not-exercised 1
+  gate, this month's launches, tle: 256 of 256 loaded, 0 refused, 0 misidentified, 0 dropped
+  gate, this month's launches, csv: 256 of 256 loaded, 0 refused, 0 misidentified, 0 dropped
+met: every case passes but the data check, which runs no parser
+
+items: info 89, not-exercised 1, pass 309; passes within tolerance: 0
+report SHA-256: fa4fffd23e9b169ccf9e80fade9d8dd1f0346ab671530845028aa2060f0aef6f
