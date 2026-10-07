@@ -12,9 +12,13 @@ public struct Observer: Sendable, Hashable {
     public var latitude: Double
     /// Longitude, degrees, east positive.
     public var longitude: Double
-    /// Height above the ellipsoid, metres.
+    /// Height above the ellipsoid, in metres. (A satellite's `GeodeticPosition.altitude` is in kilometres.)
     public var height: Double
 
+    /// - Parameters:
+    ///   - latitude: Geodetic latitude, degrees, north positive.
+    ///   - longitude: Degrees, east positive.
+    ///   - height: Metres above the WGS-84 ellipsoid. The default is on it.
     public init(latitude: Double, longitude: Double, height: Double = 0) {
         self.latitude = latitude
         self.longitude = longitude
@@ -38,9 +42,13 @@ public struct GeodeticPosition: Sendable, Hashable {
     public var latitude: Double
     /// Longitude, degrees, east positive: above -180, up to 180.
     public var longitude: Double
-    /// Height above the ellipsoid, kilometres.
+    /// Height above the ellipsoid, in kilometres. (An `Observer`'s `height` is in metres.)
     public var altitude: Double
 
+    /// - Parameters:
+    ///   - latitude: Geodetic latitude, degrees, north positive.
+    ///   - longitude: Degrees, east positive.
+    ///   - altitude: Kilometres above the WGS-84 ellipsoid.
     public init(latitude: Double, longitude: Double, altitude: Double) {
         self.latitude = latitude
         self.longitude = longitude
@@ -58,12 +66,13 @@ public struct Look: Sendable, Hashable {
     public var azimuth: Double
     /// Degrees above the horizon; negative below it.
     public var elevation: Double
-    /// Kilometres.
+    /// The distance from the place to the satellite, in kilometres.
     public var range: Double
-    /// Kilometres per second: positive while the satellite draws away, negative while it approaches.
+    /// How fast that distance is changing, in kilometres per second: positive while the satellite draws away,
+    /// negative while it approaches.
     public var rangeRate: Double
 
-    /// Kilometres per second.
+    /// The speed of light, in kilometres per second.
     public static let speedOfLight = 299_792.458
 
     /// The frequency at which a signal the satellite sends on `transmitted` arrives here, in the unit given: higher
@@ -158,8 +167,9 @@ extension Propagator {
         Frames.look(from: observer, to: try earthFixed(minutes: minutes, ut1LessUTC: ut1LessUTC))
     }
 
-    /// The point of the ellipsoid beneath the satellite, and its height above that point, at an instant of UTC:
-    /// where to draw it on a map. Asked for at a run of instants, it is the ground track.
+    /// The point of the ellipsoid beneath the satellite, in degrees, and its height above that point, in
+    /// kilometres, at an instant of UTC: where to draw it on a map. Asked for at a run of instants, it is the
+    /// ground track.
     public func position(at time: Epoch) throws(PropagationFailure) -> GeodeticPosition {
         try position(minutes: time.seconds(since: elementSet.epoch) / 60.0)
     }

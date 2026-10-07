@@ -21,6 +21,8 @@ most watches. The library is plain Swift: one file bridges to Foundation's `Date
 Foundation. CI builds and tests it on macOS and Linux, builds it for iOS, tvOS and visionOS, and checks that the
 core compiles with no Foundation.
 
+Built with AI assistance (Claude); every result is checked against gpconf, the C++ reference and Skyfield.
+
 ## Installing
 
 ```swift
@@ -157,7 +159,7 @@ its bar. The full run is made before a release, from a copy of the corpus that h
 let propagator = try Propagator(set)                        // refuses an element set that is not for SGP4
 
 let state = try propagator.state(at: time)                  // time is an Epoch, UTC
-state.position                                              // kilometres, TEME
+state.position                                              // kilometres from the Earth's centre, TEME
 state.velocity                                              // kilometres per second
 
 try propagator.state(minutesFromEpoch: 90)                  // or by minutes from the element set's epoch
@@ -166,6 +168,9 @@ let beneath = try propagator.position(at: time)             // the point of the 
 beneath.latitude; beneath.longitude                         // degrees, north and east positive: where it is on a map
 beneath.altitude                                            // kilometres above that point
 ```
+
+Distances are in kilometres and speeds in kilometres per second, with one exception: an `Observer`'s `height` is
+in metres.
 
 `Propagator` is SGP4: a port to Swift of the propagation routines of David Vallado's `SGP4.cpp`, as CelesTrak
 publishes it. It is a value. Making one does the initialisation, and every call after that is independent of the
@@ -182,7 +187,7 @@ An `Epoch` is UTC. `Epoch(date)` and `epoch.date` go to and from Foundation's `D
 ## Passes and Doppler
 
 ```swift
-let home = Observer(latitude: 40.0, longitude: -75.0, height: 100)       // degrees, degrees, metres
+let home = Observer(latitude: 40.0, longitude: -75.0, height: 100)       // degrees, degrees, and a height in metres
 
 let passes = propagator.passes(over: home, from: now, for: .seconds(86_400))   // the next day, above the horizon
 for pass in passes {
@@ -194,7 +199,7 @@ passes.failure                          // nil when the whole day was searched
 
 let look = try propagator.look(from: home, at: now)
 look.azimuth; look.elevation            // where to point
-look.range                              // kilometres
+look.range                              // kilometres from the place to the satellite
 look.rangeRate                          // kilometres per second, positive while it draws away
 look.received(from: 437_000_000)        // what to tune a receiver to, for a downlink on 437 MHz
 look.transmit(toBeReceivedAt: 145_900_000)   // what to tune a transmitter to, for an uplink on 145.9 MHz

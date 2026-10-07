@@ -1,7 +1,11 @@
-/// A point or a rate in three dimensions.
+/// A point or a rate in three dimensions, in the unit of what it holds: kilometres for a position, kilometres per
+/// second for a velocity.
 public struct Vector: Sendable, Hashable {
+    /// The first component: kilometres in a position, kilometres per second in a velocity.
     public var x: Double
+    /// The second component: kilometres in a position, kilometres per second in a velocity.
     public var y: Double
+    /// The third component: kilometres in a position, kilometres per second in a velocity.
     public var z: Double
 
     public init(x: Double, y: Double, z: Double) {
@@ -10,16 +14,16 @@ public struct Vector: Sendable, Hashable {
         self.z = z
     }
 
-    /// The length.
+    /// The length: kilometres for a position, kilometres per second for a velocity.
     public var magnitude: Double { (x * x + y * y + z * z).squareRoot() }
 }
 
 /// Where a satellite is and how it is moving, in the frame SGP4 works in: true equator, mean equinox of the
 /// instant (TEME), with the Earth's centre at the origin.
 public struct StateVector: Sendable, Hashable {
-    /// Kilometres.
+    /// The position, in kilometres from the Earth's centre.
     public var position: Vector
-    /// Kilometres per second.
+    /// The velocity, in kilometres per second.
     public var velocity: Vector
 }
 
