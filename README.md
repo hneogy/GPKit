@@ -5,9 +5,8 @@ GPKit reads GP data — OMM and TLE, including six-digit catalog numbers — and
 It is a Swift package with no dependencies, for macOS and iOS. The library is plain Swift and does not import
 Foundation, so it builds with the Command Line Tools alone. CI is set to build and test it on macOS and on Linux.
 
-**Status: readers and a TLE writer, with SGP4 under way.** The propagator is ported and checked against the C++ it
-was ported from (see "SGP4" below), and has no public interface yet. Pass prediction comes after it. Nothing is
-released and the interface may still change.
+**Status: readers, a TLE writer, SGP4 and pass prediction with Doppler.** Nothing is released. The interface for
+reading is settled; the one for propagation and passes is a proposal and may still change.
 
 ## Reading
 
@@ -126,29 +125,95 @@ Thirteen of the cases read provider files, which the corpus fetches once to your
 never fetches: it runs the five cases that need no provider file, and `tools/check_gpconf.py` without `--gate` is
 its bar. The full run is made before a release, from a copy of the corpus that holds its files.
 
-## SGP4
+## Propagating
 
-`Sources/GPKit/SGP4Core.swift` is a port to Swift of the propagation routines of David Vallado's `SGP4.cpp`, as
-CelesTrak publishes it: a transcription, with the C++'s names, order and arithmetic. It is internal for now.
+```swift
+let propagator = try Propagator(set)                        // refuses an element set that is not for SGP4
 
-The tests compile that C++, unmodified, and run both through the 33 verification element sets published with
-"Revisiting Spacetrack Report #3", at every time of every case: 2,349 steps, near-Earth and deep-space orbits, the
-half-day and one-day resonances, and the runs that end in each error.
+let state = try propagator.state(at: time)                  // time is an Epoch, UTC
+state.position                                              // kilometres, TEME
+state.velocity                                              // kilometres per second
 
-- Given the same inputs, the port and the C++ give the same position and velocity to the last bit at every step,
-  and the same error code, with each of the three sets of constants and in both operation modes.
-- Given the same two lines, GPKit's reader and the C++'s make the same doubles of every element but the epoch.
-  GPKit keeps the epoch field exactly; the C++'s reader takes it through a calendar date and back and comes out up
-  to twenty microseconds away. At the C++'s epoch the two agree to the bit. At the epoch the line states, GPKit
-  differs by what that is worth: under half a millimetre for 32 cases, and 4.1 mm for one, a deep-space orbit of
-  eccentricity 0.97.
+try propagator.state(minutesFromEpoch: 90)                  // or by minutes from the element set's epoch
+```
 
-A second check is made where a gpconf corpus with its provider files is at hand: every element set of the corpus,
+`Propagator` is SGP4: a port to Swift of the propagation routines of David Vallado's `SGP4.cpp`, as CelesTrak
+publishes it. It is a value. Making one does the initialisation, and every call after that is independent of the
+calls before it, so one can be shared between tasks. A time it cannot be propagated to, a decayed satellite's for
+one, is a `PropagationFailure` saying which of SGP4's conditions stopped it.
+
+An `Epoch` is UTC. `Epoch(unixTime:)` and `unixTime` go to and from Foundation's `Date.timeIntervalSince1970`,
+and `advanced(by:)` and `seconds(since:)` move and measure in seconds.
+
+## Passes and Doppler
+
+```swift
+let home = Observer(latitude: 40.0, longitude: -75.0, height: 100)       // degrees, degrees, metres
+
+for pass in try propagator.passes(over: home, from: now, for: 86_400) {   // the next day, above the horizon
+    pass.rise?.time                     // nil when the satellite was already up at the start
+    pass.culmination.look.elevation     // degrees, at its highest
+    pass.set?.look.azimuth              // degrees clockwise from north; nil when still up at the end
+}
+
+let look = try propagator.look(from: home, at: now)
+look.azimuth; look.elevation            // where to point
+look.range                              // kilometres
+look.rangeRate                          // kilometres per second, positive while it draws away
+look.received(from: 437_000_000)        // what to tune a receiver to, for a downlink on 437 MHz
+look.transmit(toBeReceivedAt: 145_900_000)   // what to tune a transmitter to, for an uplink on 145.9 MHz
+```
+
+`passes(over:from:for:above:)` takes a minimum elevation, the horizon by default. The elevation is sampled every 30
+seconds, each crossing is narrowed to a millisecond, and a peak between two samples is looked into, so a pass
+shorter than the step is found too.
+
+What it does not do, each a choice that can be changed:
+
+- **No refraction.** Angles are geometric. Near the horizon a satellite is heard a little before the elevation
+  here reaches zero.
+- **UT1 is taken to be UTC**, which it is to within 0.9 s, and the motion of the pole is left out. Together they
+  move a place on the ground by under half a kilometre, which is hundredths of a degree for a low satellite.
+- **One culmination a pass.** In a long pass of a high, eccentric orbit the elevation can peak twice; the highest
+  peak is given. For a pass cut off by the start or the end of the search, the culmination is the highest point
+  inside the search.
+- **A search stops at a failure.** If the element set cannot be propagated to some time in the span, the call
+  throws and gives no passes.
+
+## How SGP4 and the passes are checked
+
+**Against the C++ it is ported from.** The tests compile Vallado's `SGP4.cpp`, unmodified, and run it and the port
+through the 33 verification element sets published with "Revisiting Spacetrack Report #3", at every time of every
+case: 2,349 steps, near-Earth and deep-space orbits, the half-day and one-day resonances, and the runs that end in
+each error. Given the same inputs, the port and the C++ give the same position and velocity **to the last bit** at
+every step, and the same error code, with each of the three sets of constants and in both of the C++'s operation
+modes, on macOS (arm64) and on Linux (x86-64).
+
+**The epoch.** GPKit keeps an element set's epoch exactly. The C++'s own reader does not: it takes a TLE's epoch
+field through a month, a day, an hour, a minute and a second and back to a Julian date, and comes out up to 20
+microseconds from what the line states. Of every other element the two readers make the same doubles. So the
+comparison with the C++ is made at the C++ reader's epoch, where GPKit, reading the same two lines, is identical to
+it to the bit at all 2,349 steps. At the epoch the line states, GPKit's positions differ from the C++ reader's by
+what its drift is worth: under half a millimetre for 32 of the 33 cases, and 4.1 mm for one, case 23333, a
+deep-space orbit of eccentricity 0.97.
+
+**Against python-sgp4**, where a gpconf corpus with its provider files is at hand: every element set of the corpus,
 read by GPKit and by python-sgp4 each with its own reader, propagated to six times from the epoch to a week out.
-`tools/python_sgp4_reference.py` makes python-sgp4's side and the test `CrossCheckTests` compares; the last run's
-summary is in [`conformance/`](conformance/). CI has no corpus and skips it.
+`tools/python_sgp4_reference.py` makes python-sgp4's side and the test `CrossCheckTests` compares. CI has no corpus
+and skips it. The run of 2026-10-06, against python-sgp4 2.27: 14,411 element sets, the largest difference 0.0024 mm.
 
-The C++ and the verification cases are in the repository for the tests only; [NOTICE](NOTICE) says where each comes
+**Against Skyfield**, for passes: five element sets that are already public (the Space Station's first, an old
+rocket body, a fragment in an eccentric orbit, an object numbered 100000 through an Alpha-5 line, and a Molniya)
+over one place for two days each. `tools/skyfield_passes_reference.py` writes Skyfield's rises, culminations and
+sets to a file the tests read, so CI makes this comparison. With Skyfield 1.55: 49 passes, pass for pass; rises and
+sets within 0.17 s and culminations within 0.35 s, where Skyfield's own search stops within half a second; and at
+329 of Skyfield's times GPKit's elevation is within 0.005 degrees of its, the azimuth within 0.011 degrees on the
+sky, the range within 85 m and the range rate within 1.3 m/s, which is under 2 Hz at 437 MHz. All of that is UT1
+less UTC, which Skyfield applies and GPKit does not: with the Earth turned by Skyfield's own value for each instant
+(up to 0.24 s at these dates) the two agree to a millionth of a degree, to 2 cm and to 0.0002 m/s.
+
+The summaries of the last two are in [`conformance/`](conformance/). The C++, the verification cases and the
+element sets of the pass comparison are in the repository for the tests only; [NOTICE](NOTICE) says where each comes
 from and on what terms.
 
 ## Building and testing
@@ -168,9 +233,10 @@ swift test -Xswiftc -plugin-path -Xswiftc /Library/Developer/CommandLineTools/us
 ```
 
 The public interface, as the compiler states it, is in [`docs/public-api.swift`](docs/public-api.swift);
-`tools/public-api.sh` writes it.
+`tools/public-api.sh` writes it. `Propagator`, `Observer`, `Look`, `Pass`, the vector types and the arithmetic on
+`Epoch` are the proposal; the rest is settled.
 
 ## Licence
 
-MIT. See [LICENSE](LICENSE), and [NOTICE](NOTICE) for the SGP4 source the propagator is ported from and the
-verification cases the tests use.
+MIT. See [LICENSE](LICENSE), and [NOTICE](NOTICE) for the SGP4 source the propagator is ported from and for what
+the tests use from elsewhere.

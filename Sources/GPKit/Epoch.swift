@@ -159,6 +159,94 @@ public struct Epoch: Sendable, Hashable, Comparable, CustomStringConvertible {
             : a.attosecond < b.attosecond
     }
 
+    // MARK: - As a count
+
+    /// Whole days from 1970 January 1 to the date (Howard Hinnant's days_from_civil).
+    var unixDay: Int {
+        let y = month <= 2 ? year - 1 : year
+        let era = (y >= 0 ? y : y - 399) / 400
+        let yoe = y - era * 400
+        let doy = (153 * (month > 2 ? month - 3 : month + 9) + 2) / 5 + day - 1
+        let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy
+        return era * 146_097 + doe - 719_468
+    }
+
+    /// Seconds since the day began, with the fraction. A leap second runs from 86,400 to 86,401.
+    var secondOfDay: Double {
+        Double((hour * 60 + minute) * 60 + second) + Double(attosecond) / 1.0e18
+    }
+
+    /// Days from 1950 January 0.0 UTC, the count SGP4 keeps its epoch in: 1949 December 31 at 00:00 is 0.
+    var daysSince1950: Double {
+        Double(unixDay + 7_306) + secondOfDay / 86_400.0
+    }
+
+    /// The Julian date, UTC.
+    var julianDate: Double {
+        daysSince1950 + 2_433_281.5
+    }
+
+    /// Seconds from 1970 January 1 at 00:00 UTC, every day counted as 86,400 seconds: Unix time, which is what
+    /// Foundation's `Date.timeIntervalSince1970` holds. A leap second has the count of the second after it.
+    public var unixTime: Double {
+        Double(unixDay) * 86_400.0 + secondOfDay
+    }
+
+    /// The instant a count of Unix time stands for, to the microsecond.
+    public init(unixTime: Double) throws(Refusal) {
+        guard unixTime.isFinite, abs(unixTime) < 2.5e11 else {
+            throw Refusal(.notAnEpoch, "\(unixTime) seconds from 1970 is not a date this type holds", field: "EPOCH")
+        }
+        let day = (unixTime / 86_400.0).rounded(.down)
+        let microseconds = ((unixTime - day * 86_400.0) * 1.0e6).rounded()
+        self.init(unixDay: Int(day), microsecondOfDay: Int(microseconds))
+    }
+
+    /// The seconds from `other` to this instant, every day counted as 86,400 seconds. The days are subtracted as
+    /// whole numbers, so two instants years apart still differ to well under a microsecond.
+    public func seconds(since other: Epoch) -> Double {
+        Double(unixDay - other.unixDay) * 86_400.0 + (secondOfDay - other.secondOfDay)
+    }
+
+    /// This instant moved by a number of seconds, to the microsecond.
+    public func advanced(by seconds: Double) throws(Refusal) -> Epoch {
+        guard seconds.isFinite, abs(seconds) < 2.5e11 else {
+            throw Refusal(.notAnEpoch, "\(seconds) seconds is not an interval this type moves by", field: "EPOCH")
+        }
+        let total = secondOfDay + seconds
+        let days = (total / 86_400.0).rounded(.down)
+        let moved = Epoch(unixDay: unixDay + Int(days), microsecondOfDay: Int(((total - days * 86_400.0) * 1.0e6).rounded()))
+        guard (1...9999).contains(moved.year) else {
+            throw Refusal(.notAnEpoch, "\(seconds) seconds from \(self) is outside the years 1 to 9999", field: "EPOCH")
+        }
+        return moved
+    }
+
+    /// A day counted from 1970 January 1 and a number of microseconds into it, which may run past the day's end.
+    init(unixDay: Int, microsecondOfDay: Int) {
+        var day = unixDay + microsecondOfDay / 86_400_000_000
+        var micro = microsecondOfDay % 86_400_000_000
+        if micro < 0 {
+            micro += 86_400_000_000
+            day -= 1
+        }
+        // Howard Hinnant's civil_from_days
+        let z = day + 719_468
+        let era = (z >= 0 ? z : z - 146_096) / 146_097
+        let doe = z - era * 146_097
+        let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365
+        let doy = doe - (365 * yoe + yoe / 4 - yoe / 100)
+        let mp = (5 * doy + 2) / 153
+        let m = mp < 10 ? mp + 3 : mp - 9
+        self.year = (m <= 2 ? 1 : 0) + yoe + era * 400
+        self.month = m
+        self.day = doy - (153 * mp + 2) / 5 + 1
+        self.hour = micro / 3_600_000_000
+        self.minute = micro / 60_000_000 % 60
+        self.second = micro / 1_000_000 % 60
+        self.attosecond = UInt64(micro % 1_000_000) * 1_000_000_000_000
+    }
+
     static func isLeap(_ year: Int) -> Bool {
         year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
     }

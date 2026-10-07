@@ -77,6 +77,10 @@ public struct Epoch : Sendable, Hashable, Comparable, CustomStringConvertible {
   public var nanosecond: Int { get }
   public var description: String { get }
   public static func < (a: Epoch, b: Epoch) -> Bool
+  public var unixTime: Double { get }
+  public init(unixTime: Double) throws(Refusal)
+  public func seconds(since other: Epoch) -> Double
+  public func advanced(by seconds: Double) throws(Refusal) -> Epoch
 }
 public struct ExactDecimal : Sendable, Hashable, CustomStringConvertible, LosslessStringConvertible {
   public let isNegative: Bool
@@ -90,6 +94,73 @@ public struct ExactDecimal : Sendable, Hashable, CustomStringConvertible, Lossle
 }
 public enum OMM {
   public static func catalogNumber(_ text: String) throws(Refusal) -> Int
+}
+public struct Observer : Sendable, Hashable {
+  public var latitude: Double
+  public var longitude: Double
+  public var height: Double
+  public init(latitude: Double, longitude: Double, height: Double = 0)
+}
+public struct Look : Sendable, Hashable {
+  public var azimuth: Double
+  public var elevation: Double
+  public var range: Double
+  public var rangeRate: Double
+  public static let speedOfLight: Double
+  public func received(from transmitted: Double) -> Double
+  public func transmit(toBeReceivedAt received: Double) -> Double
+}
+extension Propagator {
+  public func look(from observer: Observer, at time: Epoch) throws(PropagationFailure) -> Look
+}
+public struct Pass : Sendable, Hashable {
+  public struct Event : Sendable, Hashable {
+    public var time: Epoch
+    public var look: Look
+  }
+  public var rise: Pass.Event?
+  public var culmination: Pass.Event
+  public var set: Pass.Event?
+}
+extension Propagator {
+  public func passes(over observer: Observer, from start: Epoch, for duration: Double, above minimumElevation: Double = 0) throws(PropagationFailure) -> [Pass]
+}
+public struct Vector : Sendable, Hashable {
+  public var x: Double
+  public var y: Double
+  public var z: Double
+  public init(x: Double, y: Double, z: Double)
+  public var magnitude: Double { get }
+}
+public struct StateVector : Sendable, Hashable {
+  public var position: Vector
+  public var velocity: Vector
+}
+public struct PropagationFailure : Error, Sendable, Hashable, CustomStringConvertible {
+  public enum Kind : String, Sendable, Hashable, CaseIterable {
+    case notSGP4
+    case eccentricity
+    case meanMotion
+    case perturbedEccentricity
+    case semiLatusRectum
+    case decayed
+    case time
+  }
+  public let kind: PropagationFailure.Kind
+  public let minutesFromEpoch: Double?
+  public var description: String { get }
+}
+public struct Propagator : Sendable {
+  public enum Gravity : Sendable, Hashable {
+    case wgs72
+    case wgs84
+    case wgs72old
+  }
+  public let elementSet: ElementSet
+  public let gravity: Propagator.Gravity
+  public init(_ elementSet: ElementSet, gravity: Propagator.Gravity = .wgs72) throws(PropagationFailure)
+  public func state(minutesFromEpoch minutes: Double) throws(PropagationFailure) -> StateVector
+  public func state(at time: Epoch) throws(PropagationFailure) -> StateVector
 }
 public struct Refusal : Error, Sendable, Hashable, CustomStringConvertible {
   public enum Kind : String, Sendable, Hashable, CaseIterable {

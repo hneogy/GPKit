@@ -1256,21 +1256,6 @@ struct SGP4Core: Sendable {
 
 // MARK: - From an element set
 
-extension Epoch {
-    /// Days from 1950 January 0.0 UTC, the count SGP4 keeps its epoch in: 1949 December 31 at 00:00 is 0.
-    var daysSince1950: Double {
-        // days from 1970-01-01 to the date (Howard Hinnant's days_from_civil), and 1949-12-31 is 7306 days before
-        let y = month <= 2 ? year - 1 : year
-        let era = (y >= 0 ? y : y - 399) / 400
-        let yoe = y - era * 400
-        let doy = (153 * (month > 2 ? month - 3 : month + 9) + 2) / 5 + day - 1
-        let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy
-        let days = era * 146_097 + doe - 719_468 + 7_306
-        let seconds = Double((hour * 60 + minute) * 60 + second) + Double(attosecond) / 1.0e18
-        return Double(days) + seconds / 86_400.0
-    }
-}
-
 extension SGP4Core {
     /// The propagation of an element set, with the conversions the C++'s reader makes: degrees to radians,
     /// revolutions per day to radians per minute. The epoch is the set's own, exactly, unless `epoch` gives
