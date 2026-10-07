@@ -21,7 +21,8 @@ most watches. The library is plain Swift: one file bridges to Foundation's `Date
 Foundation. CI builds and tests it on macOS and Linux, builds it for iOS, tvOS and visionOS, and checks that the
 core compiles with no Foundation.
 
-Built with AI assistance (Claude); every result is checked against gpconf, the C++ reference and Skyfield.
+Built with AI assistance (Claude); reading, propagation and pass prediction are checked against gpconf, the C++
+reference and Skyfield.
 
 ## Installing
 
