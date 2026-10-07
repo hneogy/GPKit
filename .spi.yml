@@ -6,7 +6,5 @@ builder:
       scheme: GPKit
     - platform: tvos
       scheme: GPKit
-    - platform: watchos
-      scheme: GPKit
     - platform: visionos
       scheme: GPKit

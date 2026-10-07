@@ -16,9 +16,10 @@ request of its own. It reads what it is given.
 
 GPKit is a Swift package with no dependencies: readers for OMM (CSV, JSON, XML, KVN) and TLE, a TLE writer, SGP4,
 and pass prediction with look angles and Doppler. It is for macOS 13 and iOS 16 and later, and builds for tvOS,
-watchOS, visionOS and Linux as well. The library is plain Swift: one file bridges to Foundation's `Date`, and the
-rest builds without Foundation. CI builds and tests it on macOS and Linux, builds it for the other platforms, and
-checks that the core compiles with no Foundation.
+visionOS and Linux as well. It does not build for watchOS: it counts microseconds in `Int`, which is 32 bits wide on
+most watches. The library is plain Swift: one file bridges to Foundation's `Date`, and the rest builds without
+Foundation. CI builds and tests it on macOS and Linux, builds it for iOS, tvOS and visionOS, and checks that the
+core compiles with no Foundation.
 
 ## Installing
 
