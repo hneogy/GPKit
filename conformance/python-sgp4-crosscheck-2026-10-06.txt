@@ -1,0 +1,14 @@
+GPKit's SGP4 against python-sgp4, over the element sets of a gpconf corpus that holds its provider files (the maintainer's).
+Run on 2026-10-06, macOS 27.0.1 arm64, Apple Swift version 6.4, debug build; gpconf corpus 0.6.1.
+Each file read by each library's own reader. Counts and largest differences only: no position and no element is kept here.
+
+python-sgp4 2.27 (accelerated: True): 47 files, 14411 element sets, 6 times each; 30 given under number 0; 0 files it could not read
+python-sgp4 2.27 against GPKit over the corpus, times [0.0, 90.0, 720.0, 1440.0, 4320.0, 10080.0] minutes from each epoch:
+  csv: 13 files, 12054 element sets, 72324 states; largest difference 0.0023866277842898853 mm at 10080.0 min; 0 states over a millimetre; error codes differ at 0
+  json: 11 files, 576 element sets, 3456 states; largest difference 0.0016963213056442328 mm at 10080.0 min; 0 states over a millimetre; error codes differ at 0
+  tle: 15 files, 1208 element sets, 7248 states; largest difference 0.001127773430198431 mm at 10080.0 min; 0 states over a millimetre; error codes differ at 0
+  xml: 8 files, 573 element sets, 3438 states; largest difference 0.0016963213056442328 mm at 10080.0 min; 0 states over a millimetre; error codes differ at 0
+✔ Test run with 1 test in 1 suite passed after 1.008 seconds.
+
+KVN files are not in it: python-sgp4 has no KVN reader. The 30 element sets numbered above 339999 were given to
+python-sgp4 under number 0, since it refuses the number and propagation does not use it.

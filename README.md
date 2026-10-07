@@ -143,6 +143,11 @@ half-day and one-day resonances, and the runs that end in each error.
   differs by what that is worth: under half a millimetre for 32 cases, and 4.1 mm for one, a deep-space orbit of
   eccentricity 0.97.
 
+A second check is made where a gpconf corpus with its provider files is at hand: every element set of the corpus,
+read by GPKit and by python-sgp4 each with its own reader, propagated to six times from the epoch to a week out.
+`tools/python_sgp4_reference.py` makes python-sgp4's side and the test `CrossCheckTests` compares; the last run's
+summary is in [`conformance/`](conformance/). CI has no corpus and skips it.
+
 The C++ and the verification cases are in the repository for the tests only; [NOTICE](NOTICE) says where each comes
 from and on what terms.
 
