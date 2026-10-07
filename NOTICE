@@ -1,0 +1,53 @@
+GPKit
+Copyright (c) 2026 NEOGY LLC
+
+GPKit is released under the MIT licence (see LICENSE). Two things in this repository come from elsewhere.
+
+
+1. SGP4
+
+Sources/GPKit/SGP4Core.swift is a port to Swift of the propagation routines of David Vallado's SGP4.cpp (sgp4init,
+sgp4, initl, dscom, dpper, dsinit, dspace, getgravconst and gstime_SGP4), and Tests/SGP4Oracle/vallado/ holds that
+file and its header unmodified, compiled by the tests alone, for the port to be compared with:
+
+    CelesTrak/fundamentals-of-astrodynamics, software/cpp/SGP4/SGP4/SGP4.cpp and SGP4.h
+    https://github.com/CelesTrak/fundamentals-of-astrodynamics
+    commit 49df0479c950 ("SGP4 Version 2025-12-30")
+    SHA-256  SGP4.cpp  7e984e29a66f75a2b5ad3881f0e5dc0f8fbf9ee8de675ee39be1c9092bc3f183
+             SGP4.h    0563e6e8027607452e451d2342da96e5b376a1c119675c40940866f2e04c0bd6
+
+That repository is licensed under the GNU Affero General Public License v3.0, with one exception, stated in its
+NOTICE file, which reads in full at that commit:
+
+    NOTICE — Licensing
+
+    The SGP4 C++ implementation (software/cpp/SGP4/) is derived from the code
+    published in:
+
+        Vallado, D. A., Crawford, P., Hujsak, R., & Kelso, T. S. (2006).
+        Revisiting Spacetrack Report #3: Rev 1. AIAA 2006-6753.
+        American Institute of Aeronautics and Astronautics.
+
+    That original code was released without restriction for any use. The SGP4
+    C++ source retains those original unrestricted terms.
+
+    All other code in this repository — including the Python package
+    (software/python/), MATLAB, and C# implementations — is licensed under the
+    GNU Affero General Public License v3.0. See the LICENSE file for the full
+    text.
+
+The port was made from SGP4.cpp alone. Nothing else of that repository was read for it or is used here.
+
+
+2. The SGP4 verification element sets
+
+Tests/GPKitTests/Resources/SGP4-VER.TLE is the set of verification cases published with the paper above. The copy
+here is the one python-sgp4 distributes, unmodified:
+
+    brandon-rhodes/python-sgp4, sgp4/SGP4-VER.TLE
+    https://github.com/brandon-rhodes/python-sgp4
+    commit 8126f773923c2902719d45aab8bdb5cce86cf39d
+    SHA-256  d246d1d9d768ace445a38a965713fa9ba52d80fd8a41a0502ff83d7acffe2881
+
+python-sgp4 is released under the MIT licence, Copyright (c) 2012-2016 Brandon Rhodes. The file is used by the tests
+and is no part of the library.

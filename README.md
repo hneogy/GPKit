@@ -5,7 +5,8 @@ GPKit reads GP data — OMM and TLE, including six-digit catalog numbers — and
 It is a Swift package with no dependencies, for macOS and iOS. The library is plain Swift and does not import
 Foundation, so it builds with the Command Line Tools alone. CI is set to build and test it on macOS and on Linux.
 
-**Status: readers and a TLE writer.** There is no propagation yet; SGP4 and pass prediction come next. Nothing is
+**Status: readers and a TLE writer, with SGP4 under way.** The propagator is ported and checked against the C++ it
+was ported from (see "SGP4" below), and has no public interface yet. Pass prediction comes after it. Nothing is
 released and the interface may still change.
 
 ## Reading
@@ -125,6 +126,26 @@ Thirteen of the cases read provider files, which the corpus fetches once to your
 never fetches: it runs the five cases that need no provider file, and `tools/check_gpconf.py` without `--gate` is
 its bar. The full run is made before a release, from a copy of the corpus that holds its files.
 
+## SGP4
+
+`Sources/GPKit/SGP4Core.swift` is a port to Swift of the propagation routines of David Vallado's `SGP4.cpp`, as
+CelesTrak publishes it: a transcription, with the C++'s names, order and arithmetic. It is internal for now.
+
+The tests compile that C++, unmodified, and run both through the 33 verification element sets published with
+"Revisiting Spacetrack Report #3", at every time of every case: 2,349 steps, near-Earth and deep-space orbits, the
+half-day and one-day resonances, and the runs that end in each error.
+
+- Given the same inputs, the port and the C++ give the same position and velocity to the last bit at every step,
+  and the same error code, with each of the three sets of constants and in both operation modes.
+- Given the same two lines, GPKit's reader and the C++'s make the same doubles of every element but the epoch.
+  GPKit keeps the epoch field exactly; the C++'s reader takes it through a calendar date and back and comes out up
+  to twenty microseconds away. At the C++'s epoch the two agree to the bit. At the epoch the line states, GPKit
+  differs by what that is worth: under half a millimetre for 32 cases, and 4.1 mm for one, a deep-space orbit of
+  eccentricity 0.97.
+
+The C++ and the verification cases are in the repository for the tests only; [NOTICE](NOTICE) says where each comes
+from and on what terms.
+
 ## Building and testing
 
 ```bash
@@ -146,4 +167,5 @@ The public interface, as the compiler states it, is in [`docs/public-api.swift`]
 
 ## Licence
 
-MIT. See [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE), and [NOTICE](NOTICE) for the SGP4 source the propagator is ported from and the
+verification cases the tests use.

@@ -14,6 +14,9 @@ let package = Package(
         // The gpconf command adapter (docs/ADAPTERS.md of gp-omm-conformance). Not a product: it exists for the
         // conformance run in CI and on a developer's machine.
         .executableTarget(name: "gpkit-gpconf", dependencies: ["GPKit"], path: "Sources/gpconf-adapter"),
-        .testTarget(name: "GPKitTests", dependencies: ["GPKit"]),
-    ]
+        // Tests only: David Vallado's SGP4.cpp, compiled as it is, for GPKit's SGP4 to be compared with.
+        .target(name: "SGP4Oracle", path: "Tests/SGP4Oracle", exclude: ["vallado"]),
+        .testTarget(name: "GPKitTests", dependencies: ["GPKit", "SGP4Oracle"], resources: [.copy("Resources")]),
+    ],
+    cxxLanguageStandard: .cxx17
 )
