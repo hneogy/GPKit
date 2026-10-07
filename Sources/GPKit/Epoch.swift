@@ -194,12 +194,21 @@ public struct Epoch: Sendable, Hashable, Comparable, CustomStringConvertible {
 
     /// The instant a count of Unix time stands for, to the microsecond.
     public init(unixTime: Double) throws(Refusal) {
-        guard unixTime.isFinite, abs(unixTime) < 2.5e11 else {
-            throw Refusal(.notAnEpoch, "\(unixTime) seconds from 1970 is not a date this type holds", field: "EPOCH")
+        try self.init(seconds: unixTime, fromUnixDay: 0)
+    }
+
+    /// The instant a number of seconds after the start of a day counted from 1970 January 1, to the microsecond.
+    /// Counting from a day near the instant keeps the digits a count from 1970 would spend on the years between.
+    init(seconds: Double, fromUnixDay origin: Int) throws(Refusal) {
+        guard seconds.isFinite, abs(seconds) < 3.2e11 else {
+            throw Refusal(.notAnEpoch, "\(seconds) seconds is not a count to a date this type holds", field: "EPOCH")
         }
-        let day = (unixTime / 86_400.0).rounded(.down)
-        let microseconds = ((unixTime - day * 86_400.0) * 1.0e6).rounded()
-        self.init(unixDay: Int(day), microsecondOfDay: Int(microseconds))
+        let day = (seconds / 86_400.0).rounded(.down)
+        let moved = Epoch(unixDay: origin + Int(day), microsecondOfDay: Int(((seconds - day * 86_400.0) * 1.0e6).rounded()))
+        guard (1...9999).contains(moved.year) else {
+            throw Refusal(.notAnEpoch, "\(seconds) seconds is a count to a date outside the years 1 to 9999", field: "EPOCH")
+        }
+        self = moved
     }
 
     /// The seconds from `other` to this instant, every day counted as 86,400 seconds. The days are subtracted as
@@ -210,16 +219,14 @@ public struct Epoch: Sendable, Hashable, Comparable, CustomStringConvertible {
 
     /// This instant moved by a number of seconds, to the microsecond.
     public func advanced(by seconds: Double) throws(Refusal) -> Epoch {
-        guard seconds.isFinite, abs(seconds) < 2.5e11 else {
+        guard seconds.isFinite, abs(seconds) < 3.2e11 else {
             throw Refusal(.notAnEpoch, "\(seconds) seconds is not an interval this type moves by", field: "EPOCH")
         }
-        let total = secondOfDay + seconds
-        let days = (total / 86_400.0).rounded(.down)
-        let moved = Epoch(unixDay: unixDay + Int(days), microsecondOfDay: Int(((total - days * 86_400.0) * 1.0e6).rounded()))
-        guard (1...9999).contains(moved.year) else {
+        do throws(Refusal) {
+            return try Epoch(seconds: secondOfDay + seconds, fromUnixDay: unixDay)
+        } catch {
             throw Refusal(.notAnEpoch, "\(seconds) seconds from \(self) is outside the years 1 to 9999", field: "EPOCH")
         }
-        return moved
     }
 
     /// A day counted from 1970 January 1 and a number of microseconds into it, which may run past the day's end.

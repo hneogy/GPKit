@@ -1,5 +1,6 @@
-GPKit's pass predictions against Skyfield's, for five public element sets over one place, two days each.
-Run on 2026-10-06, macOS 27.0.1 arm64, Apple Swift version 6.4, debug build. The reference is
+GPKit's pass predictions, look angles and point beneath the satellite against Skyfield's, for five public element
+sets over one place, two days each.
+Run on 2026-10-07 (UTC), macOS 27.0.1 arm64, Apple Swift version 6.4, debug build, of the code released as 1.0.0. The reference is
 Tests/GPKitTests/Resources/skyfield-passes.json, which tools/skyfield_passes_reference.py wrote; CI makes the same comparison.
 
 passes, ISS (ZARYA): 12 passes as Skyfield has them; largest time difference 0.1126700000022538 s
@@ -9,7 +10,9 @@ passes, SARAMAGO: 9 passes as Skyfield has them; largest time difference 0.11986
 passes, MOLNIYA 2-14: 5 passes as Skyfield has them; largest time difference 0.3489869999975781 s
 passes against Skyfield 1.55: 5 element sets over 40.0, -75.0, 49 passes; 95 rises and sets within 0.16568700000061654 s, 47 culminations within 0.3489869999975781 s
 look against Skyfield at 329 of its times: elevation within 0.0043953764305726395 degrees, azimuth within 0.010047110759259991 degrees on the sky, range within 84.01415904108944 m, range rate within 1.2536044596018066 m/s
-look against Skyfield with the Earth turned by its UT1 less UTC (up to 0.23595621448490078 s here): elevation within 1.0076062721964263e-06 degrees, azimuth within 1.157257987438364e-06 degrees on the sky, range within 0.0171852975654474 m, range rate within 0.00013833620500502963 m/s
+look against Skyfield with the Earth turned by its UT1 less UTC (up to 0.23595621448490078 s here): elevation within 1.007606265090999e-06 degrees, azimuth within 1.157257987438364e-06 degrees on the sky, range within 0.0171852975654474 m, range rate within 0.00013833620500502963 m/s
+point beneath against Skyfield 1.55 at 329 of its times: latitude within 4.80449351414336e-08 degrees, longitude within 0.0009774555362769021 degrees on the ground, altitude within 0.0013691615095012821 m
+point beneath against Skyfield with the Earth turned by its UT1 less UTC: latitude within 4.804493158871992e-08 degrees, longitude within 1.978603789988196e-07 degrees on the ground, altitude within 0.0013691615095012821 m
 
 Skyfield gives every peak of the elevation as a culmination and GPKit the highest of a pass, and Skyfield gives no
 culmination for a pass cut off by the end of the search where GPKit gives the highest point inside it; the comparison

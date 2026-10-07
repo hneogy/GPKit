@@ -7,6 +7,11 @@ public enum Alpha5 {
   public static func decode(_ field: String) throws(Refusal) -> Int
   public static func encode(_ catalogNumber: Int) throws(Refusal) -> String
 }
+// only where Foundation can be imported (Sources/GPKit/Date.swift)
+extension Epoch {
+  public init(_ date: Foundation.Date) throws(Refusal)
+  public var date: Foundation.Date { get }
+}
 public struct ElementSet : Sendable, Hashable {
   public var catalogNumber: Int?
   public var objectName: String?
@@ -101,6 +106,12 @@ public struct Observer : Sendable, Hashable {
   public var height: Double
   public init(latitude: Double, longitude: Double, height: Double = 0)
 }
+public struct GeodeticPosition : Sendable, Hashable {
+  public var latitude: Double
+  public var longitude: Double
+  public var altitude: Double
+  public init(latitude: Double, longitude: Double, altitude: Double)
+}
 public struct Look : Sendable, Hashable {
   public var azimuth: Double
   public var elevation: Double
@@ -112,6 +123,7 @@ public struct Look : Sendable, Hashable {
 }
 extension Propagator {
   public func look(from observer: Observer, at time: Epoch) throws(PropagationFailure) -> Look
+  public func position(at time: Epoch) throws(PropagationFailure) -> GeodeticPosition
 }
 public struct Pass : Sendable, Hashable {
   public struct Event : Sendable, Hashable {
@@ -122,8 +134,19 @@ public struct Pass : Sendable, Hashable {
   public var culmination: Pass.Event
   public var set: Pass.Event?
 }
+public struct Passes : Sendable, Hashable, RandomAccessCollection {
+  public let failure: PropagationFailure?
+  public var startIndex: Int { get }
+  public var endIndex: Int { get }
+  public subscript(position: Int) -> Pass { get }
+  public typealias Element = Pass
+  public typealias Index = Int
+  public typealias Indices = Range<Int>
+  public typealias Iterator = IndexingIterator<Passes>
+  public typealias SubSequence = Slice<Passes>
+}
 extension Propagator {
-  public func passes(over observer: Observer, from start: Epoch, for duration: Double, above minimumElevation: Double = 0) throws(PropagationFailure) -> [Pass]
+  public func passes(over observer: Observer, from start: Epoch, for duration: Duration, above minimumElevation: Double = 0) -> Passes
 }
 public struct Vector : Sendable, Hashable {
   public var x: Double

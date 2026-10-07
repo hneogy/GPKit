@@ -15,6 +15,7 @@ print("// Each declaration's documentation is in Sources/GPKit.")
 print()
 lines = [l.rstrip("\n") for l in open(sys.argv[1])]
 skip = 0
+out = []
 for i, line in enumerate(lines):
     if skip:
         skip -= 1
@@ -31,7 +32,14 @@ for i, line in enumerate(lines):
     if s.endswith("{") and i + 2 < len(lines) and lines[i + 1].strip() == "get" and lines[i + 2].strip() == "}":
         line = line + " get }"
         skip = 2
-    print(line)
+    out.append(line)
+# the interface is stated with the conditions already decided: say which extension is there only with Foundation
+for i, line in enumerate(out):
+    if line.startswith("extension "):
+        end = next(j for j in range(i, len(out)) if out[j] == "}")
+        if any("Foundation::" in l for l in out[i:end]):
+            print("// only where Foundation can be imported (Sources/GPKit/Date.swift)")
+    print(line.replace("Foundation::", "Foundation."))
 PY
 rm -rf "$out"
 echo "docs/public-api.swift: $(grep -c . docs/public-api.swift) lines"

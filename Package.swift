@@ -4,12 +4,14 @@ import PackageDescription
 
 let package = Package(
     name: "GPKit",
-    platforms: [.macOS(.v13), .iOS(.v16)],
+    // The first release of each platform with Swift's Duration, which the pass search takes.
+    platforms: [.macOS(.v13), .iOS(.v16), .tvOS(.v16), .watchOS(.v9), .visionOS(.v1)],
     products: [
         .library(name: "GPKit", targets: ["GPKit"]),
     ],
     targets: [
-        // The library: Swift only, no dependency, no Foundation.
+        // The library: Swift only, no dependency. One file, Date.swift, bridges to Foundation's Date where there is a
+        // Foundation; the rest builds without it (tools/check-no-foundation.sh).
         .target(name: "GPKit"),
         // The gpconf command adapter (docs/ADAPTERS.md of gp-omm-conformance). Not a product: it exists for the
         // conformance run in CI and on a developer's machine.

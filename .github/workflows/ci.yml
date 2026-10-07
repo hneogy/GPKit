@@ -27,6 +27,9 @@ jobs:
       - name: Unit tests
         run: swift test
 
+      - name: The core without Foundation
+        run: sh tools/check-no-foundation.sh
+
       # gpconf runs offline here. It is never fetched for in CI: a hosted runner's address is shared, and the
       # corpus asks that its fetch not run in a loop or in CI. The cases that run from files shipped with the
       # corpus are exercised; the ones that need provider files report not-fetched, which the check expects.
@@ -51,3 +54,20 @@ jobs:
 
       - name: The bar
         run: python tools/check_gpconf.py gpconf-report.json
+
+  # The library alone, built for each Apple platform the package names besides macOS.
+  platforms:
+    name: build for ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [iOS, tvOS, watchOS, visionOS]
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: xcodebuild -version
+
+      - name: Build
+        run: xcodebuild build -scheme GPKit -destination "generic/platform=${{ matrix.platform }}" -derivedDataPath "$RUNNER_TEMP/derived"

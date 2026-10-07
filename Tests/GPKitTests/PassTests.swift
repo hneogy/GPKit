@@ -12,6 +12,7 @@ struct SkyfieldReference: Decodable {
         let elevation, azimuth, range: Double
         let range_rate: Double
         let dut1: Double
+        let latitude, longitude, altitude: Double
         let kind: String?
     }
     struct Satellite: Decodable {
@@ -106,6 +107,11 @@ struct SkyfieldReference: Decodable {
             #expect(abs(look.range - 500) < 1.0e-9)
             #expect(look.rangeRate == 0)
         }
+        // exactly overhead and exactly underfoot, where rounding must not take the elevation out of its range
+        let pole = Observer(latitude: 90, longitude: 0)
+        let still = Vector(x: 0, y: 0, z: 0)
+        #expect(abs(Frames.look(from: pole, to: StateVector(position: Vector(x: 0, y: 0, z: 7000), velocity: still)).elevation - 90) < 1.0e-12)
+        #expect(abs(Frames.look(from: pole, to: StateVector(position: Vector(x: 0, y: 0, z: -7000), velocity: still)).elevation + 90) < 1.0e-12)
         // due north on the horizon plane from the equator: a point straight up the z axis from the place
         let equator = Observer(latitude: 0, longitude: 0)
         let site = equator.earthFixed
@@ -172,7 +178,8 @@ struct SkyfieldReference: Decodable {
             let propagator = try Propagator(set)
             let start = try Epoch(ccsds: satellite.start)
             let end = try start.advanced(by: satellite.duration)
-            let mine = try propagator.passes(over: place, from: start, for: satellite.duration, above: reference.minimum_elevation)
+            let mine = propagator.passes(over: place, from: start, for: .seconds(satellite.duration), above: reference.minimum_elevation)
+            #expect(mine.failure == nil)
             let theirs = PassTests.skyfieldPasses(satellite.events)
             #expect(mine.count == theirs.count, "\(satellite.name): \(mine.count) passes, Skyfield has \(theirs.count)")
             guard mine.count == theirs.count else { continue }
@@ -246,7 +253,7 @@ struct SkyfieldReference: Decodable {
         let satellite = reference.sets[0]
         let propagator = try Propagator(try TLE.parse(line1: satellite.line1, line2: satellite.line2))
         let start = try Epoch(ccsds: satellite.start)
-        let first = try #require(try propagator.passes(over: place, from: start, for: satellite.duration).first)
+        let first = try #require(propagator.passes(over: place, from: start, for: .seconds(satellite.duration)).first)
         let rise = try #require(first.rise), set = try #require(first.set)
         #expect(rise.time < first.culmination.time && first.culmination.time < set.time)
         #expect(abs(rise.look.elevation) < 0.01 && abs(set.look.elevation) < 0.01)
@@ -255,17 +262,29 @@ struct SkyfieldReference: Decodable {
         #expect(abs(first.culmination.look.rangeRate) < 0.2)   // closest about when highest
         // a search that begins at the culmination and ends before the set: one pass, with neither end
         let middle = first.culmination.time
-        let inside = try propagator.passes(over: place, from: middle, for: 30)
+        let inside = propagator.passes(over: place, from: middle, for: .seconds(30))
         #expect(inside.count == 1 && inside[0].rise == nil && inside[0].set == nil)
         // from the culmination to after the set: no rise
-        let tail = try propagator.passes(over: place, from: middle, for: 3600)
+        let tail = propagator.passes(over: place, from: middle, for: .seconds(3600))
         #expect(tail.first?.rise == nil && tail.first?.set != nil)
         // a higher threshold gives a shorter pass, inside the first, or none
-        let high = try propagator.passes(over: place, from: start, for: satellite.duration, above: 10)
+        let high = propagator.passes(over: place, from: start, for: .seconds(satellite.duration), above: 10)
         let highFirst = try #require(high.first?.rise)
         #expect(highFirst.time > rise.time)
-        #expect(try propagator.passes(over: place, from: start, for: satellite.duration, above: 89.9).isEmpty)
-        #expect(try propagator.passes(over: place, from: start, for: 0).isEmpty)
+        #expect(propagator.passes(over: place, from: start, for: .seconds(satellite.duration), above: 89.9).isEmpty)
+        // nothing to search: no passes, and nothing failed
+        for none in [Duration.zero, .seconds(-60)] {
+            let found = propagator.passes(over: place, from: start, for: none)
+            #expect(found.isEmpty && found.failure == nil)
+        }
+        // a span that is not a whole number of seconds is searched to its end: the pass is cut where the span is
+        let cut = propagator.passes(over: place, from: middle, for: .milliseconds(12_345))
+        #expect(cut.count == 1 && cut[0].set == nil)
+        #expect(cut[0].culmination.time.seconds(since: middle) <= 12.345)
+        // the result is a collection of its passes
+        let all = propagator.passes(over: place, from: start, for: .seconds(satellite.duration))
+        #expect(all.count == Array(all).count && all.first == all[0] && all.last == all[all.count - 1])
+        #expect(all.indices == 0..<all.count && all.map(\.culmination.time) == all.map(\.culmination.time).sorted())
     }
 
     @Test func aPassShorterThanTheSamplingStepIsFound() throws {
@@ -275,11 +294,76 @@ struct SkyfieldReference: Decodable {
         let satellite = reference.sets[0]
         let propagator = try Propagator(try TLE.parse(line1: satellite.line1, line2: satellite.line2))
         let start = try Epoch(ccsds: satellite.start)
-        let first = try #require(try propagator.passes(over: place, from: start, for: 86_400).first)
+        let first = try #require(propagator.passes(over: place, from: start, for: .seconds(86_400)).first)
         let threshold = first.culmination.look.elevation - 0.002
-        let brief = try propagator.passes(over: place, from: start, for: 86_400, above: threshold).filter { $0.rise != nil && $0.set != nil }
+        let brief = propagator.passes(over: place, from: start, for: .seconds(86_400), above: threshold).filter { $0.rise != nil && $0.set != nil }
         let found = try #require(brief.first { abs($0.culmination.time.seconds(since: first.culmination.time)) < 1 })
         let length = try #require(found.set).time.seconds(since: try #require(found.rise).time)
         #expect(length > 0 && length < 30, "\(length) s")
+    }
+
+    /// The verification element set with this catalog field.
+    static func verification(_ catalog: String) throws -> Propagator {
+        let c = try #require(try VerificationCase.all().first { $0.catalogField == catalog })
+        return try Propagator(try TLE.parse(line1: c.line1, line2: c.line2, checksum: .ignore))
+    }
+
+    /// 22312 is one of the verification sets that ends in an error: its mean eccentricity leaves SGP4's range a
+    /// little over eight hours after its epoch, and stays out.
+    @Test func aSearchThatMeetsAFailureKeepsWhatItFound() throws {
+        let propagator = try PassTests.verification("22312")
+        let epoch = propagator.elementSet.epoch
+        // a place the satellite goes straight over hours before the failure, and one it is over when the failure comes
+        var lastMinute = 0.0
+        while (try? propagator.state(minutesFromEpoch: lastMinute + 1)) != nil { lastMinute += 1 }
+        #expect(lastMinute == 489)
+        for minutes in [200.0, lastMinute] {
+            let beneath = try propagator.position(at: epoch.advanced(by: minutes * 60))
+            let place = Observer(latitude: beneath.latitude, longitude: beneath.longitude)
+            let found = propagator.passes(over: place, from: epoch, for: .seconds(86_400))
+            let failure = try #require(found.failure)
+            let failedAt = try #require(failure.minutesFromEpoch)
+            #expect(failure.kind == .eccentricity)
+            // the search samples every half minute: it failed at the first sample that cannot be propagated to
+            #expect(failedAt == failedAt.rounded(.down) || failedAt == failedAt.rounded(.down) + 0.5)
+            #expect((try? propagator.state(minutesFromEpoch: failedAt)) == nil)
+            #expect((try? propagator.state(minutesFromEpoch: failedAt - 0.5)) != nil)
+            // and what it found is what a search that ends at the last sample that worked finds
+            let short = propagator.passes(over: place, from: epoch, for: .seconds((failedAt - 0.5) * 60))
+            #expect(short.failure == nil)
+            #expect(!found.isEmpty && Array(found) == Array(short))
+            #expect(found.contains { abs($0.culmination.time.seconds(since: epoch) / 60 - minutes) < 1 && $0.culmination.look.elevation > 80 })
+            let last = try #require(found.last)
+            if minutes == lastMinute {
+                // the pass under way when the failure came: it rose, it has no set, and its highest point is no later
+                // than the last sample that worked, to the millisecond an event's time is given to
+                #expect(last.rise != nil && last.set == nil)
+                #expect(last.culmination.time.seconds(since: epoch) <= (failedAt - 0.5) * 60 + 0.001)
+                #expect(found.dropLast().allSatisfy { $0.set != nil })
+            }
+            print("a search that met a failure, 22312 over the point beneath it at \(minutes) minutes: \(found.count) passes kept, "
+                  + "the last \(last.set == nil ? "under way" : "complete"); stopped at \(failedAt) minutes: \(failure)")
+        }
+    }
+
+    @Test func aSearchStopsAtTheFirstFailureAndSaysWhichOne() throws {
+        // 33334 cannot be propagated at all: no passes, and the reason
+        let never = try PassTests.verification("33334")
+        let nothing = never.passes(over: Observer(latitude: 0, longitude: 0), from: never.elementSet.epoch, for: .seconds(3600))
+        #expect(nothing.isEmpty && nothing.failure?.kind == .perturbedEccentricity && nothing.failure?.minutesFromEpoch == 0)
+        // 29141, in the last stage of decay, comes out below the ground at times and above it again later. The
+        // search stops at the first such time: nothing after it is looked at.
+        let decaying = try PassTests.verification("29141")
+        let epoch = decaying.elementSet.epoch
+        #expect((try? decaying.state(minutesFromEpoch: 3000)) != nil)
+        let found = decaying.passes(over: Observer(latitude: 40, longitude: -75), from: epoch, for: .seconds(3 * 86_400))
+        let failedAt = try #require(found.failure?.minutesFromEpoch)
+        #expect(found.failure?.kind == .decayed && failedAt > 422 && failedAt <= 423)
+        #expect(found.allSatisfy { $0.culmination.time.seconds(since: epoch) / 60 < failedAt })
+        // a start or a span that cannot be counted is a failure too, with no time to give
+        let far = decaying.passes(over: Observer(latitude: 0, longitude: 0), from: try Epoch(ccsds: "9999-12-31T00:00:00"), for: .seconds(2 * 86_400))
+        #expect(far.isEmpty && far.failure?.kind == .time && far.failure?.minutesFromEpoch == nil)
+        let long = decaying.passes(over: Observer(latitude: 0, longitude: 0), from: epoch, for: .seconds(Int64.max))
+        #expect(long.isEmpty && long.failure?.kind == .time)
     }
 }

@@ -1,5 +1,5 @@
 GPKit against gpconf: the full run, from a copy of the corpus that holds its provider files (the maintainer's).
-Run on 2026-10-06, macOS 27.0.1 arm64, Apple Swift version 6.4, debug build, with the checksum option in (default: verify).
+Run on 2026-10-07 (UTC), macOS 27.0.1 arm64, Apple Swift version 6.4, debug build, of the code released as 1.0.0.
 Statuses and counts only; the full report is not kept here, since an item's detail can quote provider values.
 
 gpconf 0.6.1, corpus 0.6.1
@@ -27,4 +27,4 @@ gpconf 0.6.1, corpus 0.6.1
 met: every case passes but the data check, which runs no parser
 
 items: info 89, not-exercised 1, pass 309; passes within tolerance: 0
-report SHA-256: 06deebb49bed0a5020fffa10f1cc5924091cb8de67df81ffd2f0afcf5e7d263f
+report SHA-256: 5ef25861a21ff16ec47d6f19f77dc5f23ac6496cf7961adc9b392ae3b2a8357d

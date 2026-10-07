@@ -1,7 +1,7 @@
 GPKit
 Copyright (c) 2026 NEOGY LLC
 
-GPKit is released under the MIT licence (see LICENSE). Two things in this repository come from elsewhere.
+GPKit is released under the MIT licence (see LICENSE). Three things in this repository come from elsewhere.
 
 
 1. SGP4
@@ -61,6 +61,7 @@ at commit bec466b: the three of derived/corrupt-input/unedited-sets.tle and the 
 derived/alpha5-tle/alpha5-A-100000-saramago-first.tle. The fifth, 08195, is from the verification file above.
 
 Tests/GPKitTests/Resources/skyfield-passes.json holds what Skyfield 1.55 (https://github.com/skyfielders/python-skyfield,
-MIT, Copyright (c) 2013-2018 Brandon Rhodes) computes for those five: tools/skyfield_passes_reference.py wrote it.
+MIT, Copyright (c) 2013-2018 Brandon Rhodes) computes for those five, their passes over one place, the look from it
+and the point beneath each satellite: tools/skyfield_passes_reference.py wrote it.
 
 Both are used by the tests and are no part of the library.

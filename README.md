@@ -2,11 +2,36 @@
 
 GPKit reads GP data — OMM and TLE, including six-digit catalog numbers — and passes gpconf.
 
-It is a Swift package with no dependencies, for macOS and iOS. The library is plain Swift and does not import
-Foundation, so it builds with the Command Line Tools alone. CI is set to build and test it on macOS and on Linux.
+```swift
+let iss = try ElementSets.read(csv, as: .csv).elementSets[0]
+let passes = try Propagator(iss).passes(over: Observer(latitude: 40.0, longitude: -75.0), from: Epoch(.now), for: .seconds(86_400))
+if let rise = passes.first?.rise { print(rise.time) }
+```
 
-**Status: readers, a TLE writer, SGP4 and pass prediction with Doppler.** Nothing is released. The interface for
-reading is settled; the one for propagation and passes is a proposal and may still change.
+`csv` is what CelesTrak serves for one satellite, here the Space Station at
+`https://celestrak.org/NORAD/elements/gp.php?CATNR=25544&FORMAT=CSV`, as `Data`, bytes or a `String`. With
+`import Foundation` and `import GPKit` above them, the three lines read it, find the passes over 40° N, 75° W in the
+next day, and print when the first of them rises: UTC, as `YYYY-MM-DDThh:mm:ss.ffffff`. GPKit makes no network
+request of its own. It reads what it is given.
+
+GPKit is a Swift package with no dependencies: readers for OMM (CSV, JSON, XML, KVN) and TLE, a TLE writer, SGP4,
+and pass prediction with look angles and Doppler. It is for macOS 13 and iOS 16 and later, and builds for tvOS,
+watchOS, visionOS and Linux as well. The library is plain Swift: one file bridges to Foundation's `Date`, and the
+rest builds without Foundation. CI builds and tests it on macOS and Linux, builds it for the other platforms, and
+checks that the core compiles with no Foundation.
+
+## Installing
+
+```swift
+dependencies: [
+    .package(url: "https://github.com/hneogy/GPKit.git", from: "1.0.0"),
+],
+targets: [
+    .target(name: "YourTarget", dependencies: ["GPKit"]),
+]
+```
+
+In Xcode: File, Add Package Dependencies, and the same URL. Versions follow semantic versioning.
 
 ## Reading
 
@@ -108,7 +133,7 @@ element set number or revolution number as 0.
 [gpconf](https://github.com/hneogy/gp-omm-conformance) is a conformance corpus for GP data, built from what providers
 serve. GPKit's adapter for its runner is in this package (`Sources/gpconf-adapter`), and CI runs it on every push.
 
-With gpconf 0.6.1, on 2026-10-06: **17 of 18 cases pass, each on every item exactly, and none fails or is
+With gpconf 0.6.1, on 2026-10-07: **17 of 18 cases pass, each on every item exactly, and none fails or is
 skipped.** The eighteenth, `satcat-70000-cutoff`, checks data and runs no parser; it reports not exercised for every
 library. The run's summary is in [`conformance/`](conformance/).
 
@@ -135,6 +160,10 @@ state.position                                              // kilometres, TEME
 state.velocity                                              // kilometres per second
 
 try propagator.state(minutesFromEpoch: 90)                  // or by minutes from the element set's epoch
+
+let beneath = try propagator.position(at: time)             // the point of the WGS-84 ellipsoid beneath the satellite
+beneath.latitude; beneath.longitude                         // degrees, north and east positive: where it is on a map
+beneath.altitude                                            // kilometres above that point
 ```
 
 `Propagator` is SGP4: a port to Swift of the propagation routines of David Vallado's `SGP4.cpp`, as CelesTrak
@@ -142,19 +171,25 @@ publishes it. It is a value. Making one does the initialisation, and every call 
 calls before it, so one can be shared between tasks. A time it cannot be propagated to, a decayed satellite's for
 one, is a `PropagationFailure` saying which of SGP4's conditions stopped it.
 
-An `Epoch` is UTC. `Epoch(unixTime:)` and `unixTime` go to and from Foundation's `Date.timeIntervalSince1970`,
-and `advanced(by:)` and `seconds(since:)` move and measure in seconds.
+`position(at:)` is the satellite on a map, and at a run of instants its ground track: geodetic latitude, longitude
+from -180 to 180, and height above the ellipsoid in kilometres.
+
+An `Epoch` is UTC. `Epoch(date)` and `epoch.date` go to and from Foundation's `Date`, to the microsecond;
+`Epoch(unixTime:)` and `unixTime` do the same with a count of seconds, where there is no Foundation; and
+`advanced(by:)` and `seconds(since:)` move and measure in seconds. A date outside the years 1 to 9999 is refused.
 
 ## Passes and Doppler
 
 ```swift
 let home = Observer(latitude: 40.0, longitude: -75.0, height: 100)       // degrees, degrees, metres
 
-for pass in try propagator.passes(over: home, from: now, for: 86_400) {   // the next day, above the horizon
+let passes = propagator.passes(over: home, from: now, for: .seconds(86_400))   // the next day, above the horizon
+for pass in passes {
     pass.rise?.time                     // nil when the satellite was already up at the start
     pass.culmination.look.elevation     // degrees, at its highest
     pass.set?.look.azimuth              // degrees clockwise from north; nil when still up at the end
 }
+passes.failure                          // nil when the whole day was searched
 
 let look = try propagator.look(from: home, at: now)
 look.azimuth; look.elevation            // where to point
@@ -164,11 +199,12 @@ look.received(from: 437_000_000)        // what to tune a receiver to, for a dow
 look.transmit(toBeReceivedAt: 145_900_000)   // what to tune a transmitter to, for an uplink on 145.9 MHz
 ```
 
-`passes(over:from:for:above:)` takes a minimum elevation, the horizon by default. The elevation is sampled every 30
-seconds, each crossing is narrowed to a millisecond, and a peak between two samples is looked into, so a pass
-shorter than the step is found too.
+`passes(over:from:for:above:)` takes the span as a `Duration` and a minimum elevation, the horizon by default. What
+it returns is a collection of the passes in order of time. The elevation is sampled every 30 seconds, each crossing
+is narrowed to a millisecond, and a peak between two samples is looked into, so a pass shorter than the step is
+found too.
 
-What it does not do, each a choice that can be changed:
+Four things to know about it:
 
 - **No refraction.** Angles are geometric. Near the horizon a satellite is heard a little before the elevation
   here reaches zero.
@@ -177,8 +213,10 @@ What it does not do, each a choice that can be changed:
 - **One culmination a pass.** In a long pass of a high, eccentric orbit the elevation can peak twice; the highest
   peak is given. For a pass cut off by the start or the end of the search, the culmination is the highest point
   inside the search.
-- **A search stops at a failure.** If the element set cannot be propagated to some time in the span, the call
-  throws and gives no passes.
+- **A search stops at the first failure, and keeps what it found.** If the element set cannot be propagated to
+  some time in the span, a decayed satellite's for one, the passes found before that time are returned, and
+  `failure` says which of SGP4's conditions stopped the search and at how many minutes from the epoch. A pass under
+  way at that time is among them, without a set.
 
 ## How SGP4 and the passes are checked
 
@@ -200,7 +238,7 @@ deep-space orbit of eccentricity 0.97.
 **Against python-sgp4**, where a gpconf corpus with its provider files is at hand: every element set of the corpus,
 read by GPKit and by python-sgp4 each with its own reader, propagated to six times from the epoch to a week out.
 `tools/python_sgp4_reference.py` makes python-sgp4's side and the test `CrossCheckTests` compares. CI has no corpus
-and skips it. The run of 2026-10-06, against python-sgp4 2.27: 14,411 element sets, the largest difference 0.0024 mm.
+and skips it. The run of 2026-10-07, against python-sgp4 2.27: 14,411 element sets, the largest difference 0.0024 mm.
 
 **Against Skyfield**, for passes: five element sets that are already public (the Space Station's first, an old
 rocket body, a fragment in an eccentric orbit, an object numbered 100000 through an Alpha-5 line, and a Molniya)
@@ -210,7 +248,10 @@ sets within 0.17 s and culminations within 0.35 s, where Skyfield's own search s
 329 of Skyfield's times GPKit's elevation is within 0.005 degrees of its, the azimuth within 0.011 degrees on the
 sky, the range within 85 m and the range rate within 1.3 m/s, which is under 2 Hz at 437 MHz. All of that is UT1
 less UTC, which Skyfield applies and GPKit does not: with the Earth turned by Skyfield's own value for each instant
-(up to 0.24 s at these dates) the two agree to a millionth of a degree, to 2 cm and to 0.0002 m/s.
+(up to 0.24 s at these dates) the two agree to a millionth of a degree, to 2 cm and to 0.0002 m/s. The point
+beneath the satellite is compared at the same 329 times: GPKit's latitude is within 0.00000005 degrees of
+Skyfield's, its altitude within 1.4 mm, and its longitude within 0.001 degrees on the ground, which again is UT1
+less UTC: with Skyfield's value applied the longitudes agree to 0.0000002 degrees.
 
 The summaries of the last two are in [`conformance/`](conformance/). The C++, the verification cases and the
 element sets of the pass comparison are in the repository for the tests only; [NOTICE](NOTICE) says where each comes
@@ -233,8 +274,8 @@ swift test -Xswiftc -plugin-path -Xswiftc /Library/Developer/CommandLineTools/us
 ```
 
 The public interface, as the compiler states it, is in [`docs/public-api.swift`](docs/public-api.swift);
-`tools/public-api.sh` writes it. `Propagator`, `Observer`, `Look`, `Pass`, the vector types and the arithmetic on
-`Epoch` are the proposal; the rest is settled.
+`tools/public-api.sh` writes it. `tools/check-no-foundation.sh` compiles the library without its bridge to `Date`
+and without Foundation.
 
 ## Licence
 

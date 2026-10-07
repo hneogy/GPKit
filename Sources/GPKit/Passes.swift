@@ -20,6 +20,21 @@ public struct Pass: Sendable, Hashable {
     public var set: Event?
 }
 
+/// What a search for passes found: the passes in order of time and, if the search could not go to its end, why.
+///
+/// It is a collection of its passes, so `for pass in` and `first` work on it as on an array.
+public struct Passes: Sendable, Hashable, RandomAccessCollection {
+    let found: [Pass]
+
+    /// Why the search stopped before the end of its span, and at how many minutes from the element set's epoch;
+    /// nil when the whole span was searched. The passes are the ones found up to there.
+    public let failure: PropagationFailure?
+
+    public var startIndex: Int { found.startIndex }
+    public var endIndex: Int { found.endIndex }
+    public subscript(position: Int) -> Pass { found[position] }
+}
+
 extension Propagator {
 
     /// The passes over a place in a span of time.
@@ -27,21 +42,26 @@ extension Propagator {
     /// - Parameters:
     ///   - observer: The place.
     ///   - start: The instant the search begins, UTC.
-    ///   - duration: How long to search, seconds.
+    ///   - duration: How long to search.
     ///   - minimumElevation: Degrees above the horizon a pass is counted from and to. The default is the horizon.
     ///     The elevation is geometric: no refraction.
     /// - Returns: The passes in order of time. A pass under way at the start has no rise, and one under way at the
     ///   end has no set.
     ///
     /// The elevation is sampled every 30 seconds, each crossing is then narrowed to a millisecond, and a peak
-    /// between two samples is looked into, so a pass shorter than the sampling step is found too. If the element
-    /// set cannot be propagated to some time in the span, a decayed satellite for one, the search stops there and
-    /// throws.
-    public func passes(over observer: Observer, from start: Epoch, for duration: Double, above minimumElevation: Double = 0) throws(PropagationFailure) -> [Pass] {
-        guard duration.isFinite, duration > 0, minimumElevation.isFinite else { return [] }
+    /// between two samples is looked into, so a pass shorter than the sampling step is found too.
+    ///
+    /// If the element set cannot be propagated to some time in the span, a decayed satellite's for one, the search
+    /// stops at the first such time it meets. What it found before that is returned, with the reason in `failure`:
+    /// every pass that had set by then, and a pass under way then, which has no set and whose culmination is the
+    /// highest point up to the last time that could be propagated to.
+    public func passes(over observer: Observer, from start: Epoch, for duration: Duration, above minimumElevation: Double = 0) -> Passes {
+        let (whole, fraction) = duration.components
+        let span = Double(whole) + Double(fraction) / 1.0e18     // seconds
+        guard span > 0, minimumElevation.isFinite else { return Passes(found: [], failure: nil) }
         let first = start.seconds(since: elementSet.epoch) / 60.0   // minutes from the element set's epoch
-        guard first.isFinite, (try? start.advanced(by: duration)) != nil else {
-            throw PropagationFailure(kind: .time, minutesFromEpoch: nil)
+        guard first.isFinite, (try? start.advanced(by: span)) != nil else {
+            return Passes(found: [], failure: PropagationFailure(kind: .time, minutesFromEpoch: nil))
         }
 
         // the elevation above the one asked for, at a number of seconds into the span
@@ -89,54 +109,70 @@ extension Propagator {
 
         let step = 30.0
         var passes: [Pass] = []
-        var rise: Double?            // the open pass's rise; meaningful while `up`
+        var rise: (t: Double, event: Pass.Event)?   // the open pass's rise; nil for a pass under way at the start
         var up = false
-        var best = (t: 0.0, h: -Double.infinity)   // the highest sample of the open pass
-        var before = (t: 0.0, h: try height(0))
+        var best = (t: 0.0, h: -Double.infinity)    // the highest sample of the open pass
+        var before = (t: 0.0, h: 0.0)               // the last sample taken
         var twoBefore: (t: Double, h: Double)?
-        if before.h > 0 {
-            up = true
-            best = before
-        }
 
         func close(set: Double?, end: Double) throws(PropagationFailure) {
             // the culmination is looked for around the highest sample, within the pass
-            let from = max(rise ?? 0, best.t - step), to = min(set ?? end, best.t + step)
+            let from = max(rise?.t ?? 0, best.t - step), to = min(set ?? end, best.t + step)
             let top = to > from ? try peak(from, to) : best.t
-            passes.append(Pass(rise: try rise.map { t throws(PropagationFailure) in try event(t) },
-                               culmination: try event(top),
+            passes.append(Pass(rise: rise?.event, culmination: try event(top),
                                set: try set.map { t throws(PropagationFailure) in try event(t) }))
         }
 
-        var t = 0.0
-        while t < duration {
-            t = min(t + step, duration)
-            let now = (t: t, h: try height(t))
-            if up {
-                if now.h > best.h { best = now }
-                if now.h <= 0 {
-                    try close(set: try crossing(below: now.t, above: before.t), end: duration)
-                    up = false
-                }
-            } else if now.h > 0 {
-                rise = try crossing(below: before.t, above: now.t)
+        do throws(PropagationFailure) {
+            before = (0, try height(0))
+            if before.h > 0 {
                 up = true
-                best = now
-            } else if let earlier = twoBefore, before.h > earlier.h, before.h > now.h, before.h > -5.0 {
-                // a peak between samples that stayed below: look at its top, and it is a pass if the top is above
-                let top = try peak(earlier.t, now.t)
-                if try height(top) > 0 {
-                    rise = try crossing(below: earlier.t, above: top)
-                    best = (top, try height(top))
-                    try close(set: try crossing(below: now.t, above: top), end: duration)
+                best = before
+            }
+            var t = 0.0
+            while t < span {
+                t = min(t + step, span)
+                let now = (t: t, h: try height(t))
+                if up {
+                    if now.h > best.h { best = now }
+                    if now.h <= 0 {
+                        try close(set: try crossing(below: now.t, above: before.t), end: span)
+                        up = false
+                    }
+                } else if now.h > 0 {
+                    let at = try crossing(below: before.t, above: now.t)
+                    rise = (at, try event(at))
+                    up = true
+                    best = now
+                } else if let earlier = twoBefore, before.h > earlier.h, before.h > now.h, before.h > -5.0 {
+                    // a peak between samples that stayed below: look at its top, and it is a pass if the top is above
+                    let top = try peak(earlier.t, now.t)
+                    let h = try height(top)
+                    if h > 0 {
+                        let at = try crossing(below: earlier.t, above: top)
+                        rise = (at, try event(at))
+                        best = (top, h)
+                        try close(set: try crossing(below: now.t, above: top), end: span)
+                    }
+                }
+                twoBefore = before
+                before = now
+            }
+            if up {
+                try close(set: nil, end: span)
+            }
+        } catch {
+            // The search ends here. A pass under way is kept without a set: its highest sample is at or before the
+            // last sample taken, and its culmination is looked for no later than that.
+            if up {
+                let from = max(rise?.t ?? 0, best.t - step), to = min(before.t, best.t + step)
+                let top = to > from ? (try? peak(from, to)) ?? best.t : best.t
+                if let culmination = (try? event(top)) ?? (try? event(best.t)) {
+                    passes.append(Pass(rise: rise?.event, culmination: culmination, set: nil))
                 }
             }
-            twoBefore = before
-            before = now
+            return Passes(found: passes, failure: error)
         }
-        if up {
-            try close(set: nil, end: duration)
-        }
-        return passes
+        return Passes(found: passes, failure: nil)
     }
 }
