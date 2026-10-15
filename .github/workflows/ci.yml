@@ -38,7 +38,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install gpconf
-        run: python -m pip install gpconf==0.6.1
+        run: python -m pip install gpconf==0.7.0
 
       - name: gpconf, offline
         run: |
