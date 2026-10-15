@@ -137,7 +137,7 @@ element set number or revolution number as 0.
 [gpconf](https://github.com/hneogy/gp-omm-conformance) is a conformance corpus for GP data, built from what providers
 serve. GPKit's adapter for its runner is in this package (`Sources/gpconf-adapter`), and CI runs it on every push.
 
-With gpconf 0.6.1, on 2026-10-07: **17 of 18 cases pass, each on every item exactly, and none fails or is
+With gpconf 0.7.0, on 2026-10-15: **17 of 18 cases pass, each on every item exactly, and none fails or is
 skipped.** The eighteenth, `satcat-70000-cutoff`, checks data and runs no parser; it reports not exercised for every
 library. The run's summary is in [`conformance/`](conformance/).
 
