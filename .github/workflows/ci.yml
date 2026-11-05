@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-26, ubuntu-24.04]
+        os: [macos-26]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -54,6 +54,69 @@ jobs:
 
       - name: The bar
         run: python tools/check_gpconf.py gpconf-report.json
+
+  # Linux, on the official Swift image at a pinned release: the same steps as on macOS.
+  linux:
+    name: build, test, gpconf (ubuntu-latest, Swift 6.4.2)
+    runs-on: ubuntu-latest
+    container: swift:6.4.2-noble
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: swift --version
+
+      - name: Build
+        run: swift build
+
+      - name: Unit tests
+        run: swift test
+
+      - name: The core without Foundation
+        run: sh tools/check-no-foundation.sh
+
+      - name: Python for gpconf
+        run: apt-get update -q && apt-get install -y -q python3 python3-venv
+
+      - name: Install gpconf
+        run: python3 -m venv "$RUNNER_TEMP/venv" && "$RUNNER_TEMP/venv/bin/python" -m pip install gpconf==0.8.0
+
+      # offline, as on macOS: the cases that need provider files report not-fetched, which the check expects
+      - name: gpconf, offline
+        run: |
+          adapter="$PWD/.build/debug/gpkit-gpconf"
+          status=0
+          "$RUNNER_TEMP/venv/bin/gpconf" run --no-fetch-hint \
+            --cmd "'$adapter' parse {fmt}" \
+            --vectors-cmd "'$adapter' vectors" \
+            --write-cmd "'$adapter' write" \
+            --json gpconf-report.json || status=$?
+          if [ "$status" -gt 1 ]; then exit "$status"; fi
+
+      - name: The bar
+        run: '"$RUNNER_TEMP/venv/bin/python" tools/check_gpconf.py gpconf-report.json'
+
+  # Windows, with swift.org's installer for the same pinned release: build and test.
+  windows:
+    name: build, test (windows-latest, Swift 6.4.2)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        uses: compnerd/gha-setup-swift@9ff1ee4c44888c5817fc14d1b257ac8cabb4935f # v0.5.1
+        with:
+          swift-version: swift-6.4.2-release
+          swift-build: 6.4.2-RELEASE
+
+      - name: Toolchain version
+        run: swift --version
+
+      - name: Build
+        run: swift build
+
+      - name: Unit tests
+        run: swift test
 
   # The library alone, built for each Apple platform the package names besides macOS.
   platforms:

@@ -20,6 +20,8 @@ import Darwin
 import Glibc
 #elseif canImport(Musl)
 import Musl
+#elseif canImport(ucrt)
+import ucrt
 #endif
 
 /// The record the C++ calls `elsetrec`: the constants, the initialised coefficients and the working values of one

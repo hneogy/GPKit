@@ -4,6 +4,8 @@ import Darwin
 import Glibc
 #elseif canImport(Musl)
 import Musl
+#elseif canImport(ucrt)
+import ucrt
 #endif
 
 /// A place on the Earth, on the WGS-84 ellipsoid.
