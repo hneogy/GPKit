@@ -1,6 +1,7 @@
 # GPKit
 
-GPKit reads GP data — OMM and TLE, including six-digit catalog numbers — and passes gpconf.
+GPKit reads GP data — OMM and TLE, including six-digit catalog numbers. Against gpconf 0.8.0 it passes 17 of the 18
+cases, and none fails; the eighteenth checks data and runs no parser.
 
 ```swift
 let iss = try ElementSets.read(csv, as: .csv).elementSets[0]
@@ -137,7 +138,7 @@ element set number or revolution number as 0.
 [gpconf](https://github.com/hneogy/gp-omm-conformance) is a conformance corpus for GP data, built from what providers
 serve. GPKit's adapter for its runner is in this package (`Sources/gpconf-adapter`), and CI runs it on every push.
 
-With gpconf 0.7.0, on 2026-10-15: **17 of 18 cases pass, each on every item exactly, and none fails or is
+With gpconf 0.8.0, on 2026-11-05: **17 of 18 cases pass, each on every item exactly, and none fails or is
 skipped.** The eighteenth, `satcat-70000-cutoff`, checks data and runs no parser; it reports not exercised for every
 library. The run's summary is in [`conformance/`](conformance/).
 
@@ -230,15 +231,15 @@ Four things to know about it:
 **Against the C++ it is ported from.** The tests compile Vallado's `SGP4.cpp`, unmodified, and run it and the port
 through the 33 verification element sets published with "Revisiting Spacetrack Report #3", at every time of every
 case: 2,349 steps, near-Earth and deep-space orbits, the half-day and one-day resonances, and the runs that end in
-each error. Given the same inputs, the port and the C++ give the same position and velocity **to the last bit** at
-every step, and the same error code, with each of the three sets of constants and in both of the C++'s operation
+each error. Given the same inputs, the port and the C++ agree **within a micrometre** in position and a micrometre
+per second in velocity at every step, and give the same error code, with each of the three sets of constants and in both of the C++'s operation
 modes, on macOS (arm64) and on Linux (x86-64).
 
 **The epoch.** GPKit keeps an element set's epoch exactly. The C++'s own reader does not: it takes a TLE's epoch
 field through a month, a day, an hour, a minute and a second and back to a Julian date, and comes out up to 20
 microseconds from what the line states. Of every other element the two readers make the same doubles. So the
-comparison with the C++ is made at the C++ reader's epoch, where GPKit, reading the same two lines, is identical to
-it to the bit at all 2,349 steps. At the epoch the line states, GPKit's positions differ from the C++ reader's by
+comparison with the C++ is made at the C++ reader's epoch, where GPKit, reading the same two lines, agrees with
+it within a micrometre at all 2,349 steps. At the epoch the line states, GPKit's positions differ from the C++ reader's by
 what its drift is worth: under half a millimetre for 32 of the 33 cases, and 4.1 mm for one, case 23333, a
 deep-space orbit of eccentricity 0.97.
 
