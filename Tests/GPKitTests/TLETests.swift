@@ -35,6 +35,17 @@ import GPKit
         }
     }
 
+    /// A sign or an underscore among the four digits after the letter is refused, though a lenient integer parse
+    /// reads both: Python's `int()` takes "+123" and "1_23" as 123.
+    @Test func aSignOrAnUnderscoreAfterTheLetterIsRefused() {
+        for field in ["A+123", "A1_23"] {
+            #expect(refusal { _ = try Alpha5.decode(field) }?.kind == .catalogNumber, "\(field)")
+            let line1 = withChecksum(replacing(Sample.line1, 2..<7, with: field))
+            let line2 = withChecksum(replacing(Sample.line2, 2..<7, with: field))
+            #expect(refusal { _ = try TLE.parse(line1: line1, line2: line2) }?.kind == .catalogNumber, "\(field)")
+        }
+    }
+
     @Test func aBlankDesignatorIsNoObjectID() throws {
         let line1 = withChecksum(replacing(Sample.line1, 9..<17, with: "        "))
         let set = try TLE.parse(line1: line1, line2: Sample.line2)
