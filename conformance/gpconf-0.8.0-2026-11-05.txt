@@ -1,0 +1,70 @@
+GPKit against gpconf: the full run, on the maintainer's provider files.
+Run on 2026-11-05 (UTC), 00:36:31Z, with gpconf 0.8.0 installed from PyPI into a fresh virtual environment (Python 3.14.6),
+macOS 27.2 arm64, Apple Swift version 6.4.2, debug build at 1229da2 (the code of 1.0.0; the commits since change
+documentation, CI and conformance records only). The network was closed to the run (every proxy variable set to a
+port nothing listens on). The corpus graded is the one installed with the package (corpus 0.8.0); the provider files
+are the maintainer's fetch of 2026-09-21 (00:08 to 00:45 UTC), 128 files, fingerprint below.
+Statuses and counts only; the full report is not kept here, since an item's detail can quote provider values.
+
+How it was run:
+
+  python3 -m venv venv && ./venv/bin/python -m pip install gpconf==0.8.0
+  swift build
+  ./venv/bin/gpconf run --data DATA --no-fetch-hint -v \
+    --cmd "'$PWD/.build/debug/gpkit-gpconf' parse {fmt}" \
+    --vectors-cmd "'$PWD/.build/debug/gpkit-gpconf' vectors" \
+    --write-cmd "'$PWD/.build/debug/gpkit-gpconf' write" \
+    --json report.json
+  python3 tools/check_gpconf.py report.json --gate
+
+DATA is a folder holding fixtures/<case>/raw/, as `gpconf fetch` writes it. Run again with a later fetch, the cases
+read other records; the counts of items below can then differ, the verdicts should not.
+
+gpconf 0.8.0, corpus 0.8.0
+  epoch-year-19xx                          pass
+  baseline-iss-five-formats                pass
+  six-digit-omm-saramago                   pass
+  tle-omits-six-digit-objects              pass
+  analyst-objects                          pass
+  nine-digit-supgp-launch-nominals         pass
+  supgp-celestrak-classification-c         pass
+  bstar-and-derivative-forms               pass
+  satcat-70000-cutoff                      not-exercised
+  csv-json-omitted-mandatory-fields        pass
+  mean-motion-derivative-convention        pass
+  tle-vs-omm-precision-loss                pass
+  omm-xml-schema                           pass
+  alpha5-encoding-vectors                  pass
+  alpha5-tle-derived                       pass
+  kvn-syntax-variants                      pass
+  tle-writer-alpha5                        pass
+  corrupt-input                            pass
+  cases 18, pass 17, pass-tolerance 0, fail 0, skip 0, not-fetched 0, not-available 0, not-exercised 1
+  gate, this month's launches, tle: 256 of 256 loaded, 0 refused, 0 misidentified, 0 dropped
+  gate, this month's launches, csv: 256 of 256 loaded, 0 refused, 0 misidentified, 0 dropped
+met: every case passes but the data check, which runs no parser
+
+items by case:
+  epoch-year-19xx                          info 9, pass 34
+  baseline-iss-five-formats                info 9, pass 27
+  six-digit-omm-saramago                   info 10, pass 28
+  tle-omits-six-digit-objects              info 3, pass 6
+  analyst-objects                          info 14, pass 66
+  nine-digit-supgp-launch-nominals         info 6, pass 26
+  supgp-celestrak-classification-c         info 6, pass 24
+  bstar-and-derivative-forms               info 8, pass 24
+  satcat-70000-cutoff                      info 6, not-exercised 1
+  csv-json-omitted-mandatory-fields        pass 26
+  mean-motion-derivative-convention        pass 6
+  tle-vs-omm-precision-loss                pass 6
+  omm-xml-schema                           info 8, pass 16
+  alpha5-encoding-vectors                  pass 5
+  alpha5-tle-derived                       info 12, pass 18
+  kvn-syntax-variants                      info 6, pass 29
+  tle-writer-alpha5                        info 2, pass 5
+  corrupt-input                            info 7, pass 21
+
+items: info 106, not-exercised 1, pass 367; passes within tolerance: 0
+report SHA-256: f858f93f4fa0f23dbe04ecb5313e63bcc2303cc8653853ffded393b510250a62
+provider files: 128, fingerprint dd088d563aa52b90d2e0e5cb39417e476e0cceaf290778948cd955c2c0dd1e0d
+  (SHA-256 over the sorted paths fixtures/*/raw/*, each line "path NUL sha256-of-file LF")
