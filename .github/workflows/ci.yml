@@ -61,7 +61,10 @@ jobs:
     runs-on: ubuntu-latest
     container: swift:6.4.2-noble
     steps:
+      # the whole history and its tags: the interface check compares with the latest 1.x release
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Toolchain
         run: swift --version
@@ -77,6 +80,14 @@ jobs:
 
       - name: Python for gpconf
         run: apt-get update -q && apt-get install -y -q python3 python3-venv
+
+      # here, at a pinned release, so that the interface is stated the same way on every run
+      - name: The public interface, the changelog and 1.x
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          base="${{ github.event.pull_request.base.sha || github.event.before }}"
+          case "$base" in 0000000000000000000000000000000000000000) base= ;; esac
+          sh tools/public-api.sh --check $base
 
       - name: Install gpconf
         run: python3 -m venv "$RUNNER_TEMP/venv" && "$RUNNER_TEMP/venv/bin/python" -m pip install gpconf==0.8.0
