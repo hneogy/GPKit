@@ -174,10 +174,14 @@ struct SkyChart: View {
         let here = URL(fileURLWithPath: #filePath)
         let root = here.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
         let resources = root.appendingPathComponent("Sources/GPKit/GPKit.docc/Resources")
+        // a checkout on Windows can end its lines CR LF; the code is the same
+        func read(_ url: URL) throws -> String {
+            try String(contentsOf: url, encoding: .utf8).replacingOccurrences(of: "\r\n", with: "\n")
+        }
         var regions: [String: [String]] = [:]
         var name: String?
         var indent = 0
-        for line in try String(contentsOf: here, encoding: .utf8).components(separatedBy: "\n") {
+        for line in try read(here).components(separatedBy: "\n") {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
             if trimmed.hasPrefix("// tutorial: ") {
                 name = String(trimmed.dropFirst("// tutorial: ".count))
@@ -193,7 +197,7 @@ struct SkyChart: View {
         func file(_ name: String) -> String { String(name.dropLast(".swift".count).split(separator: "-").dropLast().joined(separator: "-")) }
         for (name, lines) in regions {
             let imports = try #require(TutorialTests.imports[file(name)], "\(name) has no imports named")
-            let text = try String(contentsOf: resources.appendingPathComponent(name), encoding: .utf8)
+            let text = try read(resources.appendingPathComponent(name))
             #expect(text == imports + "\n\n" + lines.joined(separator: "\n") + "\n", "\(name) is not the code tested here")
         }
         // every step of a file is made of lines of its last step, the one tested here
@@ -201,12 +205,13 @@ struct SkyChart: View {
         let last = Dictionary(grouping: regions.keys, by: file).mapValues { $0[0] }
         #expect(Set(shown.map(file)) == Set(last.keys), "a code file of a tutorial whose last step is not tested here")
         for name in shown {
-            let final = try Set(String(contentsOf: resources.appendingPathComponent(last[file(name)]!), encoding: .utf8).components(separatedBy: "\n"))
-            for line in try String(contentsOf: resources.appendingPathComponent(name), encoding: .utf8).components(separatedBy: "\n")
+            let lastStep = try #require(last[file(name)], "\(name): its tutorial's last step is not tested here")
+            let final = try Set(read(resources.appendingPathComponent(lastStep)).components(separatedBy: "\n"))
+            for line in try read(resources.appendingPathComponent(name)).components(separatedBy: "\n")
             where !line.trimmingCharacters(in: .whitespaces).isEmpty {
-                #expect(final.contains(line), "\(name): \"\(line)\" is not in \(last[file(name)]!)")
+                #expect(final.contains(line), "\(name): \"\(line)\" is not in \(lastStep)")
             }
-            #expect(name <= last[file(name)]!, "\(name) comes after the last step \(last[file(name)]!)")
+            #expect(name <= lastStep, "\(name) comes after the last step \(lastStep)")
         }
     }
 }
