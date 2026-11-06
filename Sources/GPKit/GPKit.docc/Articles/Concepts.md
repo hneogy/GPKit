@@ -45,8 +45,9 @@ GPKit's results are checked against other implementations, with the records in t
 folder:
 
 - **SGP4 against SGP4.** On the verification element sets published with "Revisiting Spacetrack Report #3", the
-  port agrees with David Vallado's `SGP4.cpp` within a micrometre, which the tests hold. Over 14,411 element sets
-  of a gpconf corpus, the largest difference from python-sgp4 was 0.0024 mm (`python-sgp4-crosscheck-2026-10-07.txt`).
+  port agrees with David Vallado's `SGP4.cpp` within a micrometre, which the tests hold; on the builds recorded, all
+  2349 steps agreed to the bit (`vallado-sgp4-2026-11-05.txt`). Over 14,411 element sets of a gpconf corpus, the
+  largest difference from python-sgp4 was 0.0024 mm (`python-sgp4-crosscheck-2026-10-07.txt`).
 - **Passes against Skyfield.** Over five element sets and 49 passes, rises and sets agree with Skyfield's within
   0.17 s and culminations within 0.35 s, elevations within 0.0044° and azimuths within 0.0101°
   (`skyfield-2026-10-07.txt`).
