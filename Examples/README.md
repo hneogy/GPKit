@@ -8,7 +8,9 @@ command-line ones (`tools/check-examples.sh`).
 - **Doppler**, `doppler FILE LATITUDE LONGITUDE DOWNLINK_HZ [--uplink HZ] [--from TIME] [--step SECONDS]`: what to
   tune a radio to through the next whole pass.
 - **SkyView**, a Mac app: paste an element set and see the next pass on a chart of the sky. It is the chart the
-  "Draw a pass on a sky chart" tutorial builds.
+  "Draw a pass on a sky chart" tutorial builds. `swift run --package-path SkyView SkyView data/iss-1998.tle
+  --from-epoch` opens it with that file's set in, searching from its epoch; [`SkyView/sky-view.png`](SkyView/sky-view.png)
+  is its window so opened.
 
 From this folder, for one of them:
 

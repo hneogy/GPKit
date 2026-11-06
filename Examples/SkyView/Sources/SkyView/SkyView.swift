@@ -1,5 +1,6 @@
 // A small sky view: paste an element set, say where you are, and see the next pass drawn on a chart of the sky.
 // `swift run` in this folder opens it on a Mac. The chart is the one the "Draw a pass on a sky chart" tutorial builds.
+// `swift run SkyView FILE [--from-epoch]` opens it with a TLE file's text already in, searching from its epoch.
 import SwiftUI
 import GPKit
 
@@ -10,14 +11,15 @@ struct SkyViewApp: App {
             ContentView()
                 .frame(minWidth: 520, minHeight: 640)
         }
+        .defaultSize(width: 680, height: 900)
     }
 }
 
 struct ContentView: View {
-    @State private var text = ""
+    @State private var text = Launch.text
     @State private var latitude = 40.0
     @State private var longitude = -75.0
-    @State private var fromEpoch = false
+    @State private var fromEpoch = Launch.fromEpoch
 
     var body: some View {
         Form {
@@ -37,7 +39,7 @@ struct ContentView: View {
                 case .success(let found):
                     if let found {
                         SkyChart(path: found.path)
-                            .frame(maxWidth: 360)
+                            .frame(maxWidth: 300)
                         Text(found.said)
                     } else {
                         Text("No pass in the next two days.")
@@ -69,6 +71,13 @@ struct ContentView: View {
             return Found(path: path, said: "Rises \(rise.time) UTC, highest \(Int(pass.culmination.look.elevation.rounded()))°")
         }
     }
+}
+
+/// What the command line gave: a TLE file to start with, and whether to search from its epoch.
+enum Launch {
+    static let arguments = CommandLine.arguments.dropFirst()
+    static let text = arguments.first { !$0.hasPrefix("-") }.flatMap { try? String(contentsOfFile: $0, encoding: .utf8) } ?? ""
+    static let fromEpoch = arguments.contains("--from-epoch")
 }
 
 // The tutorial's code, as it is there.
