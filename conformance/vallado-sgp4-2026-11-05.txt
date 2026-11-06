@@ -1,0 +1,53 @@
+GPKit's SGP4 against David Vallado's SGP4.cpp, the C++ it is ported from.
+Run on 2026-11-05 (UTC), 12:12:38Z, on macOS 27.2 arm64 with Apple Swift version 6.4.2, debug build at
+22be997 (the code of 1.0.0: since the tag the sources changed in documentation comments and the Windows math
+import only). The same tests run in CI on every push; the lines of main's run for 22be997 (GitHub Actions run
+41944427512) are below too.
+
+The C++: Tests/SGP4Oracle/vallado/SGP4.cpp and SGP4.h, unmodified, from CelesTrak/fundamentals-of-astrodynamics
+commit 49df0479c950 ("SGP4 Version 2025-12-30"), as NOTICE says:
+  SHA-256  SGP4.cpp  7e984e29a66f75a2b5ad3881f0e5dc0f8fbf9ee8de675ee39be1c9092bc3f183
+           SGP4.h    0563e6e8027607452e451d2342da96e5b376a1c119675c40940866f2e04c0bd6
+The cases: Tests/GPKitTests/Resources/SGP4-VER.TLE, the 33 verification element sets published with "Revisiting
+Spacetrack Report #3" (24 deep space), each run over its own start, stop and step, 2349 steps in all.
+  SHA-256  SGP4-VER.TLE  d246d1d9d768ace445a38a965713fa9ba52d80fd8a41a0502ff83d7acffe2881
+
+How it was run (the C++ is compiled by the package's test target; nothing is downloaded):
+
+  git clone https://github.com/hneogy/GPKit && cd GPKit && git checkout 22be997
+  swift test --filter SGP4Tests
+
+What is compared, and what was found:
+
+  The port against the C++ on the same inputs (the C++'s reader's elements given to both), WGS-72, improved mode:
+    33 cases, 2349 steps, 2349 identical to the bit, largest difference 0.0 mm and 0.0 mm/s
+  The other constants and the other mode, the same way:
+    wgs72old, improved  2349 steps, 2349 identical to the bit, largest difference 0.0 mm
+    wgs72old, afspc     2349 steps, 2349 identical to the bit, largest difference 0.0 mm
+    wgs72,    afspc     2349 steps, 2349 identical to the bit, largest difference 0.0 mm
+    wgs84,    improved  2349 steps, 2349 identical to the bit, largest difference 0.0 mm
+    wgs84,    afspc     2349 steps, 2349 identical to the bit, largest difference 0.0 mm
+  GPKit reading the two lines itself, standing at the epoch the C++'s reader makes:
+    2349 steps, 2349 identical to the bit, largest difference 0.0 mm
+  GPKit reading the two lines itself, at the epoch the line states: the largest differences, by case
+    23333 4.105 mm, 20413 0.474 mm, 20413 0.166 mm (20413 is in the file twice)
+    The C++ reader takes the epoch through a calendar date and back and lands up to 20 microseconds away; GPKit keeps
+    the field as written. The difference is what those microseconds are worth: 23333 is a deep-space orbit of
+    eccentricity 0.97. It is not the propagator's.
+  The error codes of the two agree at every step, in every run above.
+
+What the tests hold it to (Tests/GPKitTests/SGP4Tests.swift): within a micrometre in position and a micrometre per
+second in velocity on the same inputs, and the error codes equal. Bit-identical is what was measured on these
+builds, not what the tests require: another compiler or optimisation may differ in the last bits.
+
+In CI, main at 22be997, run 41944427512, every job passed (69 tests on each platform):
+  macos-26, Apple Swift 6.3.3 (the runner's Xcode)    every comparison 2349 of 2349 identical to the bit;
+                                                       at the line's epoch 23333 4.105 mm, 20413 0.474 mm
+  ubuntu-latest, swift:6.4.2-noble                     every comparison 2349 of 2349 identical to the bit;
+                                                       at the line's epoch 23333 4.105 mm, 20413 0.474 mm
+  windows-latest, Swift 6.4.2 (swift.org installer)    every comparison 2349 of 2349 identical to the bit;
+                                                       at the line's epoch 23333 4.105 mm, 20413 0.474 mm
+  At the line's epoch the figures differ between platforms in the fourth decimal place of a millimetre (23333: 4.10524
+  on macOS, 4.10545 on Linux and Windows), from the C++ reader's calendar arithmetic in each C library.
+
+Not compared here: Vallado's own published output (tcppver.out), which is gpconf 0.9.0's propagation tier.

@@ -11,6 +11,7 @@ The public interface is unchanged.
 - GPKit builds and its tests run on Linux and Windows, in CI on every push: Linux on the official Swift 6.4.2
   image, Windows with swift.org's 6.4.2 installer. On Windows the C runtime's math is imported (`ucrt`).
 - The full gpconf run under gpconf 0.8.0 is in `conformance/`, and CI's offline gpconf run uses 0.8.0.
+- The comparison with Vallado's `SGP4.cpp` is in `conformance/`, with its command, versions and largest differences.
 - A test that the catalog fields `A+123` and `A1_23` are refused.
 - The README says what the tests against the C++ hold: agreement within a micrometre.
 - CI checks the public interface against `docs/public-api.swift`, this file, and the latest 1.x release.
