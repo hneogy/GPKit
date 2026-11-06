@@ -18,7 +18,9 @@ import GPKit
 
     /// The page's example: the line before its first text block, that block, and the block after "GPKit says:".
     static func example(of kind: Refusal.Kind) throws -> Example {
+        // a checkout on Windows can end its lines CR LF; the page is the same
         let text = try String(contentsOf: pages.appendingPathComponent("\(kind.rawValue).md"), encoding: .utf8)
+            .replacingOccurrences(of: "\r\n", with: "\n")
         let lines = text.components(separatedBy: "\n")
         #expect(lines.first == "# ``GPKit/Refusal/Kind-swift.enum/\(kind.rawValue)``")
         #expect(text.contains("## What happened\n") && text.contains("## How to fix it\n"))
