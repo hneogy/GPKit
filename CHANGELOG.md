@@ -19,6 +19,8 @@ The public interface is unchanged.
   radio. Their code is compiled and run in the tests, and CI builds the documentation (`tools/check-docs.sh`).
 - Three example projects in `Examples/`: a command-line pass predictor, a Doppler tool for radios, and a Mac sky
   view. CI builds them and holds the command-line ones to the tutorials' figures (`tools/check-examples.sh`).
+- A page for each of the 19 kinds of `Refusal.Kind`: what happened, how to fix it, and an example whose message a
+  test holds to what GPKit says.
 
 ## 1.0.0 (2026-10-07)
 
