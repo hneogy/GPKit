@@ -21,6 +21,8 @@ The public interface is unchanged.
   view. CI builds them and holds the command-line ones to the tutorials' figures (`tools/check-examples.sh`).
 - A page for each of the 19 kinds of `Refusal.Kind`: what happened, how to fix it, and an example whose message a
   test holds to what GPKit says.
+- A concepts guide: element sets and their epoch, TLE and OMM, catalog numbers and Alpha-5, SGP4, and how far
+  the results can be trusted, citing the records in `conformance/`.
 
 ## 1.0.0 (2026-10-07)
 
