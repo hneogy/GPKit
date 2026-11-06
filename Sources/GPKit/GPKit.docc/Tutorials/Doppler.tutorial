@@ -1,0 +1,38 @@
+@Tutorial(time: 10) {
+    @Intro(title: "Doppler for your radio") {
+        A satellite's signal reaches you higher than it was sent while the satellite comes closer, and lower once it
+        draws away. Work out what to tune your receiver to, minute by minute through a pass.
+    }
+
+    @Section(title: "Through a pass") {
+        @ContentAndMedia {
+            This uses the element set and the passes of the first tutorial, and a downlink on 145.800 MHz.
+        }
+
+        @Steps {
+            @Step {
+                Start from the passes, as in the first tutorial.
+
+                @Code(name: "main.swift", file: "doppler-code-01.swift")
+            }
+
+            @Step {
+                Take the first pass with both a rise and a set, and step through it a minute at a time, asking the
+                propagator for the look from your place.
+
+                @Code(name: "main.swift", file: "doppler-code-02.swift")
+            }
+
+            @Step {
+                ``GPKit/Look/received(from:)`` gives the frequency the signal reaches you on, from its range rate,
+                in kilometres per second and positive while the satellite draws away. Print it with the elevation.
+                At the rise it prints `tune to 145803279 Hz`, 3.3 kHz above the downlink; near the top of the pass,
+                at 14:08:39, `145800941 Hz`; and a minute before the set, `145796872 Hz`, 3.1 kHz below it.
+                To send to a satellite, ``GPKit/Look/transmit(toBeReceivedAt:)`` works the other way: it gives the
+                frequency to transmit on for the satellite to hear the one you name.
+
+                @Code(name: "main.swift", file: "doppler-code-03.swift")
+            }
+        }
+    }
+}

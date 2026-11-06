@@ -285,6 +285,9 @@ The public interface, as the compiler states it, is in [`docs/public-api.swift`]
 `tools/public-api.sh` writes it. `tools/check-no-foundation.sh` compiles the library without its bridge to `Date`
 and without Foundation.
 
+The documentation, with three tutorials, is in `Sources/GPKit/GPKit.docc`; `tools/check-docs.sh` builds it with DocC,
+and `TutorialTests` compiles and runs the tutorials' code.
+
 ## Stability
 
 Code written against GPKit 1.0 keeps compiling through every 1.x release: within 1.x nothing public is removed or
