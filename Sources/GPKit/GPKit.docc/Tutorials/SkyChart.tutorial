@@ -1,0 +1,58 @@
+@Tutorial(time: 15) {
+    @Intro(title: "Draw a pass on a sky chart") {
+        Follow a pass from rise to set, and draw it on a chart of the sky with SwiftUI.
+    }
+
+    @Section(title: "Follow the pass") {
+        @ContentAndMedia {
+            Where to look is a ``GPKit/Look``: an azimuth, in degrees clockwise from north, and an elevation, in
+            degrees above the horizon. A pass gives you three of them, at its rise, its highest point and its set;
+            for a chart you want the ones in between.
+        }
+
+        @Steps {
+            @Step {
+                Step through the pass ten seconds at a time and ask the propagator where the satellite is from your
+                place. End on the set, so that the path reaches the horizon.
+
+                @Code(name: "SkyPath.swift", file: "sky-chart-path-01.swift")
+            }
+
+            @Step {
+                A sky chart puts the point overhead at its centre and the horizon at its rim, with north at the top
+                and east to the right, as you see the sky lying on your back with your head to the north. Turn a
+                look into a point on a chart of radius one.
+
+                @Code(name: "SkyPath.swift", file: "sky-chart-path-02.swift")
+            }
+        }
+    }
+
+    @Section(title: "Draw it") {
+        @ContentAndMedia {
+            A SwiftUI `Canvas` draws the horizon and the path.
+        }
+
+        @Steps {
+            @Step {
+                Draw the horizon, a circle filling the view.
+
+                @Code(name: "SkyChart.swift", file: "sky-chart-view-01.swift")
+            }
+
+            @Step {
+                Draw the path through the chart's points.
+
+                @Code(name: "SkyChart.swift", file: "sky-chart-view-02.swift")
+            }
+
+            @Step {
+                Say what the chart shows, for VoiceOver: where it rises, how high it gets, and where it sets. For
+                the first pass of the first tutorial, a path of 41 points, this reads "Rises at azimuth 202 degrees,
+                highest 15 degrees, sets at azimuth 69 degrees".
+
+                @Code(name: "SkyChart.swift", file: "sky-chart-view-03.swift")
+            }
+        }
+    }
+}

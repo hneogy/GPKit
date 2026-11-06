@@ -1,0 +1,17 @@
+@Tutorials(name: "GPKit") {
+    @Intro(title: "Passes with GPKit") {
+        Read an element set, find when a satellite passes over you, draw the pass, and tune your radio for it.
+        Each tutorial uses the Space Station's first element set, of 20 November 1998, so that what you see is
+        what GPKit's tests check: the code here is compiled and run with them.
+    }
+
+    @Chapter(name: "Passes") {
+        From two lines of text to where to point and what to tune to.
+
+        @Image(source: "passes-chapter.png", alt: "A sky chart: a circle for the horizon, and the path of the Space Station's first pass over 40 degrees north, 75 degrees west on 20 November 1998, rising at azimuth 202 degrees, 15 degrees high at most, setting at azimuth 69 degrees. Drawn by the second tutorial's code.")
+
+        @TutorialReference(tutorial: "doc:YourFirstPass")
+        @TutorialReference(tutorial: "doc:SkyChart")
+        @TutorialReference(tutorial: "doc:Doppler")
+    }
+}

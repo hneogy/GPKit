@@ -15,6 +15,8 @@ The public interface is unchanged.
 - A test that the catalog fields `A+123` and `A1_23` are refused.
 - The README says what the tests against the C++ hold: agreement within a micrometre.
 - CI checks the public interface against `docs/public-api.swift`, this file, and the latest 1.x release.
+- DocC documentation, with three tutorials: your first ISS pass, a pass on a sky chart, and Doppler for your
+  radio. Their code is compiled and run in the tests, and CI builds the documentation (`tools/check-docs.sh`).
 
 ## 1.0.0 (2026-10-07)
 

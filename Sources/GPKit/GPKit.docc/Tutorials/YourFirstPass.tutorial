@@ -1,0 +1,55 @@
+@Tutorial(time: 10) {
+    @Intro(title: "Your first ISS pass in 10 lines") {
+        Read the Space Station's element set, make a propagator, and list the times it rises over a place on the
+        ground.
+    }
+
+    @Section(title: "Read an element set") {
+        @ContentAndMedia {
+            An element set describes a satellite's orbit at one moment, its epoch. Providers serve it as OMM or as a
+            TLE, two lines of text. This one is the Space Station's first, of 20 November 1998.
+        }
+
+        @Steps {
+            @Step {
+                Put the element set in your code as text. In an app it comes from a file or a download; GPKit
+                itself makes no request.
+
+                @Code(name: "main.swift", file: "first-pass-code-01.swift")
+            }
+
+            @Step {
+                Read it with ``GPKit/ElementSets``, saying which format it is in, and make a
+                ``GPKit/Propagator`` from it. The propagator is SGP4, the model the element set was made for. A file
+                can hold many element sets; this one holds one.
+
+                @Code(name: "main.swift", file: "first-pass-code-02.swift")
+            }
+        }
+    }
+
+    @Section(title: "Find the passes") {
+        @ContentAndMedia {
+            A pass is the time a satellite is above your horizon, from its rise to its set.
+        }
+
+        @Steps {
+            @Step {
+                Say where you are with an ``GPKit/Observer``: latitude and longitude in degrees, north and east
+                positive. Ask for the passes of the next day, here from the element set's own epoch, and print
+                when each one rises and how high it gets.
+
+                @Code(name: "main.swift", file: "first-pass-code-03.swift")
+            }
+
+            @Step {
+                Run it. It prints six passes, and the first line is
+                `1998-11-20T14:05:39.422000 highest 15 degrees`.
+                A time is UTC, to the microsecond. A pass already under way when the search starts has no rise, and
+                is left out here.
+
+                @Code(name: "main.swift", file: "first-pass-code-03.swift")
+            }
+        }
+    }
+}
