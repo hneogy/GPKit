@@ -285,6 +285,14 @@ The public interface, as the compiler states it, is in [`docs/public-api.swift`]
 `tools/public-api.sh` writes it. `tools/check-no-foundation.sh` compiles the library without its bridge to `Date`
 and without Foundation.
 
+## Stability
+
+Code written against GPKit 1.0 keeps compiling through every 1.x release: within 1.x nothing public is removed or
+changed in a way that breaks it. New interface comes as additions, and what would break 1.x code waits for 2.0.
+Every change to the public interface is said in [`CHANGELOG.md`](CHANGELOG.md). CI holds both:
+`tools/public-api.sh --check` stops a change to the interface that `docs/public-api.swift` and the changelog do not
+state, and one that SwiftPM's API digester finds breaking against the latest 1.x release.
+
 ## Licence
 
 MIT. See [LICENSE](LICENSE), and [NOTICE](NOTICE) for the SGP4 source the propagator is ported from and for what
