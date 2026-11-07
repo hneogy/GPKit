@@ -24,6 +24,9 @@ The public interface is unchanged.
   test holds to what GPKit says.
 - A concepts guide: element sets and their epoch, TLE and OMM, catalog numbers and Alpha-5, SGP4, and how far
   the results can be trusted, citing the records in `conformance/`.
+- OMM and TLE shown to be one element set: over 976 pairs of the provider files held, GPKit writes each OMM as the
+  provider's TLE lines, character for character, and they propagate to the bit (`tools/equivalence`, the record in
+  `conformance/`, and `EquivalenceTests`).
 
 ## 1.0.0 (2026-10-07)
 
