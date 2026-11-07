@@ -226,6 +226,22 @@ Four things to know about it:
   `failure` says which of SGP4's conditions stopped the search and at how many minutes from the epoch. A pass under
   way at that time is among them, without a set.
 
+## The gpkit tool
+
+`gpkit` does the same from a terminal, on any file GPKit reads:
+
+```sh
+swift run gpkit passes Examples/data/iss-1998.tle 40 -75 --from 1998-11-20T06:49:59.999808 --light
+swift run gpkit where Examples/data/iss-1998.tle --at 1998-11-20T14:09:00 --observer 40 -75
+swift run gpkit tle satellites.json
+```
+
+`gpkit read`, `tle`, `passes`, `where` and `track` say what a file holds, write it as TLE, find passes (with when
+each can be seen, `--light`), give a position and look, and give a ground track. It exits 0 when it did what it was
+asked, 1 when GPKit refused something, and 2 for a command line it does not understand. CI builds it for release on
+Linux, macOS and Windows, runs each build where Swift is not installed, and holds it to the tutorials' figures
+(`tools/check-cli.sh`); a published release carries the three builds.
+
 ## How SGP4 and the passes are checked
 
 **Against the C++ it is ported from.** The tests compile Vallado's `SGP4.cpp`, unmodified, and run it and the port

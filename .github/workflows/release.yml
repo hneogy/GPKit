@@ -1,0 +1,33 @@
+name: Release
+
+# For a published release: the gpkit binaries built from its tag, checked as in CI, and attached to it.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  binaries:
+    uses: ./.github/workflows/gpkit-binaries.yml
+
+  attach:
+    name: attach the binaries to the release
+    needs: binaries
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Attach
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          ls -la dist
+          gh release upload "$TAG" dist/* --repo "$GITHUB_REPOSITORY"

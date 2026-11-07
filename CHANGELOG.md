@@ -26,6 +26,9 @@ Added to the public interface; nothing is removed or changed:
 
 Also:
 
+- `gpkit`, a command-line tool: `read`, `tle`, `passes`, `where` and `track`, built for release on Linux, macOS
+  and Windows, each build run where Swift is not installed and held to the tutorials' figures (`tools/check-cli.sh`).
+
 - GPKit builds and its tests run on Linux and Windows, in CI on every push: Linux on the official Swift 6.4.2
   image, Windows with swift.org's 6.4.2 installer. On Windows the C runtime's math is imported (`ucrt`).
 - The full gpconf run under gpconf 0.8.0 is in `conformance/`, and CI's offline gpconf run uses 0.8.0.
