@@ -32,6 +32,9 @@ jobs:
       - name: The core without Foundation
         run: sh tools/check-no-foundation.sh
 
+      - name: The core where Int is 32 bits
+        run: sh tools/check-32-bit.sh
+
       - name: The documentation and its tutorials, in DocC
         run: sh tools/check-docs.sh
 
@@ -177,6 +180,9 @@ jobs:
         with:
           swift-version: 6.4.2
           free-disk-space: true
+          # the native build system puts the tests' resources in GPKit_GPKitTests.resources, which the action
+          # copies to the emulator; Swift 6.4's default names them otherwise
+          swift-build-flags: --build-system native
 
   # The library alone, built for each Apple platform the package names besides macOS.
   platforms:

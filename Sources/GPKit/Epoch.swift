@@ -143,8 +143,9 @@ public struct Epoch: Sendable, Hashable, Comparable, CustomStringConvertible {
     /// The fraction of the second in whole nanoseconds, anything finer cut off.
     public var nanosecond: Int { Int(attosecond / 1_000_000_000) }
 
-    /// Microseconds since the day began: 0 to 86,400,999,999 (the last second of a day with a leap second).
-    var microsecondOfDay: Int { ((hour * 60 + minute) * 60 + second) * 1_000_000 + microsecond }
+    /// Microseconds since the day began: 0 to 86,400,999,999 (the last second of a day with a leap second). In Int64,
+    /// since a day's microseconds do not fit where Int is 32 bits wide, as on WebAssembly's wasm32.
+    var microsecondOfDay: Int64 { Int64((hour * 60 + minute) * 60 + second) * 1_000_000 + Int64(microsecond) }
 
     /// `YYYY-MM-DDThh:mm:ss.ffffff`, with more fraction digits where the epoch has them.
     public var description: String {
@@ -204,7 +205,7 @@ public struct Epoch: Sendable, Hashable, Comparable, CustomStringConvertible {
             throw Refusal(.notAnEpoch, "\(seconds) seconds is not a count to a date this type holds", field: "EPOCH")
         }
         let day = (seconds / 86_400.0).rounded(.down)
-        let moved = Epoch(unixDay: origin + Int(day), microsecondOfDay: Int(((seconds - day * 86_400.0) * 1.0e6).rounded()))
+        let moved = Epoch(unixDay: origin + Int(day), microsecondOfDay: Int64(((seconds - day * 86_400.0) * 1.0e6).rounded()))
         guard (1...9999).contains(moved.year) else {
             throw Refusal(.notAnEpoch, "\(seconds) seconds is a count to a date outside the years 1 to 9999", field: "EPOCH")
         }
@@ -230,8 +231,8 @@ public struct Epoch: Sendable, Hashable, Comparable, CustomStringConvertible {
     }
 
     /// A day counted from 1970 January 1 and a number of microseconds into it, which may run past the day's end.
-    init(unixDay: Int, microsecondOfDay: Int) {
-        var day = unixDay + microsecondOfDay / 86_400_000_000
+    init(unixDay: Int, microsecondOfDay: Int64) {
+        var day = unixDay + Int(microsecondOfDay / 86_400_000_000)
         var micro = microsecondOfDay % 86_400_000_000
         if micro < 0 {
             micro += 86_400_000_000
@@ -248,9 +249,9 @@ public struct Epoch: Sendable, Hashable, Comparable, CustomStringConvertible {
         self.year = (m <= 2 ? 1 : 0) + yoe + era * 400
         self.month = m
         self.day = doy - (153 * mp + 2) / 5 + 1
-        self.hour = micro / 3_600_000_000
-        self.minute = micro / 60_000_000 % 60
-        self.second = micro / 1_000_000 % 60
+        self.hour = Int(micro / 3_600_000_000)
+        self.minute = Int(micro / 60_000_000 % 60)
+        self.second = Int(micro / 1_000_000 % 60)
         self.attosecond = UInt64(micro % 1_000_000) * 1_000_000_000_000
     }
 
