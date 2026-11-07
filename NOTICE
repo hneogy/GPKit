@@ -1,7 +1,7 @@
 GPKit
 Copyright (c) 2026 NEOGY LLC
 
-GPKit is released under the MIT licence (see LICENSE). Three things in this repository come from elsewhere.
+GPKit is released under the MIT licence (see LICENSE). Four things in this repository come from elsewhere.
 
 
 1. SGP4
@@ -62,6 +62,18 @@ derived/alpha5-tle/alpha5-A-100000-saramago-first.tle. The fifth, 08195, is from
 
 Tests/GPKitTests/Resources/skyfield-passes.json holds what Skyfield 1.55 (https://github.com/skyfielders/python-skyfield,
 MIT, Copyright (c) 2013-2018 Brandon Rhodes) computes for those five, their passes over one place, the look from it
-and the point beneath each satellite: tools/skyfield_passes_reference.py wrote it.
+and the point beneath each satellite: tools/skyfield_passes_reference.py wrote it. Tests/GPKitTests/Resources/
+skyfield-frames.json holds what the same Skyfield computes for them in the Earth-fixed frame and as right ascension
+and declination from one place: tools/skyfield_frames_reference.py wrote it.
 
-Both are used by the tests and are no part of the library.
+All three are used by the tests and are no part of the library.
+
+
+4. SatNOGS DB's transmitters
+
+Tests/GPKitSourcesTests/Resources/satnogs-transmitters-active-2026-11-07.json is SatNOGS DB's answer, byte for byte,
+to one request made on 2026-11-07 for GPKitSources' tests (https://db.satnogs.org/api/transmitters/?format=json&status=active;
+the request's record is beside it, with its time, status and SHA-256). It is data from SatNOGS DB (db.satnogs.org),
+by Libre Space Foundation and its contributors, under the Creative Commons Attribution-ShareAlike 4.0 International
+licence (https://creativecommons.org/licenses/by-sa/4.0/), not under GPKit's MIT licence: whoever copies or adapts
+that file does so under CC BY-SA 4.0. It is used by the tests and is no part of the library.
