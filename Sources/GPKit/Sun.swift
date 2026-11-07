@@ -23,15 +23,15 @@ public enum Sun {
     /// The radius of the Earth's shadow, kilometres: the WGS-84 equatorial radius.
     public static let shadowRadius = Frames.equatorialRadius
 
-    /// Julian centuries from 2000 January 1, 12:00, to an instant.
-    static func centuries(_ time: Epoch) -> Double {
-        (time.julianDate - 2_451_545.0) / 36_525.0
-    }
-
     /// The sun's longitude along the ecliptic as it is seen, and the tilt of the ecliptic to the equator, with the
     /// nodding of the Earth's axis in both: degrees. `nodding` is its part in the longitude alone.
     static func ecliptic(at time: Epoch) -> (longitude: Double, obliquity: Double, nodding: Double) {
-        let t = centuries(time)
+        ecliptic(julianDate: time.julianDate)
+    }
+
+    static func ecliptic(julianDate: Double) -> (longitude: Double, obliquity: Double, nodding: Double) {
+        // Julian centuries from 2000 January 1, 12:00
+        let t = (julianDate - 2_451_545.0) / 36_525.0
         let radians = Frames.radians
         let meanLongitude = 280.46646 + t * (36_000.76983 + 0.0003032 * t)
         let meanAnomaly = (357.52911 + t * (35_999.05029 - 0.0001537 * t)) * radians
@@ -61,7 +61,11 @@ public enum Sun {
     /// How far the equinox itself is moved along the equator by the nodding of the Earth's axis, degrees: what
     /// sidereal time as the stars show it has over mean sidereal time.
     static func equationOfTheEquinoxes(at time: Epoch) -> Double {
-        let (_, obliquity, nodding) = ecliptic(at: time)
+        equationOfTheEquinoxes(julianDate: time.julianDate)
+    }
+
+    static func equationOfTheEquinoxes(julianDate: Double) -> Double {
+        let (_, obliquity, nodding) = ecliptic(julianDate: julianDate)
         return nodding * cos(obliquity * Frames.radians)
     }
 

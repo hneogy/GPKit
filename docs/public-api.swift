@@ -97,6 +97,29 @@ public struct ExactDecimal : Sendable, Hashable, CustomStringConvertible, Lossle
   public var description: String { get }
   public var double: Double { get }
 }
+public struct GroundTrack : Sendable, Hashable, RandomAccessCollection {
+  public struct Point : Sendable, Hashable {
+    public var time: Epoch
+    public var position: GeodeticPosition
+  }
+  public let failure: PropagationFailure?
+  public var startIndex: Int { get }
+  public var endIndex: Int { get }
+  public subscript(position: Int) -> GroundTrack.Point { get }
+  public typealias Element = GroundTrack.Point
+  public typealias Index = Int
+  public typealias Indices = Range<Int>
+  public typealias Iterator = IndexingIterator<GroundTrack>
+  public typealias SubSequence = Slice<GroundTrack>
+}
+extension Propagator {
+  public func earthFixedState(at time: Epoch) throws(PropagationFailure) -> StateVector
+  public func equatorial(from observer: Observer, at time: Epoch) throws(PropagationFailure) -> EquatorialPosition
+  public func groundTrack(from start: Epoch, for duration: Duration, every step: Duration) -> GroundTrack
+}
+extension GeodeticPosition {
+  public func footprint(minimumElevation: Double = 0, points: Int = 72) -> [GeodeticPosition]
+}
 public enum OMM {
   public static func catalogNumber(_ text: String) throws(Refusal) -> Int
 }

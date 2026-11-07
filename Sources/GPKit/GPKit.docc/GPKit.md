@@ -42,3 +42,8 @@ your radio.
 - ``Sunlight``
 - ``PassVisibility``
 - ``EquatorialPosition``
+
+### Frames and maps
+
+- ``GroundTrack``
+- ``GeodeticPosition``
