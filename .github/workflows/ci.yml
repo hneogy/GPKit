@@ -156,3 +156,7 @@ jobs:
 
       - name: Build
         run: xcodebuild build -scheme GPKit -destination "generic/platform=${{ matrix.platform }}" -derivedDataPath "$RUNNER_TEMP/derived"
+
+  # The gpkit tool's release builds, standalone on each system (gpkit-binaries.yml).
+  binaries:
+    uses: ./.github/workflows/gpkit-binaries.yml

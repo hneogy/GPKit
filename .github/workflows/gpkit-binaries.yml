@@ -1,0 +1,106 @@
+name: gpkit binaries
+
+# The gpkit command-line tool built for release on Linux, macOS and Windows, each checked to run where Swift is not
+# installed and held to tools/check-cli.sh, and kept as an artifact. CI calls this on every push; release.yml calls it
+# for a published release and attaches the three archives to it.
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    name: gpkit for Linux (x86_64)
+    runs-on: ubuntu-latest
+    container: swift:6.4.2-noble
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build, the Swift runtime linked in
+        run: swift build -c release --product gpkit --static-swift-stdlib
+
+      # no library of Swift's is needed to run it: only the C and C++ runtimes every distribution has
+      - name: Standalone
+        run: |
+          mkdir dist
+          cp "$(swift build -c release --show-bin-path)/gpkit" dist/gpkit
+          strip dist/gpkit
+          ldd dist/gpkit
+          if ldd dist/gpkit | grep -i swift; then echo "gpkit links a library of Swift's" >&2; exit 1; fi
+
+      - name: The tool's figures and exit codes
+        run: sh tools/check-cli.sh dist/gpkit
+
+      - name: Archive
+        run: tar -czf gpkit-linux-x86_64.tar.gz -C dist gpkit
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gpkit-linux-x86_64
+          path: gpkit-linux-x86_64.tar.gz
+
+  macos:
+    name: gpkit for macOS (universal)
+    runs-on: xcode-27
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build, for Apple silicon and Intel
+        run: swift build -c release --product gpkit --arch arm64 --arch x86_64
+
+      # the Swift runtime is part of macOS from 12.4; nothing outside the system is needed
+      - name: Standalone
+        run: |
+          mkdir dist
+          cp "$(swift build -c release --product gpkit --arch arm64 --arch x86_64 --show-bin-path)/gpkit" dist/gpkit
+          lipo -info dist/gpkit
+          otool -L dist/gpkit
+          if otool -L dist/gpkit | tail -n +2 | grep -v ':$' | grep -vE '^[[:space:]]+(/usr/lib/|/System/Library/)'; then
+            echo "gpkit links a library outside the system" >&2; exit 1
+          fi
+
+      - name: The tool's figures and exit codes
+        run: sh tools/check-cli.sh dist/gpkit
+
+      - name: Archive
+        run: tar -czf gpkit-macos-universal.tar.gz -C dist gpkit
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gpkit-macos-universal
+          path: gpkit-macos-universal.tar.gz
+
+  windows:
+    name: gpkit for Windows (x86_64)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        uses: compnerd/gha-setup-swift@9ff1ee4c44888c5817fc14d1b257ac8cabb4935f # v0.5.1
+        with:
+          swift-version: swift-6.4.2-release
+          swift-build: 6.4.2-RELEASE
+
+      - name: Build, the Swift runtime linked in
+        run: swift build -c release --product gpkit --static-swift-stdlib
+
+      # run from a folder of its own with only Windows and the shell's tools on the path: no Swift
+      - name: Standalone, and the tool's figures and exit codes
+        shell: bash
+        run: |
+          mkdir dist
+          cp "$(swift build -c release --show-bin-path)/gpkit.exe" dist/gpkit.exe
+          PATH="/usr/bin:/c/Windows/System32:/c/Windows" sh tools/check-cli.sh dist/gpkit.exe
+
+      - name: Archive
+        shell: bash
+        run: cd dist && 7z a ../gpkit-windows-x86_64.zip gpkit.exe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gpkit-windows-x86_64
+          path: gpkit-windows-x86_64.zip
