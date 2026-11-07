@@ -139,7 +139,7 @@ struct SkyfieldFrames: Decodable {
         let iss = try TLE.parse(name: Sample.name, line1: Sample.line1, line2: Sample.line2)
         let molniya = try TLE.parse(line1: "1 08195U 75081A   06176.33215444  .00000099  00000-0  11873-3 0   813",
                                     line2: "2 08195  64.1586 279.0717 6877146 264.7651  20.2257  2.00491383225656")
-        var worst = 0.0, worstRadius = 0.0
+        var worst = 0.0, worstRadius = 0.0, worstBearing = 0.0
         for set in [iss, molniya] {
             let propagator = try Propagator(set)
             for hours in [0.0, 1.0, 5.0] {
@@ -151,7 +151,12 @@ struct SkyfieldFrames: Decodable {
                     // the textbook ring on a sphere of the equator's radius, an angle round the Earth's centre
                     let radius = Frames.equatorialRadius, r = minimum * .pi / 180
                     let sphere = acos(radius * cos(r) / (radius + beneath.altitude)) - r
-                    for place in ring {
+                    for (i, place) in ring.enumerated() {
+                        // on its own bearing from the point beneath, evenly spaced clockwise from north
+                        let a = beneath.latitude * .pi / 180, b = place.latitude * .pi / 180, east = (place.longitude - beneath.longitude) * .pi / 180
+                        var bearing = atan2(sin(east) * cos(b), cos(a) * sin(b) - sin(a) * cos(b) * cos(east)) * 180 / .pi
+                        if bearing < -1.0e-9 { bearing += 360 }
+                        worstBearing = max(worstBearing, abs(bearing - 10 * Double(i)))
                         let look = try propagator.look(from: Observer(latitude: place.latitude, longitude: place.longitude), at: time)
                         worst = max(worst, abs(look.elevation - minimum))
                         #expect(place.altitude == 0 && (-90...90).contains(place.latitude) && place.longitude > -180 && place.longitude <= 180)
@@ -162,8 +167,9 @@ struct SkyfieldFrames: Decodable {
                 }
             }
         }
-        print("footprints: the satellite within \(worst) degrees of the elevation asked from every place on them, and their radius within \(worstRadius * 100) % of a sphere's")
+        print("footprints: the satellite within \(worst) degrees of the elevation asked from every place on them, each on its bearing within \(worstBearing) degrees, and their radius within \(worstRadius * 100) % of a sphere's")
         #expect(worst < 1.0e-5)
+        #expect(worstBearing < 1.0e-6)
         // the Earth is not a sphere: the ring is within one per cent of the sphere's
         #expect(worstRadius < 0.01)
         let beneath = GeodeticPosition(latitude: 0, longitude: 179.9, altitude: 420)

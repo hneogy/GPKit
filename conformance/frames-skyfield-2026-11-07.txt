@@ -1,0 +1,17 @@
+GPKit's Earth-fixed states, right ascensions and declinations, ground tracks and coverage footprints, checked
+against Skyfield's and against GPKit's own look, for the five public element sets of the pass check.
+Run on 2026-11-07 (UTC), macOS 27.2 arm64, Apple Swift version 6.4.2, debug build, `swift test --filter FrameTests`.
+The reference is Tests/GPKitTests/Resources/skyfield-frames.json, which tools/skyfield_frames_reference.py wrote with
+Skyfield 1.55 and python-sgp4 2.27 (builtin timescale, no polar motion); CI makes the same comparison.
+
+Earth-fixed state against Skyfield 1.55 at 185 times: position within 335.689394414487 m, velocity within 0.12899636605028947 m/s; with UT1: position within 0.08879132329958725 m, velocity within 3.492525238942978e-05 m/s
+right ascension and declination from 40.0, -75.0 against Skyfield 1.55 at 185 times: within 0.0010343812152808834 degrees; with UT1: within 0.00042122720639008757 degrees
+footprints: the satellite within 3.877076082403619e-07 degrees of the elevation asked from every place on them, each on its bearing within 1.0231815394945443e-12 degrees, and their radius within 0.4795528854809267 % of a sphere's
+
+The grid is every ten minutes for six hours from each set's epoch cut to the minute. GPKit takes UT1 to be UTC, and
+Skyfield's builtin table puts UT1 less UTC at up to 0.24 s on these dates; the lines "with UT1" turn the Earth by
+Skyfield's value through a door the tests have, so they compare the frames themselves. The right ascension is for the
+true equator and equinox of the date (Skyfield's radec(epoch="date")), geometric, from the place 100 m up.
+The ground track is the point beneath at each step, and agrees with Skyfield's point beneath in
+Tests/GPKitTests/Resources/skyfield-passes.json as conformance/skyfield-2026-10-07.txt says. The footprint has no
+outside reference: each place on it is held to GPKit's look, which is checked against Skyfield, and to its bearing.
