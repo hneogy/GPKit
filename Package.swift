@@ -4,9 +4,9 @@ import PackageDescription
 
 let package = Package(
     name: "GPKit",
-    // The first release of each platform with Swift's Duration, which the pass search takes. watchOS is not here yet:
-    // the core compiles where Int is 32 bits wide, as on most watches (tools/check-32-bit.sh), but no watchOS build is tested.
-    platforms: [.macOS(.v13), .iOS(.v16), .tvOS(.v16), .visionOS(.v1)],
+    // The first release of each platform with Swift's Duration, which the pass search takes. On watchOS, Int is 32 bits
+    // wide on most watches: the core counts what does not fit in Int64 (tools/check-32-bit.sh).
+    platforms: [.macOS(.v13), .iOS(.v16), .tvOS(.v16), .watchOS(.v9), .visionOS(.v1)],
     products: [
         .library(name: "GPKit", targets: ["GPKit"]),
         // The command-line tool: passes, positions, tracks and conversions from the terminal (Sources/gpkit-cli).
