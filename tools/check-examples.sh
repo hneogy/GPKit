@@ -14,11 +14,11 @@ swift run --skip-build --package-path Examples/PassPredictor pass-predictor Exam
 swift run --skip-build --package-path Examples/Doppler doppler Examples/data/iss-1998.tle 40 -75 145800000 --uplink 145990000 \
     --from $from --step 60 > "$out/doppler.txt"
 expect() {  # expect FILE LINE: the file holds the line
-    grep -qxF -- "$2" "$out/$1" || { echo "$1 does not hold \"$2\"; it is:" >&2; cat "$out/$1" >&2; exit 1; }
+    command grep -qxF -- "$2" "$out/$1" || { echo "$1 does not hold \"$2\"; it is:" >&2; cat "$out/$1" >&2; exit 1; }
 }
 expect passes.txt "  1998-11-20T14:05:39.422000  highest 15°  1998-11-20T14:12:14.859000"
 expect passes.txt "  1998-11-20T21:54:14.805000  highest 17°  1998-11-20T22:01:00.048000"
-[ "$(grep -c highest "$out/passes.txt")" = 6 ] || { echo "pass-predictor did not find the six passes" >&2; exit 1; }
+[ "$(command grep -c highest "$out/passes.txt")" = 6 ] || { echo "pass-predictor did not find the six passes" >&2; exit 1; }
 expect doppler.txt "1998-11-20T14:05:39.422000   202.2°       0.0°  145803279      145986717"
 expect doppler.txt "1998-11-20T14:12:14.859000    69.1°       0.0°  145796739      145993265"
 echo "pass-predictor and doppler print the tutorials' figures"

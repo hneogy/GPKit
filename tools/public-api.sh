@@ -57,7 +57,7 @@ for i, line in enumerate(out):
 PY
 if [ $check = no ]; then
     cp "$out/public-api.swift" docs/public-api.swift
-    echo "docs/public-api.swift: $(grep -c . docs/public-api.swift) lines"
+    echo "docs/public-api.swift: $(command grep -c . docs/public-api.swift) lines"
     exit 0
 fi
 
@@ -69,11 +69,11 @@ echo "docs/public-api.swift states the public interface"
 
 if [ -n "$base" ]; then
     changed=$(git diff --name-only "$base" HEAD -- docs/public-api.swift CHANGELOG.md)
-    if echo "$changed" | grep -qx 'docs/public-api.swift' && ! echo "$changed" | grep -qx 'CHANGELOG.md'; then
+    if echo "$changed" | command grep -qx 'docs/public-api.swift' && ! echo "$changed" | command grep -qx 'CHANGELOG.md'; then
         echo "the public interface changed since $base and CHANGELOG.md did not: say the change there" >&2
         exit 1
     fi
-    echo "since $base: $(echo "$changed" | grep -qx 'docs/public-api.swift' && echo 'the interface changed, and CHANGELOG.md says so' || echo 'the interface did not change')"
+    echo "since $base: $(echo "$changed" | command grep -qx 'docs/public-api.swift' && echo 'the interface changed, and CHANGELOG.md says so' || echo 'the interface did not change')"
 fi
 
 # 1.x stays source-compatible: nothing public is removed or changed in a way that breaks code written against 1.x
@@ -83,7 +83,7 @@ if [ -z "$latest" ]; then
     exit 1
 fi
 swift package diagnose-api-breaking-changes "$latest" --products GPKit > "$out/digester.log" 2>&1 || {
-    grep -vE '^\[|^Building|^Build complete|^Compiling|^Planning|^Fetching|^Computing' "$out/digester.log" >&2
+    command grep -vE '^\[|^Building|^Build complete|^Compiling|^Planning|^Fetching|^Computing' "$out/digester.log" >&2
     echo "the public interface breaks code written against $latest: within 1.x that waits for 2.0" >&2
     exit 1
 }

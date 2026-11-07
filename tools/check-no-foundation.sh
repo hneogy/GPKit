@@ -3,8 +3,8 @@
 # type-checked as a module with no Foundation in it. If one of them came to use Foundation, this stops.
 # Run from the package's root.
 set -eu
-files=$(ls Sources/GPKit/*.swift | grep -v '/Date\.swift$')
-if grep -n 'import Foundation' $files; then
+files=$(ls Sources/GPKit/*.swift | command grep -v '/Date\.swift$')
+if command grep -n 'import Foundation' $files; then
     echo "a file of the core imports Foundation" >&2
     exit 1
 fi
