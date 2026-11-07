@@ -8,6 +8,10 @@ nothing public is removed or changed in a way that breaks code written against a
 
 Added to the public interface; nothing is removed or changed:
 
+- `CloseApproach.screen(_:from:for:step:within:)`: a rough screen on GP data with SGP4 for candidate close approaches,
+  each with its time, miss distance and relative speed; no probability of collision. Not for operational collision
+  avoidance, and no approach found does not mean safe, as its documentation, `gpkit approaches` and the README say.
+  Tested against closest approaches computed independently: by formula, and by brute force over the same positions.
 - `Sun`: the sun's direction, right ascension and declination, its height at a place, and whether it shines on a
   point, after the NOAA calculators' formulas, held in the tests to the US Naval Observatory's and NOAA's figures.
 - `Sunlight`, from `Propagator.sunlight(from:at:)`: the sky at a place (daylight, twilight or dark), whether the

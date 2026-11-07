@@ -243,6 +243,22 @@ asked, 1 when GPKit refused something, and 2 for a command line it does not unde
 Linux, macOS and Windows, runs each build where Swift is not installed, and holds it to the tutorials' figures
 (`tools/check-cli.sh`); a published release carries the three builds.
 
+## A rough close-approach screen
+
+`CloseApproach.screen` (and `gpkit approaches`) looks through a span for the moments pairs of objects come nearest
+each other in SGP4's positions, and gives each within a distance as a candidate: the two objects, the time, the miss
+distance and the relative speed. It is a screen on GP data, **not collision avoidance**:
+
+- GP data and SGP4 place an object to roughly a kilometre near the element set's epoch, and to several kilometres or
+  more days later, with no statement of their own uncertainty; a miss distance here is SGP4's, not the objects'.
+- It gives no probability of collision and no risk.
+- **No approach found does not mean the objects are safe**: only that none came within the distance asked in
+  SGP4's positions, sampled as asked.
+
+Operators screen with precise ephemerides, their covariances, and the agencies' conjunction data messages. The
+tests hold the screen to closest approaches found another way: by formula for straight-line motion and for two
+circular orbits, and by a brute-force search of the same SGP4 positions for a pair built to meet.
+
 ## From Python
 
 `python/` is pygpkit, GPKit for Python (`import pygpkit`; not the unrelated `gpkit` on PyPI), with the numbers GPKit's

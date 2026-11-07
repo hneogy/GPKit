@@ -5,6 +5,9 @@
 //   gpkit passes FILE LATITUDE LONGITUDE [--height METRES] [--from TIME] [--hours N] [--above DEGREES] [--light]
 //   gpkit where FILE [--at TIME] [--observer LATITUDE LONGITUDE [--height METRES]]
 //   gpkit track FILE [--from TIME] [--minutes N] [--step SECONDS]
+//   gpkit approaches FILE [--from TIME] [--hours N] [--step SECONDS] [--within KM]
+//                                               candidate close approaches between the file's objects in SGP4's
+//                                               positions: a rough screen on GP data, not collision avoidance
 //
 // FILE is OMM (.csv, .json, .xml, .kvn) or TLE (.tle, .txt), or - for standard input with --format. TIME is UTC in
 // the CCSDS form, 2026-11-06T12:00:00; without it, now. Exit 0 when the command did what it was asked, 1 when GPKit
@@ -18,7 +21,11 @@ usage: gpkit read FILE
        gpkit passes FILE LATITUDE LONGITUDE [--height METRES] [--from TIME] [--hours N] [--above DEGREES] [--light]
        gpkit where FILE [--at TIME] [--observer LATITUDE LONGITUDE [--height METRES]]
        gpkit track FILE [--from TIME] [--minutes N] [--step SECONDS]
+       gpkit approaches FILE [--from TIME] [--hours N] [--step SECONDS] [--within KM]
 FILE: .csv, .json, .xml, .kvn, .tle or .txt, or - with --format FORMAT. TIME: UTC, 2026-11-06T12:00:00.
+approaches is a rough screen on GP data with SGP4: candidate approaches with miss distance and time, no probability
+of collision. GP data is roughly kilometre-level: not for operational collision avoidance, and no approach found does
+not mean the objects are safe.
 """
 
 func fail(_ message: String, code: Int32 = 1) -> Never {
@@ -221,6 +228,41 @@ case "track":
         }
         if let failure = track.failure { print("  the track stopped: \(failure)"); refused = true }
     }
+
+case "approaches":
+    guard arguments.count >= 1 else { fail(usage, code: 2) }
+    let path = arguments.removeFirst()
+    let start = time("--from")
+    let hours = number("--hours") ?? 24
+    let step = number("--step") ?? 60
+    let within = number("--within") ?? 10
+    let file = elementSets(path)
+    guard arguments.isEmpty, hours > 0, hours <= 24 * 31, step > 0, within > 0 else { fail(usage, code: 2) }
+    // what this is, on standard error, every time: the candidates alone go to standard output
+    FileHandle.standardError.write(Data("""
+    A rough screen on GP data with SGP4: candidate approaches, with SGP4's miss distance and time. GP data places an
+    object to roughly a kilometre near its epoch and worse later, so this is not for operational collision avoidance,
+    gives no probability of collision, and finding no approach does not mean the objects are safe.
+
+    """.utf8))
+    for refusal in file.refusals { FileHandle.standardError.write(Data("not read: \(refusal)\n".utf8)); refused = true }
+    var propagators: [Propagator] = []
+    var sets: [ElementSet] = []
+    for set in file.elementSets {
+        guard let propagator = propagator(set) else { refused = true; continue }
+        propagators.append(propagator)
+        sets.append(set)
+    }
+    let screen = CloseApproach.screen(propagators, from: start, for: hours * 3600, step: step, within: within)
+    for left in screen.unscreened {
+        FileHandle.standardError.write(Data("not screened: \(name(sets[left.index])): \(left.failure)\n".utf8))
+        refused = true
+    }
+    for candidate in screen.candidates {
+        print(String(format: "\(candidate.time)  %8.3f km  %7.3f km/s  ", candidate.missDistance, candidate.relativeSpeed)
+              + "\(name(sets[candidate.first]))  and  \(name(sets[candidate.second]))\(candidate.atEdgeOfSpan ? "  (at the edge of the span)" : "")")
+    }
+    FileHandle.standardError.write(Data("\(screen.candidates.count) candidates within \(within) km; \(screen.pairsScreened) pairs screened, \(screen.pairsPassedOver) passed over by height\n".utf8))
 
 case "help", "--help", "-h":
     print(usage)

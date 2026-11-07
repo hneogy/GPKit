@@ -43,6 +43,14 @@ your radio.
 - ``PassVisibility``
 - ``EquatorialPosition``
 
+### Close approaches
+
+A rough screen on GP data with SGP4: candidate approaches with miss distance and time, not collision probability or
+risk. GP data is roughly kilometre-level, so the screen is not for operational collision avoidance, and no approach
+found does not mean the objects are safe.
+
+- ``CloseApproach``
+
 ### Frames and maps
 
 - ``GroundTrack``
