@@ -124,6 +124,9 @@ extension Propagator {
 extension GeodeticPosition {
   public func footprint(minimumElevation: Double = 0, points: Int = 72) -> [GeodeticPosition]
 }
+public enum OEM {
+  public static func write(_ propagator: Propagator, from start: Epoch, every step: Double, count: Int, originator: String, created: Epoch) throws(PropagationFailure) -> String
+}
 public enum OMM {
   public static func catalogNumber(_ text: String) throws(Refusal) -> Int
 }

@@ -8,6 +8,10 @@ nothing public is removed or changed in a way that breaks code written against a
 
 Added to the public interface; nothing is removed or changed:
 
+- `OEM.write(_:from:every:count:originator:created:)`: an ephemeris as a CCSDS Orbit Ephemeris Message (OEM 2.0, KVN),
+  SGP4's states in TEME and UTC, positions to the millimetre and velocities to the nanometre a second. `gpkit oem`
+  writes one; in CI the `oem` package for Python reads it back, each number as written, and refuses broken copies
+  (`tools/check_oem.py`).
 - `Sun`: the sun's direction, right ascension and declination, its height at a place, and whether it shines on a
   point, after the NOAA calculators' formulas, held in the tests to the US Naval Observatory's and NOAA's figures.
 - `Sunlight`, from `Propagator.sunlight(from:at:)`: the sky at a place (daylight, twilight or dark), whether the
