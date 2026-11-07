@@ -198,7 +198,13 @@ public actor AnswerCache {
 
     public func keep(_ data: Data, for url: String) {
         answers[url] = data
-        if let file = file(url) { try? data.write(to: file, options: .atomic) }
+        guard let file = file(url) else { return }
+        #if os(WASI)
+        // WASI has no temporary files, which an atomic write needs
+        try? data.write(to: file)
+        #else
+        try? data.write(to: file, options: .atomic)
+        #endif
     }
 }
 
