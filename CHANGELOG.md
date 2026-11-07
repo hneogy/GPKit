@@ -15,6 +15,7 @@ The public interface is unchanged.
 - A test that the catalog fields `A+123` and `A1_23` are refused.
 - The README says what the tests against the C++ hold: agreement within a micrometre.
 - CI checks the public interface against `docs/public-api.swift`, this file, and the latest 1.x release.
+- CI's macOS job runs Swift 6.4.2, as Linux and Windows do: Xcode 27.2 on GitHub's `xcode-27` image.
 - DocC documentation, with three tutorials: your first ISS pass, a pass on a sky chart, and Doppler for your
   radio. Their code is compiled and run in the tests, and CI builds the documentation (`tools/check-docs.sh`).
 - Three example projects in `Examples/`: a command-line pass predictor, a Doppler tool for radios, and a Mac sky
