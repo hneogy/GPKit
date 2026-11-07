@@ -29,13 +29,17 @@ Added to the public interface; nothing is removed or changed:
 
 Also:
 
+- `tools/public-api.sh` checks GPKitSources' interface too, against `docs/public-api-sources.swift`, and stops a
+  change to it that this file does not say. GPKitSources has had no release, so until its first its interface may
+  change, each change said here; from its first release it is held to the same promise as GPKit's.
+
 - GPKitSources, a library apart from GPKit, which still makes no request of its own: CelesTrak's GP queries and
   SatNOGS DB's active transmitters, each asked at most once in two hours, stopped at any answer that is not a 200
   (and the host left alone for two hours after one), never repeated, with a cache of the last good answer and a ledger
   a program keeps between runs. Transmitters tune with GPKit's Doppler, and an inverting transponder's passband is
   mirrored. Tested against recorded answers only: SatNOGS DB's, from one request made for the tests (CC BY-SA 4.0,
-  see NOTICE), and CelesTrak's made up from public data. Space-Track is not among the sources. Its interface is not
-  yet under `tools/public-api.sh`, which checks GPKit's.
+  see NOTICE), and CelesTrak's made up from public data. Space-Track is not among the sources. Its interface is
+  stated in `docs/public-api-sources.swift`, and `tools/public-api.sh` checks it.
 
 - watchOS 9 and later: GPKit builds for watchOS (arm64 and arm64_32), in CI on every push.
 - pygpkit, a Python package in `python/` (`import pygpkit`): reading, TLE writing, SGP4 states, looks, map positions

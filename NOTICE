@@ -3,6 +3,10 @@ Copyright (c) 2026 NEOGY LLC
 
 GPKit is released under the MIT licence (see LICENSE). Four things in this repository come from elsewhere.
 
+One file here is NOT under the MIT licence: Tests/GPKitSourcesTests/Resources/satnogs-transmitters-active-2026-11-07.json
+is licensed under Creative Commons Attribution-ShareAlike 4.0 (CC BY-SA 4.0), as section 4 says. Everything else in
+the repository is MIT, or as its section below says.
+
 
 1. SGP4
 
@@ -69,7 +73,7 @@ and declination from one place: tools/skyfield_frames_reference.py wrote it.
 All three are used by the tests and are no part of the library.
 
 
-4. SatNOGS DB's transmitters
+4. SatNOGS DB's transmitters: CC BY-SA 4.0, not MIT
 
 Tests/GPKitSourcesTests/Resources/satnogs-transmitters-active-2026-11-07.json is SatNOGS DB's answer, byte for byte,
 to one request made on 2026-11-07 for GPKitSources' tests (https://db.satnogs.org/api/transmitters/?format=json&status=active;
