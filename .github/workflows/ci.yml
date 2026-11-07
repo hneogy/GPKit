@@ -190,7 +190,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [iOS, tvOS, visionOS]
+        platform: [iOS, tvOS, watchOS, visionOS]
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v4

@@ -16,12 +16,12 @@ next day, and print when the first of them rises: UTC, as `YYYY-MM-DDThh:mm:ss.f
 request of its own. It reads what it is given.
 
 GPKit is a Swift package with no dependencies: readers for OMM (CSV, JSON, XML, KVN) and TLE, a TLE writer, SGP4,
-and pass prediction with look angles and Doppler. It is for macOS 13 and iOS 16 and later, and builds for tvOS,
-visionOS, Linux, Windows, Android and WebAssembly as well. It is not yet offered for watchOS: its core compiles where
-`Int` is 32 bits wide, as on most watches (`tools/check-32-bit.sh`), but no watchOS build is tested. The library is
-plain Swift: one file bridges to Foundation's `Date`, and the rest builds without Foundation. CI builds and tests it
-on macOS, Linux, Windows, Android (in an emulator) and WebAssembly, builds it for iOS, tvOS and visionOS, and checks
-that the core compiles with no Foundation and with a 32-bit `Int`.
+and pass prediction with look angles and Doppler. It is for macOS 13, iOS 16 and watchOS 9 and later, and builds
+for tvOS, visionOS, Linux, Windows, Android and WebAssembly as well. On most watches `Int` is 32 bits wide; what does
+not fit in it is counted in `Int64` (`tools/check-32-bit.sh`). The library is plain Swift: one file bridges to
+Foundation's `Date`, and the rest builds without Foundation. CI builds and tests it on macOS, Linux, Windows, Android
+(in an emulator) and WebAssembly, builds it for iOS, tvOS, watchOS and visionOS, and checks that the core compiles
+with no Foundation and with a 32-bit `Int`.
 
 Built with AI assistance (Claude); reading, propagation and pass prediction are checked against gpconf, the C++
 reference and Skyfield.

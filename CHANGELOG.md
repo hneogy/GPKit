@@ -29,6 +29,8 @@ Added to the public interface; nothing is removed or changed:
 
 Also:
 
+- watchOS 9 and later: GPKit builds for watchOS (arm64 and arm64_32), in CI on every push.
+
 - GPKit builds and its tests run on Android, in an emulator, with swift.org's Android SDK for Swift 6.4.2, and for
   WebAssembly (WASI) with swift.org's Wasm SDK. The math of each system's C library is imported. A day's
   microseconds are counted in `Int64`, since they do not fit where `Int` is 32 bits wide, as on wasm32;
