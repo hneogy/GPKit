@@ -15,7 +15,6 @@ Added to the public interface; nothing is removed or changed:
 - `PassVisibility`, from `Propagator.visibility(of:from:)`: when in a pass the satellite is sunlit, and when it can
   be seen with the eye.
 - `EquatorialPosition`: a right ascension and declination.
-
 - `Propagator.earthFixedState(at:)`: the satellite's position and velocity in the Earth-fixed frame.
 - `Propagator.equatorial(from:at:)`: its right ascension and declination from a place, for the true equator and
   equinox of the date.
@@ -23,7 +22,6 @@ Added to the public interface; nothing is removed or changed:
 - `GeodeticPosition.footprint(minimumElevation:points:)`: the ring on the ground from which the satellite stands at
   an elevation.
 - These are checked against Skyfield 1.55 (`tools/skyfield_frames_reference.py`) and the record in `conformance/`.
-
 - `Propagator.states(of:at:)` and `Propagator.states(of:from:every:count:)`: many satellites at once, in parallel,
   each result the one `state(at:)` gives, to the bit. On an Apple M5, 10,000 sets at one instant take 0.5 ms and a
   day at one-minute steps 0.37 s, against 1.7 ms and 2.1 s one at a time (`tools/benchmark`, the record in
@@ -33,7 +31,6 @@ Also:
 
 - `gpkit`, a command-line tool: `read`, `tle`, `passes`, `where` and `track`, built for release on Linux, macOS
   and Windows, each build run where Swift is not installed and held to the tutorials' figures (`tools/check-cli.sh`).
-
 - GPKit builds and its tests run on Linux and Windows, in CI on every push: Linux on the official Swift 6.4.2
   image, Windows with swift.org's 6.4.2 installer. On Windows the C runtime's math is imported (`ucrt`).
 - The full gpconf run under gpconf 0.8.0 is in `conformance/`, and CI's offline gpconf run uses 0.8.0.
