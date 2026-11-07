@@ -1,0 +1,127 @@
+name: pygpkit wheels
+
+# pygpkit, the Python package (python/), built as a wheel on Linux, macOS and Windows, installed into a clean virtual
+# environment, and its tests run against it: every number held with == to what that system's release build of GPKit
+# gives (pygpkit-reference). On macOS the committed python/tests/reference.json is written again and must not
+# differ. The wheels are kept as artifacts; nothing is published.
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    name: pygpkit wheel for Linux (x86_64)
+    runs-on: ubuntu-latest
+    container: swift:6.4.2-noble
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Python
+        run: apt-get update -q && apt-get install -y -q python3 python3-venv binutils
+
+      - name: The library, the Swift runtime linked in, and GPKit's own answers
+        run: |
+          swift build -c release --product pygpkit_core --static-swift-stdlib
+          swift run -c release pygpkit-reference > "$RUNNER_TEMP/reference.json"
+          lib="$(swift build -c release --show-bin-path)/libpygpkit_core.so"
+          ldd "$lib"
+          if ldd "$lib" | grep -i swift; then echo "the library links a library of Swift's" >&2; exit 1; fi
+          glibc=$(objdump -T "$lib" | grep -o 'GLIBC_[0-9.]*' | sed 's/GLIBC_//' | sort -t. -k1,1n -k2,2n | tail -1)
+          echo "newest glibc symbol: $glibc"
+          python3 build_wheel.py --library "$lib" --platform "manylinux_$(echo $glibc | tr . _)_x86_64" --out "$RUNNER_TEMP/dist"
+
+      - name: Installed, tested against GPKit's answers
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --no-index "$RUNNER_TEMP"/dist/*.whl
+          PYGPKIT_REFERENCE="$RUNNER_TEMP/reference.json" "$RUNNER_TEMP/venv/bin/python" -m unittest discover -s tests -v
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pygpkit-linux-x86_64
+          path: ${{ runner.temp }}/dist/*.whl
+
+  macos:
+    name: pygpkit wheel for macOS (universal)
+    runs-on: xcode-27
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # the committed reference is this system's: written again, it must be the same file
+      - name: GPKit's own answers, as committed
+        run: |
+          swift run -c release pygpkit-reference > "$RUNNER_TEMP/reference.json"
+          cmp "$RUNNER_TEMP/reference.json" tests/reference.json || { echo "tests/reference.json is not what GPKit gives now: write it again" >&2; exit 1; }
+
+      - name: The library, for Apple silicon and Intel
+        run: |
+          swift build -c release --product pygpkit_core --arch arm64 --arch x86_64
+          lib="$(swift build -c release --product pygpkit_core --arch arm64 --arch x86_64 --show-bin-path)/libpygpkit_core.dylib"
+          lipo -info "$lib"
+          if otool -L "$lib" | tail -n +2 | grep -v ':$' | grep -vE '^[[:space:]]+(/usr/lib/|/System/Library/|@rpath/libpygpkit_core)'; then
+            echo "the library links a library outside the system" >&2; exit 1
+          fi
+          python build_wheel.py --library "$lib" --platform macosx_13_0_universal2 --out "$RUNNER_TEMP/dist"
+
+      - name: Installed, tested against GPKit's answers
+        run: |
+          python -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --no-index "$RUNNER_TEMP"/dist/*.whl
+          PYGPKIT_REFERENCE="$RUNNER_TEMP/reference.json" "$RUNNER_TEMP/venv/bin/python" -m unittest discover -s tests -v
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pygpkit-macos-universal
+          path: ${{ runner.temp }}/dist/*.whl
+
+  windows:
+    name: pygpkit wheel for Windows (x86_64)
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: python
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Toolchain
+        uses: compnerd/gha-setup-swift@9ff1ee4c44888c5817fc14d1b257ac8cabb4935f # v0.5.1
+        with:
+          swift-version: swift-6.4.2-release
+          swift-build: 6.4.2-RELEASE
+
+      - name: The library, the Swift runtime linked in, and GPKit's own answers
+        run: |
+          swift build -c release --product pygpkit_core --static-swift-stdlib
+          swift run -c release pygpkit-reference > "$RUNNER_TEMP/reference.json"
+          python build_wheel.py --library "$(swift build -c release --show-bin-path)/pygpkit_core.dll" --platform win_amd64 --out "$RUNNER_TEMP/dist"
+
+      # with only Windows and Python on the path: no Swift
+      - name: Installed, tested against GPKit's answers
+        run: |
+          python -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/Scripts/pip" install --no-index "$RUNNER_TEMP"/dist/*.whl
+          PATH="/usr/bin:/c/Windows/System32:/c/Windows" PYGPKIT_REFERENCE="$RUNNER_TEMP/reference.json" "$RUNNER_TEMP/venv/Scripts/python" -m unittest discover -s tests -v
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pygpkit-windows-x86_64
+          path: ${{ runner.temp }}/dist/*.whl
