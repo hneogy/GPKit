@@ -162,11 +162,13 @@ jobs:
       - name: Toolchain version
         run: swift --version
 
+      # the native build system: Swift 6.4's default touches a test target's resource bundle on Windows with
+      # `copy /b BUNDLE +,,`, which fails on a folder, once more than one test target has resources
       - name: Build
-        run: swift build
+        run: swift build --build-system native
 
       - name: Unit tests
-        run: swift test
+        run: swift test --build-system native
 
   # Android, with swift.org's Android SDK for the pinned release: the package built and its tests run in an emulator.
   android:

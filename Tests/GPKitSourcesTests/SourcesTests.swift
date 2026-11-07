@@ -5,7 +5,7 @@ import GPKit
 
 /// GPKitSources against recorded answers only: no test makes a request.
 ///
-/// SatNOGS DB's answer is the one request made for these tests (Resources/satnogs/, its record beside it, CC BY-SA 4.0,
+/// SatNOGS DB's answer is the one request made for these tests (Resources/satnogs-transmitters-active-2026-11-07.json, its record beside it, CC BY-SA 4.0,
 /// see NOTICE). CelesTrak's answers are made up for the tests from public data: the Space Station's first element set,
 /// as GPKit's own tests have it, and CelesTrak's own words for no data, which GPKit already reads. No CelesTrak capture
 /// is published here.
@@ -172,7 +172,7 @@ import GPKit
     // MARK: - SatNOGS DB
 
     static func recorded() throws -> Data {
-        let url = try #require(Bundle.module.url(forResource: "transmitters-active-2026-11-07", withExtension: "json", subdirectory: "Resources/satnogs"))
+        let url = try #require(Bundle.module.url(forResource: "satnogs-transmitters-active-2026-11-07", withExtension: "json", subdirectory: "Resources"))
         return try Data(contentsOf: url)
     }
 

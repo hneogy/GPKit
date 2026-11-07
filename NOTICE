@@ -71,7 +71,7 @@ All three are used by the tests and are no part of the library.
 
 4. SatNOGS DB's transmitters
 
-Tests/GPKitSourcesTests/Resources/satnogs/transmitters-active-2026-11-07.json is SatNOGS DB's answer, byte for byte,
+Tests/GPKitSourcesTests/Resources/satnogs-transmitters-active-2026-11-07.json is SatNOGS DB's answer, byte for byte,
 to one request made on 2026-11-07 for GPKitSources' tests (https://db.satnogs.org/api/transmitters/?format=json&status=active;
 the request's record is beside it, with its time, status and SHA-256). It is data from SatNOGS DB (db.satnogs.org),
 by Libre Space Foundation and its contributors, under the Creative Commons Attribution-ShareAlike 4.0 International

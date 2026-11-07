@@ -1,5 +1,5 @@
 {
- "what": "The one request made to SatNOGS DB for GPKitSources' tests, on the owner's word of 2026-11-07: a single GET, no retry, no redirect followed, a 60-second limit. Its answer is transmitters-active-2026-11-07.json beside this file, byte for byte.",
+ "what": "The one request made to SatNOGS DB for GPKitSources' tests, on the owner's word of 2026-11-07: a single GET, no retry, no redirect followed, a 60-second limit. Its answer is satnogs-transmitters-active-2026-11-07.json beside this file, byte for byte.",
  "url": "https://db.satnogs.org/api/transmitters/?format=json&status=active",
  "user_agent": "GPKit/1.0 (+https://github.com/hneogy/GPKit; one recorded request for GPKit's test fixtures)",
  "accept": "application/json",

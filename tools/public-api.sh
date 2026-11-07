@@ -67,6 +67,13 @@ if ! diff -u docs/public-api.swift "$out/public-api.swift"; then
 fi
 echo "docs/public-api.swift states the public interface"
 
+# a push that replaced commits (a force push) names as its base a commit this clone may not hold: then the
+# comparison is from where the branch left origin/main, said so, and never skipped
+if [ -n "$base" ] && ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+    fallback=$(git merge-base HEAD origin/main 2>/dev/null) || { echo "$base is not in this clone, and there is no origin/main to compare with" >&2; exit 1; }
+    echo "$base is not in this clone (commits replaced by a force push): comparing with $fallback, where the branch left origin/main"
+    base=$fallback
+fi
 if [ -n "$base" ]; then
     changed=$(git diff --name-only "$base" HEAD -- docs/public-api.swift CHANGELOG.md)
     if echo "$changed" | command grep -qx 'docs/public-api.swift' && ! echo "$changed" | command grep -qx 'CHANGELOG.md'; then
