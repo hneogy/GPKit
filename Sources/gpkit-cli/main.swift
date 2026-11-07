@@ -5,6 +5,8 @@
 //   gpkit passes FILE LATITUDE LONGITUDE [--height METRES] [--from TIME] [--hours N] [--above DEGREES] [--light]
 //   gpkit where FILE [--at TIME] [--observer LATITUDE LONGITUDE [--height METRES]]
 //   gpkit track FILE [--from TIME] [--minutes N] [--step SECONDS]
+//   gpkit oem FILE [--from TIME] [--minutes N] [--step SECONDS] [--originator NAME]
+//                                               a CCSDS OEM of the one element set's states, in TEME
 //   gpkit rotator FILE LATITUDE LONGITUDE [--height METRES] [--from TIME] [--hours N] [--above DEGREES] [--pass N]
 //                 [--step SECONDS] [--azimuth LOW:HIGH] [--elevation LOW:HIGH] [--follow]
 //                                               Hamlib's set-position commands (P az el) for one pass, to pipe to rotctl
@@ -21,6 +23,7 @@ usage: gpkit read FILE
        gpkit passes FILE LATITUDE LONGITUDE [--height METRES] [--from TIME] [--hours N] [--above DEGREES] [--light]
        gpkit where FILE [--at TIME] [--observer LATITUDE LONGITUDE [--height METRES]]
        gpkit track FILE [--from TIME] [--minutes N] [--step SECONDS]
+       gpkit oem FILE [--from TIME] [--minutes N] [--step SECONDS] [--originator NAME]
        gpkit rotator FILE LATITUDE LONGITUDE [--height METRES] [--from TIME] [--hours N] [--above DEGREES] [--pass N]
                      [--step SECONDS] [--azimuth LOW:HIGH] [--elevation LOW:HIGH] [--follow]
 FILE: .csv, .json, .xml, .kvn, .tle or .txt, or - with --format FORMAT. TIME: UTC, 2026-11-06T12:00:00.
@@ -225,6 +228,28 @@ case "track":
             print(String(format: "  \(point.time)  %9.4f  %9.4f  %8.1f km", point.position.latitude, point.position.longitude, point.position.altitude))
         }
         if let failure = track.failure { print("  the track stopped: \(failure)"); refused = true }
+    }
+
+case "oem":
+    guard arguments.count >= 1 else { fail(usage, code: 2) }
+    let path = arguments.removeFirst()
+    let start = time("--from")
+    let minutes = number("--minutes") ?? 95
+    let step = number("--step") ?? 60
+    let originator = option("--originator")?[0] ?? "GPKIT"
+    let file = elementSets(path)
+    guard arguments.isEmpty, minutes > 0, step > 0, minutes * 60 / step <= 1_000_000 else { fail(usage, code: 2) }
+    guard file.elementSets.count == 1 else { fail("\(path): the file holds \(file.elementSets.count) element sets; an OEM is of one", code: 2) }
+    let set = file.elementSets[0]
+    guard let propagator = propagator(set) else { exit(1) }
+    do {
+        let created = try Epoch(Date())
+        print(try OEM.write(propagator, from: start, every: step, count: Int((minutes * 60 / step).rounded(.down)) + 1,
+                            originator: originator, created: created), terminator: "")
+    } catch let failure as PropagationFailure {
+        fail("\(name(set)): cannot be propagated: \(failure)")
+    } catch {
+        fail("\(error)")
     }
 
 case "rotator":

@@ -237,12 +237,12 @@ swift run gpkit where Examples/data/iss-1998.tle --at 1998-11-20T14:09:00 --obse
 swift run gpkit tle satellites.json
 ```
 
-`gpkit read`, `tle`, `passes`, `where`, `track` and `rotator` say what a file holds, write it as TLE, find passes
-(with when each can be seen, `--light`), give a position and look, give a ground track, and give Hamlib's rotator
-commands for a pass, to pipe to `rotctl`. It exits 0 when it did what it was asked, 1 when GPKit refused something,
-and 2 for a command line it does not understand. CI builds it for release on Linux, macOS and Windows, runs each
-build where Swift is not installed, and holds it to the tutorials' figures (`tools/check-cli.sh`); a published
-release carries the three builds.
+`gpkit read`, `tle`, `passes`, `where`, `track`, `rotator` and `oem` say what a file holds, write it as TLE, find
+passes (with when each can be seen, `--light`), give a position and look, give a ground track, give Hamlib's rotator
+commands for a pass, to pipe to `rotctl`, and write a CCSDS OEM. It exits 0 when it did what it was asked, 1 when
+GPKit refused something, and 2 for a command line it does not understand. CI builds it for release on Linux, macOS
+and Windows, runs each build where Swift is not installed, and holds it to the tutorials' figures
+(`tools/check-cli.sh`); a published release carries the three builds.
 
 ## From Python
 

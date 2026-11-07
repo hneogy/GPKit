@@ -8,6 +8,10 @@ nothing public is removed or changed in a way that breaks code written against a
 
 Added to the public interface; nothing is removed or changed:
 
+- `OEM.write(_:from:every:count:originator:created:)`: an ephemeris as a CCSDS Orbit Ephemeris Message (OEM 2.0, KVN),
+  SGP4's states in TEME and UTC, positions to the millimetre and velocities to the nanometre a second. `gpkit oem`
+  writes one; in CI the `oem` package for Python reads it back, each number as written, and refuses broken copies
+  (`tools/check_oem.py`).
 - `Propagator.rotatorTrack(for:from:every:limits:)`, `RotatorLimits` and `RotatorPoint`: where to point an antenna
   rotator through a pass, within its limits, the azimuth carried on past north where the range allows and flipped over
   the zenith where the elevation runs to 180; `RotatorPoint.hamlibCommand` is Hamlib's set-position command. `gpkit

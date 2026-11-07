@@ -43,6 +43,10 @@ your radio.
 - ``PassVisibility``
 - ``EquatorialPosition``
 
+### Ephemerides
+
+- ``OEM``
+
 ### Rotators
 
 - ``RotatorLimits``
