@@ -8,6 +8,11 @@ nothing public is removed or changed in a way that breaks code written against a
 
 Added to the public interface; nothing is removed or changed:
 
+- `Propagator.rotatorTrack(for:from:every:limits:)`, `RotatorLimits` and `RotatorPoint`: where to point an antenna
+  rotator through a pass, within its limits, the azimuth carried on past north where the range allows and flipped over
+  the zenith where the elevation runs to 180; `RotatorPoint.hamlibCommand` is Hamlib's set-position command. `gpkit
+  rotator` prints them for one pass, to pipe to rotctl, or with `--follow` each at its instant; in CI, Hamlib's dummy
+  rotator follows a pass that it gives (`tools/check-rotator.sh`).
 - `Sun`: the sun's direction, right ascension and declination, its height at a place, and whether it shines on a
   point, after the NOAA calculators' formulas, held in the tests to the US Naval Observatory's and NOAA's figures.
 - `Sunlight`, from `Propagator.sunlight(from:at:)`: the sky at a place (daylight, twilight or dark), whether the
