@@ -16,6 +16,14 @@ Added to the public interface; nothing is removed or changed:
   be seen with the eye.
 - `EquatorialPosition`: a right ascension and declination.
 
+- `Propagator.earthFixedState(at:)`: the satellite's position and velocity in the Earth-fixed frame.
+- `Propagator.equatorial(from:at:)`: its right ascension and declination from a place, for the true equator and
+  equinox of the date.
+- `Propagator.groundTrack(from:for:every:)` and `GroundTrack`: the point beneath the satellite at each step.
+- `GeodeticPosition.footprint(minimumElevation:points:)`: the ring on the ground from which the satellite stands at
+  an elevation.
+- These are checked against Skyfield 1.55 (`tools/skyfield_frames_reference.py`) and the record in `conformance/`.
+
 Also:
 
 - GPKit builds and its tests run on Linux and Windows, in CI on every push: Linux on the official Swift 6.4.2
