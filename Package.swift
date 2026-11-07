@@ -9,6 +9,8 @@ let package = Package(
     platforms: [.macOS(.v13), .iOS(.v16), .tvOS(.v16), .visionOS(.v1)],
     products: [
         .library(name: "GPKit", targets: ["GPKit"]),
+        // The command-line tool: passes, positions, tracks and conversions from the terminal (Sources/gpkit-cli).
+        .executable(name: "gpkit", targets: ["gpkit-cli"]),
     ],
     targets: [
         // The library: Swift only, no dependency. One file, Date.swift, bridges to Foundation's Date where there is a
@@ -16,6 +18,7 @@ let package = Package(
         .target(name: "GPKit"),
         // The gpconf command adapter (docs/ADAPTERS.md of gp-omm-conformance). Not a product: it exists for the
         // conformance run in CI and on a developer's machine.
+        .executableTarget(name: "gpkit-cli", dependencies: ["GPKit"]),
         .executableTarget(name: "gpkit-gpconf", dependencies: ["GPKit"], path: "Sources/gpconf-adapter"),
         // Tests only: David Vallado's SGP4.cpp, compiled as it is, for GPKit's SGP4 to be compared with.
         .target(name: "SGP4Oracle", path: "Tests/SGP4Oracle", exclude: ["vallado"]),
