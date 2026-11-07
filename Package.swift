@@ -4,8 +4,8 @@ import PackageDescription
 
 let package = Package(
     name: "GPKit",
-    // The first release of each platform with Swift's Duration, which the pass search takes. watchOS is not here:
-    // GPKit counts microseconds in Int, and Int is 32 bits wide on most watches, where it does not compile.
+    // The first release of each platform with Swift's Duration, which the pass search takes. watchOS is not here yet:
+    // the core compiles where Int is 32 bits wide, as on most watches (tools/check-32-bit.sh), but no watchOS build is tested.
     platforms: [.macOS(.v13), .iOS(.v16), .tvOS(.v16), .visionOS(.v1)],
     products: [
         .library(name: "GPKit", targets: ["GPKit"]),

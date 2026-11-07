@@ -29,6 +29,11 @@ Added to the public interface; nothing is removed or changed:
 
 Also:
 
+- GPKit builds and its tests run on Android, in an emulator, with swift.org's Android SDK for Swift 6.4.2, and for
+  WebAssembly (WASI) with swift.org's Wasm SDK. The math of each system's C library is imported. A day's
+  microseconds are counted in `Int64`, since they do not fit where `Int` is 32 bits wide, as on wasm32;
+  `tools/check-32-bit.sh` compiles the core for a 32-bit `Int` in CI. The three tests that read the documentation's
+  files run where the source tree is: macOS, Linux and Windows.
 - `gpkit`, a command-line tool: `read`, `tle`, `passes`, `where` and `track`, built for release on Linux, macOS
   and Windows, each build run where Swift is not installed and held to the tutorials' figures (`tools/check-cli.sh`).
 - GPKit builds and its tests run on Linux and Windows, in CI on every push: Linux on the official Swift 6.4.2
