@@ -10,4 +10,4 @@ swift build --target GPKit -Xswiftc -emit-symbol-graph -Xswiftc -emit-symbol-gra
 xcrun docc convert Sources/GPKit/GPKit.docc --additional-symbol-graph-dir "$out/symbols" \
     --fallback-display-name GPKit --fallback-bundle-identifier com.github.hneogy.GPKit \
     --output-path "$out/GPKit.doccarchive" --warnings-as-errors
-echo "GPKit's documentation and its $(ls Sources/GPKit/GPKit.docc/Tutorials | grep -cv '^Tutorials.tutorial$') tutorials build in DocC"
+echo "GPKit's documentation and its $(ls Sources/GPKit/GPKit.docc/Tutorials | command grep -cv '^Tutorials.tutorial$') tutorials build in DocC"
