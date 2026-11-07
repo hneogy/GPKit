@@ -8,6 +8,10 @@ nothing public is removed or changed in a way that breaks code written against a
 
 Added to the public interface; nothing is removed or changed:
 
+- `CloseApproach.screen(_:from:for:step:within:)`: a rough screen on GP data with SGP4 for candidate close approaches,
+  each with its time, miss distance and relative speed; no probability of collision. Not for operational collision
+  avoidance, and no approach found does not mean safe, as its documentation, `gpkit approaches` and the README say.
+  Tested against closest approaches computed independently: by formula, and by brute force over the same positions.
 - `OEM.write(_:from:every:count:originator:created:)`: an ephemeris as a CCSDS Orbit Ephemeris Message (OEM 2.0, KVN),
   SGP4's states in TEME and UTC, positions to the millimetre and velocities to the nanometre a second. `gpkit oem`
   writes one; in CI the `oem` package for Python reads it back, each number as written, and refuses broken copies

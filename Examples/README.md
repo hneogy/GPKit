@@ -12,6 +12,10 @@ command-line ones (`tools/check-examples.sh`).
   --from-epoch` opens it with that file's set in, searching from its epoch; [`SkyView/sky-view.png`](SkyView/sky-view.png)
   is its window so opened.
 
+`data/iss-1998.tle` is the Space Station's first element set. `data/iss-1998-and-tilted.tle` holds it and a made-up
+copy, catalog number 99999, tilted a degree, for the close-approach screen (`gpkit approaches`) to find two objects
+that meet.
+
 From this folder, for one of them:
 
 ```bash

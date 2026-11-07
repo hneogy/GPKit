@@ -11,6 +11,28 @@ extension Propagator {
   public static func states(of propagators: [Propagator], at time: Epoch, chunk: Int = 512) async -> [Result<StateVector, PropagationFailure>]
   public static func states(of propagators: [Propagator], from start: Epoch, every step: Double, count: Int, chunk: Int = 64) async -> [[Result<StateVector, PropagationFailure>]]
 }
+public enum CloseApproach {
+  public struct Candidate : Sendable, Hashable {
+    public var first: Int
+    public var second: Int
+    public var time: Epoch
+    public var missDistance: Double
+    public var relativeSpeed: Double
+    public var atEdgeOfSpan: Bool
+  }
+  public struct Unscreened : Sendable, Hashable {
+    public var index: Int
+    public var failure: PropagationFailure
+  }
+  public struct Screen : Sendable, Hashable {
+    public var candidates: [CloseApproach.Candidate]
+    public var unscreened: [CloseApproach.Unscreened]
+    public var pairsPassedOver: Int
+    public var pairsScreened: Int
+  }
+  public static let heightMargin: Double
+  public static func screen(_ propagators: [Propagator], from start: Epoch, for seconds: Double, step: Double = 60, within: Double = 10) -> CloseApproach.Screen
+}
 // only where Foundation can be imported (Sources/GPKit/Date.swift)
 extension Epoch {
   public init(_ date: Foundation.Date) throws(Refusal)
