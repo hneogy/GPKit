@@ -22,6 +22,10 @@ import Glibc
 import Musl
 #elseif canImport(ucrt)
 import ucrt
+#elseif canImport(Android)
+import Android
+#elseif canImport(WASILibc)
+import WASILibc
 #endif
 
 /// The record the C++ calls `elsetrec`: the constants, the initialised coefficients and the working values of one

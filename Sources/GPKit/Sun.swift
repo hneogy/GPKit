@@ -6,6 +6,10 @@ import Glibc
 import Musl
 #elseif canImport(ucrt)
 import ucrt
+#elseif canImport(Android)
+import Android
+#elseif canImport(WASILibc)
+import WASILibc
 #endif
 
 /// Where the sun is, as closely as two questions need it: is the sky dark at a place, and is a satellite in sunlight.

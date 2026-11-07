@@ -6,6 +6,10 @@ import Glibc
 import Musl
 #elseif canImport(ucrt)
 import ucrt
+#elseif canImport(Android)
+import Android
+#elseif canImport(WASILibc)
+import WASILibc
 #endif
 
 /// A place on the Earth, on the WGS-84 ellipsoid.
