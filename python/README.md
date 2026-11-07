@@ -2,8 +2,8 @@
 
 GPKit from Python. GPKit reads GP data (OMM as CSV, JSON, XML or KVN, and TLE with Alpha-5), writes TLE, propagates
 with SGP4 (a port of David Vallado's `SGP4.cpp`), and finds passes over a place with look angles and Doppler.
-pygpkit is GPKit itself, compiled, behind a small C interface: every number it gives is the one GPKit gives, to the
-bit, and its tests hold it to that.
+pygpkit is GPKit itself, compiled, behind a small C interface: every number it gives is the one GPKit's own release
+build gives on the same system, to the bit, and its tests hold it to that.
 
 The distribution and the import are both `pygpkit`; it is not the `gpkit` package on PyPI, which is another project.
 

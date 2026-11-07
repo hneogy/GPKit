@@ -2,7 +2,7 @@
 
 GPKit reads GP data (OMM as CSV, JSON, XML or KVN, and TLE with Alpha-5), writes TLE, propagates with SGP4, and finds
 passes over a place. pygpkit is GPKit itself, compiled, behind a small C interface: every number it gives is the one
-GPKit gives, to the bit, which the package's tests hold it to.
+GPKit's own release build gives on the same system, to the bit, which the package's tests hold it to.
 
     import pygpkit
     file = pygpkit.read("iss.tle")

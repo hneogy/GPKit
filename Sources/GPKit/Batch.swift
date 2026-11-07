@@ -2,7 +2,7 @@ extension Propagator {
 
     /// The states of many satellites at one instant of UTC, worked out in parallel: what a map or a screen of a whole
     /// constellation asks for at each frame. Each result is the one `state(at:)` gives for that propagator, in the
-    /// same order, to the bit.
+    /// same order, to the bit: the two in the same build, so with the same arithmetic.
     ///
     /// The propagators are cut into runs of `chunk` and each run is a child task, so the work spreads over the
     /// threads Swift's concurrency has, one a core. Ten thousand sets take a millisecond or two on one core of a
@@ -15,7 +15,7 @@ extension Propagator {
     }
 
     /// The states of many satellites at a run of instants: `count` of them, `step` seconds apart from `start`.
-    /// The result is by propagator, then by instant, each the one `state(at:)` gives for that instant, to the bit;
+    /// The result is by propagator, then by instant, each the one `state(at:)` gives for that instant in the same build, to the bit;
     /// an instant outside the years an `Epoch` can hold is a failure of kind `time`.
     ///
     /// Every state is kept: 10,000 satellites over a day at one-minute steps are 14.4 million states, some 800 MB.
