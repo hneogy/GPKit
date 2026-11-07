@@ -104,3 +104,13 @@ func replacing(_ line: String, _ range: Range<Int>, with text: String) -> String
 func columns(_ line: String, _ range: Range<Int>) -> String {
     String(Array(line)[range])
 }
+
+/// Whether the tests run beside the package's source tree. On an Android device and under a WebAssembly runtime they
+/// run apart from it, so the tests that read the documentation's own files (the tutorials' code, the refusal pages)
+/// run on macOS, Linux and Windows only. Decided when the tests are built, never by looking for the files, so that
+/// a test cannot be passed over where the files should be.
+#if os(Android) || os(WASI)
+let theSourceTreeIsHere = false
+#else
+let theSourceTreeIsHere = true
+#endif

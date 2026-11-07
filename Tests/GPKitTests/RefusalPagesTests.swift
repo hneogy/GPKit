@@ -62,13 +62,14 @@ import GPKit
         }
     }
 
-    @Test func everyKindHasAPage() throws {
+    @Test(.enabled(if: theSourceTreeIsHere, "reads the refusal pages, which are not on the device"))
+    func everyKindHasAPage() throws {
         let written = try FileManager.default.contentsOfDirectory(atPath: RefusalPagesTests.pages.path).filter { $0.hasSuffix(".md") }
         #expect(Set(written) == Set(Refusal.Kind.allCases.map { "\($0.rawValue).md" }))
         #expect(Refusal.Kind.allCases.count == 19)
     }
 
-    @Test(arguments: Refusal.Kind.allCases)
+    @Test(.enabled(if: theSourceTreeIsHere, "reads the refusal pages, which are not on the device"), arguments: Refusal.Kind.allCases)
     func eachPageSaysWhatGPKitDoes(_ kind: Refusal.Kind) throws {
         let example = try RefusalPagesTests.example(of: kind)
         let refusal = try #require(try RefusalPagesTests.refusal(for: example), "\(kind): the page's input is not refused")
