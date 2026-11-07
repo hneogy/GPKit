@@ -1,0 +1,44 @@
+GPKit: an element set read as OMM and the same set read as a TLE, over the maintainer's provider files.
+Run on 2026-11-07 (UTC), 03:37Z, macOS 27.2 arm64, Apple Swift version 6.4.2, release build of tools/equivalence at
+GPKit main 32e80c3 (the library's code of 1.0.0). No request was made: the files are the maintainer's fetch of
+2026-09-21 that the gpconf 0.8.0 record names, 128 files, fingerprint
+dd088d563aa52b90d2e0e5cb39417e476e0cceaf290778948cd955c2c0dd1e0d (computed as that record says). Counts and largest
+differences only: no element and no position of a provider's is kept here.
+
+How it was run:
+
+  swift run -c release --package-path tools/equivalence equivalence DATA
+
+DATA is a folder holding fixtures/<case>/raw/, as `gpconf fetch` writes it. A pair is an OMM set (CSV, JSON, XML or
+KVN) and the TLE set of the same satellite whose epochs are within the TLE epoch field's resolution, 1e-8 day.
+
+What it printed:
+
+  files read: 61; refused whole: satcat-70000-cutoff/satcat-25544.csv, satcat-70000-cutoff/satcat-69999.csv, six-digit-omm-saramago/saramago.satcat.csv
+  element sets: 604 from TLE files, 13776 from OMM files
+  pairs, an OMM set with the TLE of the same satellite and epoch: 976, 304 satellites at an epoch (csv 304, json 226, kvn 223, xml 223)
+  the OMM written as a TLE by GPKit, eccentricity cut off: 976 of 976 are the provider's lines, character for character; 0 could not be written
+    of those, propagated at 0, 90, 720, 1440, 4320, 10080 minutes: 976 identical to the bit
+  the OMM and the TLE as read, propagated to the same instants: largest position difference
+    at 0 min from the epoch: 1.122424 m
+    at 90 min from the epoch: 1.095657 m
+    at 720 min from the epoch: 15.721581 m
+    at 1440 min from the epoch: 63.803548 m
+    at 4320 min from the epoch: 570.424905 m
+    at 10080 min from the epoch: 3055.242133 m
+    overall: 3055.242133 m
+  propagations that failed: 11 on both sides alike, 0 on one side only
+  the largest difference, 3055.2 m at 10080 min (csv), with one field of the OMM given the TLE's value:
+    epoch 3055.2 m, mean motion 3055.2 m, eccentricity 3000.1 m, inclination 3055.2 m, right ascension 3055.2 m, argument of pericenter 3055.2 m, mean anomaly 3055.2 m, BSTAR 55.1 m
+
+What it says:
+- The OMM and the TLE are one element set. GPKit's writer, given the OMM, writes the provider's own two lines,
+  character for character, in every one of the 976 pairs; the eccentricity is cut off, as CelesTrak's lines have
+  it. Propagated, those lines and the provider's agree to the bit at every time measured.
+- As read, the two differ by what the TLE's columns round away. At the epoch that is at most 1.1 m. It grows with
+  time, to 3.1 km after seven days in the worst pair. There BSTAR, which a TLE holds to five significant digits, is
+  nearly all of it: given the TLE's BSTAR, the OMM comes within 55 m of the TLE.
+- Where SGP4 cannot go on (11 times here), it stops for the OMM and the TLE alike.
+
+The three files refused whole are SATCAT catalogue files, not element sets. A set held in several OMM files is
+paired once for each, so the 976 pairs are 304 satellites at an epoch.
