@@ -243,6 +243,12 @@ asked, 1 when GPKit refused something, and 2 for a command line it does not unde
 Linux, macOS and Windows, runs each build where Swift is not installed, and holds it to the tutorials' figures
 (`tools/check-cli.sh`); a published release carries the three builds.
 
+## From Python
+
+`python/` is pygpkit, GPKit for Python (`import pygpkit`; not the unrelated `gpkit` on PyPI), with the numbers GPKit
+gives to the bit. CI builds and tests its wheel on Linux, macOS and Windows; it is not on PyPI. See
+[`python/README.md`](python/README.md).
+
 ## How SGP4 and the passes are checked
 
 **Against the C++ it is ported from.** The tests compile Vallado's `SGP4.cpp`, unmodified, and run it and the port

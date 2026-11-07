@@ -204,3 +204,7 @@ jobs:
   # The gpkit tool's release builds, standalone on each system (gpkit-binaries.yml).
   binaries:
     uses: ./.github/workflows/gpkit-binaries.yml
+
+  # pygpkit, the Python package, as a wheel on each system, tested against GPKit's own answers (pygpkit-wheels.yml).
+  pygpkit:
+    uses: ./.github/workflows/pygpkit-wheels.yml
