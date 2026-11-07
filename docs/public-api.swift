@@ -217,6 +217,51 @@ public struct Refusal : Error, Sendable, Hashable, CustomStringConvertible {
   public init(_ kind: Refusal.Kind, _ message: String, field: String? = nil, text: String? = nil, catalogField: String? = nil, record: Int? = nil, line: Int? = nil)
   public var description: String { get }
 }
+public enum Sun {
+  public static let darkBelow: Double
+  public static let shadowRadius: Double
+  public static func equatorial(at time: Epoch) -> EquatorialPosition
+  public static func direction(at time: Epoch) -> Vector
+  public static func elevation(at time: Epoch, from observer: Observer) -> Double
+  public static func lights(_ position: Vector, at time: Epoch) -> Bool
+}
+public struct EquatorialPosition : Sendable, Hashable {
+  public var rightAscension: Double
+  public var declination: Double
+  public init(rightAscension: Double, declination: Double)
+}
+public struct Sunlight : Sendable, Hashable {
+  public enum Sky : String, Sendable, Hashable, CaseIterable {
+    case daylight
+    case twilight
+    case dark
+    public init(sunElevation: Double)
+  }
+  public var sunElevation: Double
+  public var isSunlit: Bool
+  public var phaseAngle: Double
+  public var range: Double
+  public init(sunElevation: Double, isSunlit: Bool, phaseAngle: Double, range: Double)
+  public var sky: Sunlight.Sky { get }
+  public var canBeSeen: Bool { get }
+  public func magnitude(standard: Double) -> Double?
+}
+public struct PassVisibility : Sendable, Hashable {
+  public struct Stretch : Sendable, Hashable {
+    public var start: Epoch
+    public var end: Epoch
+    public init(start: Epoch, end: Epoch)
+  }
+  public var culmination: Sunlight
+  public var sunlit: PassVisibility.Stretch?
+  public var visible: PassVisibility.Stretch?
+  public init(culmination: Sunlight, sunlit: PassVisibility.Stretch?, visible: PassVisibility.Stretch?)
+  public var canBeSeen: Bool { get }
+}
+extension Propagator {
+  public func sunlight(from observer: Observer, at time: Epoch) throws(PropagationFailure) -> Sunlight
+  public func visibility(of pass: Pass, from observer: Observer) -> PassVisibility?
+}
 public enum TLE {
   public enum Checksum : Sendable, Hashable {
     case verify
