@@ -242,6 +242,17 @@ extension Propagator {
                         phaseAngle: acos(min(1.0, max(-1.0, cosine))) * Frames.degrees, range: range)
     }
 
+    /// Whether the satellite is in sunlight at an instant, and whether the sky at a place is dark then; nil when the
+    /// satellite cannot be propagated to it.
+    func litAndDark(at time: Epoch, from observer: Observer) -> (lit: Bool, dark: Bool)? {
+        do {
+            let position = try state(at: time).position
+            return (Sun.lights(position, at: time), Sun.elevation(at: time, from: observer) < Sun.darkBelow)
+        } catch {
+            return nil
+        }
+    }
+
     /// The light of a pass over a place: from its rise to its set, or from its culmination where it has no rise or no
     /// set (a pass cut off by the start or the end of its search). nil when the satellite cannot be propagated
     /// through the pass.
@@ -257,8 +268,8 @@ extension Propagator {
         func at(_ seconds: Double) -> Epoch? { try? start.advanced(by: seconds) }
         /// Whether the satellite is in sunlight a number of seconds into the pass, and whether the sky is dark then.
         func look(_ seconds: Double) -> (lit: Bool, dark: Bool)? {
-            guard let time = at(seconds), let position = try? state(at: time).position else { return nil }
-            return (Sun.lights(position, at: time), Sun.elevation(at: time, from: observer) < Sun.darkBelow)
+            guard let time = at(seconds) else { return nil }
+            return litAndDark(at: time, from: observer)
         }
         /// The second, between one where `wanted` holds and one where it does not, at which it changes.
         func change(from holds: Double, to fails: Double, _ wanted: ((lit: Bool, dark: Bool)) -> Bool) -> Double {
