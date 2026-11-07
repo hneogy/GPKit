@@ -51,6 +51,15 @@ found does not mean the objects are safe.
 
 - ``CloseApproach``
 
+### Ephemerides
+
+- ``OEM``
+
+### Rotators
+
+- ``RotatorLimits``
+- ``RotatorPoint``
+
 ### Frames and maps
 
 - ``GroundTrack``

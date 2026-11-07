@@ -8,6 +8,11 @@
 //   gpkit approaches FILE [--from TIME] [--hours N] [--step SECONDS] [--within KM]
 //                                               candidate close approaches between the file's objects in SGP4's
 //                                               positions: a rough screen on GP data, not collision avoidance
+//   gpkit oem FILE [--from TIME] [--minutes N] [--step SECONDS] [--originator NAME]
+//                                               a CCSDS OEM of the one element set's states, in TEME
+//   gpkit rotator FILE LATITUDE LONGITUDE [--height METRES] [--from TIME] [--hours N] [--above DEGREES] [--pass N]
+//                 [--step SECONDS] [--azimuth LOW:HIGH] [--elevation LOW:HIGH] [--follow]
+//                                               Hamlib's set-position commands (P az el) for one pass, to pipe to rotctl
 //
 // FILE is OMM (.csv, .json, .xml, .kvn) or TLE (.tle, .txt), or - for standard input with --format. TIME is UTC in
 // the CCSDS form, 2026-11-06T12:00:00; without it, now. Exit 0 when the command did what it was asked, 1 when GPKit
@@ -22,6 +27,9 @@ usage: gpkit read FILE
        gpkit where FILE [--at TIME] [--observer LATITUDE LONGITUDE [--height METRES]]
        gpkit track FILE [--from TIME] [--minutes N] [--step SECONDS]
        gpkit approaches FILE [--from TIME] [--hours N] [--step SECONDS] [--within KM]
+       gpkit oem FILE [--from TIME] [--minutes N] [--step SECONDS] [--originator NAME]
+       gpkit rotator FILE LATITUDE LONGITUDE [--height METRES] [--from TIME] [--hours N] [--above DEGREES] [--pass N]
+                     [--step SECONDS] [--azimuth LOW:HIGH] [--elevation LOW:HIGH] [--follow]
 FILE: .csv, .json, .xml, .kvn, .tle or .txt, or - with --format FORMAT. TIME: UTC, 2026-11-06T12:00:00.
 approaches is a rough screen on GP data with SGP4: candidate approaches with miss distance and time, no probability
 of collision. GP data is roughly kilometre-level: not for operational collision avoidance, and no approach found does
@@ -263,6 +271,78 @@ case "approaches":
               + "\(name(sets[candidate.first]))  and  \(name(sets[candidate.second]))\(candidate.atEdgeOfSpan ? "  (at the edge of the span)" : "")")
     }
     FileHandle.standardError.write(Data("\(screen.candidates.count) candidates within \(within) km; \(screen.pairsScreened) pairs screened, \(screen.pairsPassedOver) passed over by height\n".utf8))
+
+case "oem":
+    guard arguments.count >= 1 else { fail(usage, code: 2) }
+    let path = arguments.removeFirst()
+    let start = time("--from")
+    let minutes = number("--minutes") ?? 95
+    let step = number("--step") ?? 60
+    let originator = option("--originator")?[0] ?? "GPKIT"
+    let file = elementSets(path)
+    guard arguments.isEmpty, minutes > 0, step > 0, minutes * 60 / step <= 1_000_000 else { fail(usage, code: 2) }
+    guard file.elementSets.count == 1 else { fail("\(path): the file holds \(file.elementSets.count) element sets; an OEM is of one", code: 2) }
+    let set = file.elementSets[0]
+    guard let propagator = propagator(set) else { exit(1) }
+    do {
+        let created = try Epoch(Date())
+        print(try OEM.write(propagator, from: start, every: step, count: Int((minutes * 60 / step).rounded(.down)) + 1,
+                            originator: originator, created: created), terminator: "")
+    } catch let failure as PropagationFailure {
+        fail("\(name(set)): cannot be propagated: \(failure)")
+    } catch {
+        fail("\(error)")
+    }
+
+case "rotator":
+    guard arguments.count >= 3 else { fail(usage, code: 2) }
+    let path = arguments.removeFirst()
+    let height = number("--height") ?? 0
+    let start = time("--from")
+    let hours = number("--hours") ?? 24
+    let above = number("--above") ?? 0
+    let which = number("--pass") ?? 1
+    let step = number("--step") ?? 1
+    func range(_ name: String, _ fallback: ClosedRange<Double>) -> ClosedRange<Double> {
+        guard let text = option(name)?[0] else { return fallback }
+        let parts = text.split(separator: ":").map { Double($0) }
+        guard parts.count == 2, let low = parts[0], let high = parts[1], low.isFinite, high.isFinite, low < high else {
+            fail("\(name): \(text) is not LOW:HIGH, such as 0:360", code: 2)
+        }
+        return low...high
+    }
+    let limits = RotatorLimits(azimuth: range("--azimuth", 0...360), elevation: range("--elevation", 0...90))
+    let follow = flag("--follow")
+    let file = elementSets(path)
+    guard arguments.count == 2, hours > 0, hours <= 24 * 366, (0..<90).contains(above), which >= 1, which == which.rounded(),
+          step > 0, file.elementSets.count == 1 else {
+        if file.elementSets.count != 1 { fail("\(path): the file holds \(file.elementSets.count) element sets; a rotator follows one", code: 2) }
+        fail(usage, code: 2)
+    }
+    let home = Observer(latitude: degrees(arguments[0], "latitude", within: 90), longitude: degrees(arguments[1], "longitude", within: 180), height: height)
+    let set = file.elementSets[0]
+    guard let propagator = propagator(set) else { exit(1) }
+    // the commands alone on standard output, for rotctl to read; what they are of, on standard error
+    func note(_ text: String) { FileHandle.standardError.write(Data((text + "\n").utf8)) }
+    let passes = propagator.passes(over: home, from: start, for: .seconds(hours * 3600), above: above)
+    guard passes.indices.contains(Int(which) - 1) else {
+        note("\(name(set)): pass \(Int(which)) is not in the \(passes.count) found in \(hours) hours")
+        exit(1)
+    }
+    let pass = passes[Int(which) - 1]
+    let track = propagator.rotatorTrack(for: pass, from: home, every: step, limits: limits)
+    guard !track.isEmpty else { note("\(name(set)): the pass cannot be propagated through"); exit(1) }
+    note("\(name(set)): pass \(Int(which)), \(track.first!.time) to \(track.last!.time), \(track.count) positions every \(step) s")
+    for point in track {
+        if follow {
+            // each command at its own instant: wait for it, and leave out what is already past
+            let wait = point.time.unixTime - Date().timeIntervalSince1970
+            if wait < -step { continue }
+            if wait > 0 { Thread.sleep(forTimeInterval: wait) }
+        }
+        // written at once, not held in a buffer: with --follow each command reaches rotctl at its instant
+        FileHandle.standardOutput.write(Data((point.hamlibCommand + "\n").utf8))
+    }
 
 case "help", "--help", "-h":
     print(usage)
