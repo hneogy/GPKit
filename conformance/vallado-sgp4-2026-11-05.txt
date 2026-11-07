@@ -51,3 +51,12 @@ In CI, main at 22be997, run 41944427512, every job passed (69 tests on each plat
   on macOS, 4.10545 on Linux and Windows), from the C++ reader's calendar arithmetic in each C library.
 
 Not compared here: Vallado's own published output (tcppver.out), which is gpconf 0.9.0's propagation tier.
+
+Added 2026-11-07: "identical to the bit" above holds for the same build mode on the same system: the port and the
+C++ were compiled alike (debug builds) and run on one machine, each run above on its own. An optimised build, or
+another system's C maths library, can round a sine or a cosine differently in the last bit: on macOS an optimised
+build calls __sincos_stret where a sine and a cosine of one angle meet, whose sine differed from sin's for 392 of
+1,367,990 arguments tried, and glibc's sin and cos differ from macOS's. Measured on GPKit's pass-check sets
+(python/README.md, GPKit #20), that moved positions by at most 1.8e-12 km between a debug and a release build on
+macOS, and by at most 7.3e-12 km between macOS and Linux release builds. The agreement the tests require, within a
+micrometre, is untouched.

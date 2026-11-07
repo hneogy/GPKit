@@ -42,3 +42,7 @@ What it says:
 
 The three files refused whole are SATCAT catalogue files, not element sets. A set held in several OMM files is
 paired once for each, so the 976 pairs are 304 satellites at an epoch.
+
+Added 2026-11-07: "identical to the bit" and "agree to the bit" above compare two propagations in the same program,
+so the same build mode on the same system. Another build mode or system can differ in the last bits (see the note
+added to vallado-sgp4-2026-11-05.txt).

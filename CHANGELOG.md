@@ -23,11 +23,15 @@ Added to the public interface; nothing is removed or changed:
   an elevation.
 - These are checked against Skyfield 1.55 (`tools/skyfield_frames_reference.py`) and the record in `conformance/`.
 - `Propagator.states(of:at:)` and `Propagator.states(of:from:every:count:)`: many satellites at once, in parallel,
-  each result the one `state(at:)` gives, to the bit. On an Apple M5, 10,000 sets at one instant take 0.5 ms and a
+  each result the one `state(at:)` gives in the same build, to the bit. On an Apple M5, 10,000 sets at one instant take 0.5 ms and a
   day at one-minute steps 0.37 s, against 1.7 ms and 2.1 s one at a time (`tools/benchmark`, the record in
   `conformance/`).
 
 Also:
+
+- Where the documentation says results agree "to the bit", it now says for what: the same build mode on the same
+  system. An optimised build, or another system's maths library, can round a sine or a cosine differently in the last
+  bit (a few nanometres where measured). Dated notes say so in three records in `conformance/`.
 
 - `tools/public-api.sh` checks GPKitSources' interface too, against `docs/public-api-sources.swift`, and stops a
   change to it that this file does not say. GPKitSources has had no release, so until its first its interface may
@@ -69,7 +73,7 @@ Also:
 - A concepts guide: element sets and their epoch, TLE and OMM, catalog numbers and Alpha-5, SGP4, and how far
   the results can be trusted, citing the records in `conformance/`.
 - OMM and TLE shown to be one element set: over 976 pairs of the provider files held, GPKit writes each OMM as the
-  provider's TLE lines, character for character, and they propagate to the bit (`tools/equivalence`, the record in
+  provider's TLE lines, character for character, and they propagate to the bit in the same build (`tools/equivalence`, the record in
   `conformance/`, and `EquivalenceTests`).
 
 ## 1.0.0 (2026-10-07)

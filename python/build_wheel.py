@@ -37,7 +37,7 @@ def metadata(v: str) -> str:
         "Metadata-Version: 2.1",
         f"Name: {NAME}",
         f"Version: {v}",
-        "Summary: GPKit from Python: OMM and TLE reading, TLE writing, SGP4 and passes, the numbers GPKit gives to the bit",
+        "Summary: GPKit from Python: OMM and TLE reading, TLE writing, SGP4 and passes, the numbers GPKit's own build gives on the same system",
         "Home-page: https://github.com/hneogy/GPKit",
         "License: MIT",
         "Requires-Python: >=3.9",
