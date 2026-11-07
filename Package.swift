@@ -11,6 +11,9 @@ let package = Package(
         .library(name: "GPKit", targets: ["GPKit"]),
         // The command-line tool: passes, positions, tracks and conversions from the terminal (Sources/gpkit-cli).
         .executable(name: "gpkit", targets: ["gpkit-cli"]),
+        // CelesTrak's GP data and SatNOGS DB's transmitters, asked for under each provider's rules; apart from the
+        // library, which makes no request of its own.
+        .library(name: "GPKitSources", targets: ["GPKitSources"]),
     ],
     targets: [
         // The library: Swift only, no dependency. One file, Date.swift, bridges to Foundation's Date where there is a
@@ -19,6 +22,8 @@ let package = Package(
         // The gpconf command adapter (docs/ADAPTERS.md of gp-omm-conformance). Not a product: it exists for the
         // conformance run in CI and on a developer's machine.
         .executableTarget(name: "gpkit-cli", dependencies: ["GPKit"]),
+        .target(name: "GPKitSources", dependencies: ["GPKit"]),
+        .testTarget(name: "GPKitSourcesTests", dependencies: ["GPKitSources", "GPKit"], resources: [.copy("Resources")]),
         .executableTarget(name: "gpkit-gpconf", dependencies: ["GPKit"], path: "Sources/gpconf-adapter"),
         // Tests only: David Vallado's SGP4.cpp, compiled as it is, for GPKit's SGP4 to be compared with.
         .target(name: "SGP4Oracle", path: "Tests/SGP4Oracle", exclude: ["vallado"]),

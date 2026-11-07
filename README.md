@@ -249,6 +249,15 @@ Linux, macOS and Windows, runs each build where Swift is not installed, and hold
 gives to the bit. CI builds and tests its wheel on Linux, macOS and Windows; it is not on PyPI. See
 [`python/README.md`](python/README.md).
 
+## Asking CelesTrak and SatNOGS DB
+
+GPKit makes no request of its own. GPKitSources, a second library in the package, asks CelesTrak for GP data
+(`CelesTrak.fetch(.group("amateur"), with: client)`) and SatNOGS DB for its active transmitters, under each provider's
+rules: an address at most once in two hours, a stop at any answer that is not a 200, nothing repeated, no redirect
+followed. A `SourceClient` carries the transport, the rules' ledger, a cache and the program's own User-Agent; its
+tests answer from recorded answers and make no request. Data from SatNOGS DB is CC BY-SA 4.0: show
+`SatNOGS.credit` with it.
+
 ## How SGP4 and the passes are checked
 
 **Against the C++ it is ported from.** The tests compile Vallado's `SGP4.cpp`, unmodified, and run it and the port
