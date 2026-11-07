@@ -6,6 +6,10 @@ import Glibc
 import Musl
 #elseif canImport(ucrt)
 import ucrt
+#elseif canImport(Android)
+import Android
+#elseif canImport(WASILibc)
+import WASILibc
 #endif
 
 /// A satellite's path over the ground: the point beneath it at a run of instants.

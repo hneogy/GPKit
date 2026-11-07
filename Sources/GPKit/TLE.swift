@@ -153,10 +153,11 @@ public enum TLE {
         }
         let year = fullYear(twoDigit: f[0].digitValue * 10 + f[1].digitValue)
         let day = f[2..<5].reduce(0) { $0 * 10 + $1.digitValue }
-        let microseconds = f[6...].reduce(0) { $0 * 10 + $1.digitValue } * 864
+        // in Int64: a day's microseconds do not fit where Int is 32 bits wide
+        let microseconds = Int64(f[6...].reduce(0) { $0 * 10 + $1.digitValue }) * 864
         do throws(Refusal) {
-            return try Epoch(year: year, dayOfYear: day, hour: microseconds / 3_600_000_000, minute: microseconds / 60_000_000 % 60,
-                             second: microseconds / 1_000_000 % 60, attosecond: UInt64(microseconds % 1_000_000) * 1_000_000_000_000)
+            return try Epoch(year: year, dayOfYear: day, hour: Int(microseconds / 3_600_000_000), minute: Int(microseconds / 60_000_000 % 60),
+                             second: Int(microseconds / 1_000_000 % 60), attosecond: UInt64(microseconds % 1_000_000) * 1_000_000_000_000)
         } catch {
             throw Refusal(.notAnEpoch, "the epoch field \"\(string(field))\": day \(day) is not a day of \(year)", field: "epoch", text: string(field))
         }
@@ -276,7 +277,7 @@ public enum TLE {
 
         var year = set.epoch.year
         var day = set.epoch.dayOfYear
-        var fraction = (set.epoch.microsecondOfDay + 432) / 864   // hundred-millionths of a day, a half going up
+        var fraction = Int((set.epoch.microsecondOfDay + 432) / 864)   // hundred-millionths of a day, a half going up
         if fraction >= 100_000_000 {
             fraction -= 100_000_000
             day += 1

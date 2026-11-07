@@ -170,7 +170,8 @@ struct SkyChart: View {
 
     // MARK: The tutorials show this code
 
-    @Test func theTutorialsShowThisCode() throws {
+    @Test(.enabled(if: theSourceTreeIsHere, "reads the tutorials' files, which are not on the device"))
+    func theTutorialsShowThisCode() throws {
         let here = URL(fileURLWithPath: #filePath)
         let root = here.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
         let resources = root.appendingPathComponent("Sources/GPKit/GPKit.docc/Resources")

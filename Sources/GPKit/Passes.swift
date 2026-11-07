@@ -71,7 +71,7 @@ extension Propagator {
         func event(_ t: Double) throws(PropagationFailure) -> Pass.Event {
             let look = try look(from: observer, minutes: first + t / 60.0)
             // to the millisecond, which is what the search narrows to
-            let time = Epoch(unixDay: start.unixDay, microsecondOfDay: Int(((start.secondOfDay + t) * 1000.0).rounded()) * 1000)
+            let time = Epoch(unixDay: start.unixDay, microsecondOfDay: Int64(((start.secondOfDay + t) * 1000.0).rounded()) * 1000)
             return Pass.Event(time: time, look: look)
         }
         // the crossing between a time below and a time above, to a millisecond
