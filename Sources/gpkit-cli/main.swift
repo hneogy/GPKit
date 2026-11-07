@@ -273,8 +273,8 @@ case "rotator":
             if wait < -step { continue }
             if wait > 0 { Thread.sleep(forTimeInterval: wait) }
         }
-        print(point.hamlibCommand)
-        fflush(stdout)
+        // written at once, not held in a buffer: with --follow each command reaches rotctl at its instant
+        FileHandle.standardOutput.write(Data((point.hamlibCommand + "\n").utf8))
     }
 
 case "help", "--help", "-h":
