@@ -32,3 +32,7 @@ constellation (read for this only; nothing of it is kept here) gave the same tim
 
 The Mac was not otherwise idle: the load averages are printed at the start and the end. A state is a position and
 velocity in TEME; the times do not include turning them into looks or map positions.
+
+Added 2026-11-07: "to the bit" above compares the batch with one propagator at a time in the same program, so the
+same build mode on the same system. Another build mode or system can differ in the last bits (see the note added
+to vallado-sgp4-2026-11-05.txt).

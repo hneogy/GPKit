@@ -23,19 +23,27 @@ Added to the public interface; nothing is removed or changed:
   an elevation.
 - These are checked against Skyfield 1.55 (`tools/skyfield_frames_reference.py`) and the record in `conformance/`.
 - `Propagator.states(of:at:)` and `Propagator.states(of:from:every:count:)`: many satellites at once, in parallel,
-  each result the one `state(at:)` gives, to the bit. On an Apple M5, 10,000 sets at one instant take 0.5 ms and a
+  each result the one `state(at:)` gives in the same build, to the bit. On an Apple M5, 10,000 sets at one instant take 0.5 ms and a
   day at one-minute steps 0.37 s, against 1.7 ms and 2.1 s one at a time (`tools/benchmark`, the record in
   `conformance/`).
 
 Also:
+
+- Where the documentation says results agree "to the bit", it now says for what: the same build mode on the same
+  system. An optimised build, or another system's maths library, can round a sine or a cosine differently in the last
+  bit (a few nanometres where measured). Dated notes say so in three records in `conformance/`.
+
+- `tools/public-api.sh` checks GPKitSources' interface too, against `docs/public-api-sources.swift`, and stops a
+  change to it that this file does not say. GPKitSources has had no release, so until its first its interface may
+  change, each change said here; from its first release it is held to the same promise as GPKit's.
 
 - GPKitSources, a library apart from GPKit, which still makes no request of its own: CelesTrak's GP queries and
   SatNOGS DB's active transmitters, each asked at most once in two hours, stopped at any answer that is not a 200
   (and the host left alone for two hours after one), never repeated, with a cache of the last good answer and a ledger
   a program keeps between runs. Transmitters tune with GPKit's Doppler, and an inverting transponder's passband is
   mirrored. Tested against recorded answers only: SatNOGS DB's, from one request made for the tests (CC BY-SA 4.0,
-  see NOTICE), and CelesTrak's made up from public data. Space-Track is not among the sources. Its interface is not
-  yet under `tools/public-api.sh`, which checks GPKit's.
+  see NOTICE), and CelesTrak's made up from public data. Space-Track is not among the sources. Its interface is
+  stated in `docs/public-api-sources.swift`, and `tools/public-api.sh` checks it.
 
 - watchOS 9 and later: GPKit builds for watchOS (arm64 and arm64_32), in CI on every push.
 - pygpkit, a Python package in `python/` (`import pygpkit`): reading, TLE writing, SGP4 states, looks, map positions
@@ -65,7 +73,7 @@ Also:
 - A concepts guide: element sets and their epoch, TLE and OMM, catalog numbers and Alpha-5, SGP4, and how far
   the results can be trusted, citing the records in `conformance/`.
 - OMM and TLE shown to be one element set: over 976 pairs of the provider files held, GPKit writes each OMM as the
-  provider's TLE lines, character for character, and they propagate to the bit (`tools/equivalence`, the record in
+  provider's TLE lines, character for character, and they propagate to the bit in the same build (`tools/equivalence`, the record in
   `conformance/`, and `EquivalenceTests`).
 
 ## 1.0.0 (2026-10-07)
