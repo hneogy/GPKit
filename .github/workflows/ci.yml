@@ -89,6 +89,10 @@ jobs:
       - name: The example projects (the command-line ones)
         run: sh tools/check-examples.sh
 
+      # the batch checked against one propagator at a time on 10,000 made-up sets; the times are not kept
+      - name: The propagation benchmark, once
+        run: swift run -c release --package-path tools/benchmark benchmark --runs 1
+
       - name: Python for gpconf
         run: apt-get update -q && apt-get install -y -q python3 python3-venv
 

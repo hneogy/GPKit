@@ -7,6 +7,10 @@ public enum Alpha5 {
   public static func decode(_ field: String) throws(Refusal) -> Int
   public static func encode(_ catalogNumber: Int) throws(Refusal) -> String
 }
+extension Propagator {
+  public static func states(of propagators: [Propagator], at time: Epoch, chunk: Int = 512) async -> [Result<StateVector, PropagationFailure>]
+  public static func states(of propagators: [Propagator], from start: Epoch, every step: Double, count: Int, chunk: Int = 64) async -> [[Result<StateVector, PropagationFailure>]]
+}
 // only where Foundation can be imported (Sources/GPKit/Date.swift)
 extension Epoch {
   public init(_ date: Foundation.Date) throws(Refusal)

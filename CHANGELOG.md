@@ -24,6 +24,11 @@ Added to the public interface; nothing is removed or changed:
   an elevation.
 - These are checked against Skyfield 1.55 (`tools/skyfield_frames_reference.py`) and the record in `conformance/`.
 
+- `Propagator.states(of:at:)` and `Propagator.states(of:from:every:count:)`: many satellites at once, in parallel,
+  each result the one `state(at:)` gives, to the bit. On an Apple M5, 10,000 sets at one instant take 0.5 ms and a
+  day at one-minute steps 0.37 s, against 1.7 ms and 2.1 s one at a time (`tools/benchmark`, the record in
+  `conformance/`).
+
 Also:
 
 - `gpkit`, a command-line tool: `read`, `tle`, `passes`, `where` and `track`, built for release on Linux, macOS
