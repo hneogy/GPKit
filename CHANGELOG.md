@@ -6,7 +6,17 @@ nothing public is removed or changed in a way that breaks code written against a
 
 ## Unreleased
 
-The public interface is unchanged.
+Added to the public interface; nothing is removed or changed:
+
+- `Sun`: the sun's direction, right ascension and declination, its height at a place, and whether it shines on a
+  point, after the NOAA calculators' formulas, held in the tests to the US Naval Observatory's and NOAA's figures.
+- `Sunlight`, from `Propagator.sunlight(from:at:)`: the sky at a place (daylight, twilight or dark), whether the
+  satellite is sunlit, the phase angle, and a brightness estimate from a standard magnitude the caller gives.
+- `PassVisibility`, from `Propagator.visibility(of:from:)`: when in a pass the satellite is sunlit, and when it can
+  be seen with the eye.
+- `EquatorialPosition`: a right ascension and declination.
+
+Also:
 
 - GPKit builds and its tests run on Linux and Windows, in CI on every push: Linux on the official Swift 6.4.2
   image, Windows with swift.org's 6.4.2 installer. On Windows the C runtime's math is imported (`ucrt`).

@@ -35,3 +35,10 @@ your radio.
 - ``Pass``
 - ``Passes``
 - ``Look``
+
+### Sunlight and visibility
+
+- ``Sun``
+- ``Sunlight``
+- ``PassVisibility``
+- ``EquatorialPosition``
