@@ -43,6 +43,11 @@ your radio.
 - ``PassVisibility``
 - ``EquatorialPosition``
 
+### Rotators
+
+- ``RotatorLimits``
+- ``RotatorPoint``
+
 ### Frames and maps
 
 - ``GroundTrack``
