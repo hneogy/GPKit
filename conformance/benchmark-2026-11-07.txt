@@ -1,0 +1,34 @@
+GPKit's propagation, one element set at a time and in its batch (Propagator.states), on 10,000 element sets.
+Run on 2026-11-07 (UTC), 05:40Z, on a Mac17,4 (Apple M5, 10 cores: 4 performance, 6 efficiency, 16 GB), macOS 27.2
+(26B123), Apple Swift version 6.4.2, release build, at GPKit main 5348d48 with the batch added.
+
+How it was run, the same on any machine:
+
+  swift run -c release --package-path tools/benchmark benchmark
+
+The element sets are made up: 10,000 of them by a rule in tools/benchmark, in four shells like a large
+constellation's (about 550 km at 53 degrees, 540 at 53.2, 570 at 70 and 560 at 97.6), the same on every run. No
+provider's data is in them. Each figure is the median of 5 runs after one to warm up. Before anything is timed the
+tool checks that the batch's results are the one-at-a-time results, to the bit.
+
+What it printed:
+
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2 (Build 26B123)
+  load at the start: 2.32 2.75 2.94
+  made-up element sets: 10000 (0 refused)
+  the batch's results are one at a time's, to the bit: checked
+  read the file: 0.0445 s
+  make the propagators: 0.0143 s
+  one instant, one at a time: 0.0017 s, 169 ns a state, 5.92 million states a second
+  one instant, the batch: 0.0005 s, 50 ns a state, 19.90 million states a second
+  a day at one-minute steps, one at a time: 2.1409 s, 149 ns a state, 6.73 million states a second
+  a day at one-minute steps, the batch: 0.3705 s, 26 ns a state, 38.87 million states a second
+  load at the end: 3.16 2.91 2.99
+
+The same tool run with --file on the maintainer's held fetch of 11,141 SupGP element sets of one large
+constellation (read for this only; nothing of it is kept here) gave the same times a state to within 4 per cent:
+176, 50, 149 and 26 ns. So the made-up sets stand for real ones here.
+
+The Mac was not otherwise idle: the load averages are printed at the start and the end. A state is a position and
+velocity in TEME; the times do not include turning them into looks or map positions.
