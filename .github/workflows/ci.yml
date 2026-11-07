@@ -106,6 +106,12 @@ jobs:
           "$RUNNER_TEMP/oem/bin/pip" install -q oem==0.4.5
           "$RUNNER_TEMP/oem/bin/python" tools/check_oem.py "$(swift build --show-bin-path)/gpkit"
 
+      # Hamlib's own rotator programs, its dummy rotator following a pass that gpkit rotator gives
+      - name: Hamlib's dummy rotator follows a pass
+        run: |
+          apt-get install -y -q libhamlib-utils
+          sh tools/check-rotator.sh "$(swift build --show-bin-path)/gpkit"
+
       # here, at a pinned release, so that the interface is stated the same way on every run
       - name: The public interface, the changelog and 1.x
         run: |

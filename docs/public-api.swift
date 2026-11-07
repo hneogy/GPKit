@@ -247,6 +247,22 @@ public struct Refusal : Error, Sendable, Hashable, CustomStringConvertible {
   public init(_ kind: Refusal.Kind, _ message: String, field: String? = nil, text: String? = nil, catalogField: String? = nil, record: Int? = nil, line: Int? = nil)
   public var description: String { get }
 }
+public struct RotatorLimits : Sendable, Hashable {
+  public var azimuth: ClosedRange<Double>
+  public var elevation: ClosedRange<Double>
+  public init(azimuth: ClosedRange<Double> = 0...360, elevation: ClosedRange<Double> = 0...90)
+  public static let standard: RotatorLimits
+}
+public struct RotatorPoint : Sendable, Hashable {
+  public var time: Epoch
+  public var azimuth: Double
+  public var elevation: Double
+  public init(time: Epoch, azimuth: Double, elevation: Double)
+  public var hamlibCommand: String { get }
+}
+extension Propagator {
+  public func rotatorTrack(for pass: Pass, from observer: Observer, every step: Double = 1, limits: RotatorLimits = .standard) -> [RotatorPoint]
+}
 public enum Sun {
   public static let darkBelow: Double
   public static let shadowRadius: Double

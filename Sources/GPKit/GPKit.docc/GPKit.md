@@ -47,6 +47,11 @@ your radio.
 
 - ``OEM``
 
+### Rotators
+
+- ``RotatorLimits``
+- ``RotatorPoint``
+
 ### Frames and maps
 
 - ``GroundTrack``

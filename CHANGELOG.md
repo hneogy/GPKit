@@ -12,6 +12,11 @@ Added to the public interface; nothing is removed or changed:
   SGP4's states in TEME and UTC, positions to the millimetre and velocities to the nanometre a second. `gpkit oem`
   writes one; in CI the `oem` package for Python reads it back, each number as written, and refuses broken copies
   (`tools/check_oem.py`).
+- `Propagator.rotatorTrack(for:from:every:limits:)`, `RotatorLimits` and `RotatorPoint`: where to point an antenna
+  rotator through a pass, within its limits, the azimuth carried on past north where the range allows and flipped over
+  the zenith where the elevation runs to 180; `RotatorPoint.hamlibCommand` is Hamlib's set-position command. `gpkit
+  rotator` prints them for one pass, to pipe to rotctl, or with `--follow` each at its instant; in CI, Hamlib's dummy
+  rotator follows a pass that it gives (`tools/check-rotator.sh`).
 - `Sun`: the sun's direction, right ascension and declination, its height at a place, and whether it shines on a
   point, after the NOAA calculators' formulas, held in the tests to the US Naval Observatory's and NOAA's figures.
 - `Sunlight`, from `Propagator.sunlight(from:at:)`: the sky at a place (daylight, twilight or dark), whether the
