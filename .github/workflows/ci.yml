@@ -202,7 +202,7 @@ jobs:
       - name: Profiler
         continue-on-error: true
         run: |
-          apt-get install -y -qq wabt curl > /dev/null
+          apt-get install -y -qq wabt curl gcc libc6-dev > /dev/null
           curl -sSf https://sh.rustup.rs | sh -s -- -y -q --profile minimal
           "$HOME/.cargo/bin/cargo" install twiggy --version 0.7.0 --locked -q
 

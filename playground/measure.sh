@@ -54,10 +54,11 @@ while i < len(b):
             flags, k = leb(k)
             if flags == 2: _, k = leb(k)
             if flags in (0, 2):
-                while b[k] != 0x0b: k += 1
-                k += 1
+                k += 1                      # the offset's opcode, i32.const
+                _, k = leb(k)               # its value
+                k += 1                      # end
             size, k = leb(k)
-            if b.find(b'LENTICULAR', k, k + size) >= 0:
+            if b.find(b'LENTICULA', k, k + size) >= 0:
                 print(index, size); break
             k += size
     i = j + n
@@ -68,6 +69,27 @@ wasm-objdump -h gc.wasm | tee -a "$out"
 say ""
 say "-- functions whose names say Unicode scalar names"
 wasm-objdump -x -j name gc.wasm 2>/dev/null | grep -iE 'scalarname|getScalarName|nameAlias|_name_' | head -20 | tee -a "$out"
+say ""
+say "-- callers of the name functions, from the disassembly, four levels up (a direct call; a call through the table is listed as table)"
+wasm-objdump -d gc.wasm > gc.dis 2>/dev/null
+python3 - gc.dis <<'PY2' | tee -a "$out"
+import re, sys, collections
+callers = collections.defaultdict(set); names = {}; current = None
+for line in open(sys.argv[1], errors='replace'):
+    m = re.match(r'^[0-9a-f]+ func\[(\d+)\] <(.*)>:', line)
+    if m: current = int(m.group(1)); names[current] = m.group(2); continue
+    m = re.search(r'\bcall (\d+) <', line)
+    if m and current is not None: callers[int(m.group(1))].add(current)
+targets = [i for i, n in names.items() if n in ('_swift_stdlib_getScalarName', '_swift_stdlib_getNameAlias')]
+def up(i, depth, seen):
+    for c in sorted(callers.get(i, ())):
+        print('  ' * depth + f'<- {names.get(c, c)}')
+        if depth < 4 and c not in seen: up(c, depth + 1, seen | {c})
+for t in targets:
+    print(names[t]); up(t, 1, {t})
+    if not callers.get(t): print('  no direct caller')
+PY2
+[ -x /root/.cargo/bin/twiggy ] && PATH="/root/.cargo/bin:$PATH"
 if command -v twiggy > /dev/null; then
     say ""
     say "-- twiggy top 30"
@@ -75,7 +97,7 @@ if command -v twiggy > /dev/null; then
     say ""
     say "-- twiggy paths to the segment"
     twiggy paths gc.wasm "data[${segment% *}]" -d 12 -r 40 | tee -a "$out"
-    for f in $(wasm-objdump -x -j name gc.wasm 2>/dev/null | grep -oE '<[^>]*getScalarName[^>]*>' | tr -d '<>' | sort -u | head -3); do
+    for f in $(wasm-objdump -x -j name gc.wasm 2>/dev/null | grep -oE '<[^>]*(getScalarName|getNameAlias|nameAlias)[^>]*>' | tr -d '<>' | sort -u | head -3); do
         say ""
         say "-- twiggy paths to $f"
         twiggy paths gc.wasm "$f" -d 14 -r 40 | tee -a "$out"
