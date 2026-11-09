@@ -197,12 +197,25 @@ jobs:
           echo "budget: at most 1,048,576 bytes as sent (brotli), target 614,400" | tee -a size.txt
           cp optimised.wasm gpkit-playground.wasm
 
+      # measuring only, while the module is over its budget: the size under each build setting, and a profile of
+      # what keeps Swift's Unicode name tables in it (twiggy, from crates.io; wasm-objdump, from wabt)
+      - name: Profiler
+        continue-on-error: true
+        run: |
+          apt-get install -y -qq wabt curl > /dev/null
+          curl -sSf https://sh.rustup.rs | sh -s -- -y -q --profile minimal
+          "$HOME/.cargo/bin/cargo" install twiggy --version 0.7.0 --locked -q
+
+      - name: Sizes by setting, and what keeps the name tables
+        run: PATH="$HOME/.cargo/bin:$PATH" playground/measure.sh
+
       - uses: actions/upload-artifact@v4
         with:
           name: gpkit-playground
           path: |
             gpkit-playground.wasm
             size.txt
+            measure.txt
 
   # Windows, with swift.org's installer for the same pinned release: build and test.
   windows:
