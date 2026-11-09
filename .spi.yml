@@ -1,7 +1,7 @@
 version: 1
 builder:
   configs:
-    - documentation_targets: [GPKit]
+    - documentation_targets: [GPKit, GPKitSources]
     - platform: ios
       scheme: GPKit
     - platform: tvos

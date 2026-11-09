@@ -4,7 +4,7 @@ Every change to GPKit's public interface is said here, in the release that makes
 the interface, and CI stops a change to it that this file does not say (`tools/public-api.sh --check`). Within 1.x
 nothing public is removed or changed in a way that breaks code written against an earlier 1.x release.
 
-## Unreleased
+## 1.1.0 (2026-11-09)
 
 Added to the public interface; nothing is removed or changed:
 
@@ -47,8 +47,8 @@ Also:
   bit (a few nanometres where measured). Dated notes say so in three records in `conformance/`.
 
 - `tools/public-api.sh` checks GPKitSources' interface too, against `docs/public-api-sources.swift`, and stops a
-  change to it that this file does not say. GPKitSources has had no release, so until its first its interface may
-  change, each change said here; from its first release it is held to the same promise as GPKit's.
+  change to it that this file does not say. This is GPKitSources' first release: from here on it is held to the same
+  promise as GPKit's, and the check holds it to the latest 1.x tag as it does GPKit.
 
 - GPKitSources, a library apart from GPKit, which still makes no request of its own: CelesTrak's GP queries and
   SatNOGS DB's active transmitters, each asked at most once in two hours, stopped at any answer that is not a 200

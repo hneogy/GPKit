@@ -8,8 +8,8 @@
 #   - with BASE (a commit, as CI gives the one before a push or a pull request's base): either file changed since
 #     BASE and CHANGELOG.md did not;
 #   - within 1.x: GPKit's interface breaks code written against the latest 1.x tag (SwiftPM's API digester).
-#     GPKitSources has had no release: until its first, its changes are allowed and said in CHANGELOG.md, and from
-#     its first it is held to the same promise.
+#     GPKitSources is held to it too from the first tag that holds it (1.1.0); before that, its changes are allowed
+#     and said in CHANGELOG.md.
 set -eu
 check=no
 base=
@@ -114,5 +114,14 @@ swift package diagnose-api-breaking-changes "$latest" --products GPKit > "$out/d
     exit 1
 }
 echo "no breaking change against $latest"
-# GPKitSources has no release of its own yet: the promise starts at its first
-echo "GPKitSources: no release yet, so its changes are allowed and said in CHANGELOG.md"
+# GPKitSources is held to the promise from its first release, 1.1.0: from the first tag that holds it
+if git cat-file -e "$latest:Sources/GPKitSources" 2>/dev/null; then
+    swift package diagnose-api-breaking-changes "$latest" --products GPKitSources > "$out/digester-sources.log" 2>&1 || {
+        command grep -vE '^\[|^Building|^Build complete|^Compiling|^Planning|^Fetching|^Computing' "$out/digester-sources.log" >&2
+        echo "GPKitSources' interface breaks code written against $latest: within 1.x that waits for 2.0" >&2
+        exit 1
+    }
+    echo "GPKitSources: no breaking change against $latest"
+else
+    echo "GPKitSources: $latest does not hold it, so its changes are allowed and said in CHANGELOG.md"
+fi
