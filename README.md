@@ -1,5 +1,7 @@
 # GPKit
 
+[![CI](https://github.com/hneogy/GPKit/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/hneogy/GPKit/actions/workflows/ci.yml)
+
 GPKit reads GP data — OMM and TLE, including six-digit catalog numbers. Against gpconf 0.8.0 it passes 17 of the 18
 cases, and none fails; the eighteenth checks data and runs no parser.
 
