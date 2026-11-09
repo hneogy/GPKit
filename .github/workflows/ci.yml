@@ -183,8 +183,10 @@ jobs:
 
       - name: Exports and size
         run: |
-          wasm=$(find playground/.build -path '*release*' -name 'GPKitPlayground.wasm' | head -1)
-          test -n "$wasm"
+          bin=$(swift build --package-path playground --swift-sdk swift-6.4.2-RELEASE_wasm -c release --show-bin-path)
+          wasm=$(find "$bin" -maxdepth 1 -type f \( -name 'GPKitPlayground.wasm' -o -name 'GPKitPlayground' \) | head -1)
+          if [ -z "$wasm" ]; then echo "no module in $bin:" >&2; ls -la "$bin" >&2; exit 1; fi
+          echo "the module: $wasm"
           for name in gpkit_alloc gpkit_free gpkit_answer gpkit_read gpkit_now gpkit_passes _initialize; do
             wasm-dis "$wasm" | grep -q "(export \"$name\"" || { echo "the module does not export $name" >&2; exit 1; }
           done
