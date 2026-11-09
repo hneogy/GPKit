@@ -159,6 +159,49 @@ jobs:
       - name: Unit tests
         run: swift test --swift-sdk swift-6.4.2-RELEASE_wasm
 
+  # The playground's module (gpkit.gppasses.com, GPKit 2.0-b): GPKit built for WebAssembly as a WASI reactor, its
+  # exports read back, and its size said against the plan's budget (at most 1.0 MB as sent, brotli). The size is
+  # measured here and not on a developer's machine (the owner, 2026-11-09). Nothing fails on size yet: the first
+  # numbers go to the owner before a budget is held.
+  playground:
+    name: playground module (WebAssembly, Swift 6.4.2)
+    runs-on: ubuntu-latest
+    container: swift:6.4.2-noble
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The Wasm SDK
+        run: |
+          swift sdk install https://download.swift.org/swift-6.4.2-release/wasm-sdk/swift-6.4.2-RELEASE/swift-6.4.2-RELEASE_wasm.artifactbundle.tar.gz \
+            --checksum 83baca83553f8c443cda7b84800912e6e709c3acd2e7ebf277794ca5836c0da5
+
+      - name: Build
+        run: swift build --package-path playground --swift-sdk swift-6.4.2-RELEASE_wasm -c release
+
+      - name: Tools to measure with
+        run: apt-get update -qq && apt-get install -y -qq brotli binaryen > /dev/null
+
+      - name: Exports and size
+        run: |
+          wasm=$(find playground/.build -path '*release*' -name 'GPKitPlayground.wasm' | head -1)
+          test -n "$wasm"
+          for name in gpkit_alloc gpkit_free gpkit_answer gpkit_read gpkit_now gpkit_passes _initialize; do
+            wasm-dis "$wasm" | grep -q "(export \"$name\"" || { echo "the module does not export $name" >&2; exit 1; }
+          done
+          wasm-opt -Oz --enable-bulk-memory --enable-sign-ext --enable-mutable-globals --enable-nontrapping-float-to-int "$wasm" -o optimised.wasm
+          size() { printf '%-22s raw %9d  gzip -9 %9d  brotli -q 11 %9d\n' "$1" "$(wc -c < "$2")" "$(gzip -9c "$2" | wc -c)" "$(brotli -q 11 -c "$2" | wc -c)"; }
+          size "as built" "$wasm" | tee size.txt
+          size "wasm-opt -Oz" optimised.wasm | tee -a size.txt
+          echo "budget: at most 1,048,576 bytes as sent (brotli), target 614,400" | tee -a size.txt
+          cp optimised.wasm gpkit-playground.wasm
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gpkit-playground
+          path: |
+            gpkit-playground.wasm
+            size.txt
+
   # Windows, with swift.org's installer for the same pinned release: build and test.
   windows:
     name: build, test (windows-latest, Swift 6.4.2)
