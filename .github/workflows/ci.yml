@@ -190,24 +190,17 @@ jobs:
           for name in gpkit_alloc gpkit_free gpkit_answer gpkit_read gpkit_now gpkit_passes _initialize; do
             wasm-dis "$wasm" | grep -q "(export \"$name\"" || { echo "the module does not export $name" >&2; exit 1; }
           done
-          wasm-opt -Oz --enable-bulk-memory --enable-sign-ext --enable-mutable-globals --enable-nontrapping-float-to-int "$wasm" -o optimised.wasm
-          size() { printf '%-22s raw %9d  gzip -9 %9d  brotli -q 11 %9d\n' "$1" "$(wc -c < "$2")" "$(gzip -9c "$2" | wc -c)" "$(brotli -q 11 -c "$2" | wc -c)"; }
+          # the shipped module: --strip-all at the link (the manifest), then wasm-opt -Oz --converge; the
+          # budget is 1.1 MiB as sent, brotli (the owner's ruling of 2026-11-10; 600 KB stays the aim): above it, this fails
+          wasm-opt -Oz --converge --enable-bulk-memory --enable-sign-ext --enable-mutable-globals --enable-nontrapping-float-to-int "$wasm" -o gpkit-playground.wasm
+          size() { printf '%-30s raw %9d  gzip -9 %9d  brotli -q 11 %9d\n' "$1" "$(wc -c < "$2")" "$(gzip -9c "$2" | wc -c)" "$(brotli -q 11 -c "$2" | wc -c)"; }
           size "as built" "$wasm" | tee size.txt
-          size "wasm-opt -Oz" optimised.wasm | tee -a size.txt
-          echo "budget: at most 1,048,576 bytes as sent (brotli), target 614,400" | tee -a size.txt
-          cp optimised.wasm gpkit-playground.wasm
-
-      # measuring only, while the module is over its budget: the size under each build setting, and a profile of
-      # what keeps Swift's Unicode name tables in it (twiggy, from crates.io; wasm-objdump, from wabt)
-      - name: Profiler
-        continue-on-error: true
-        run: |
-          apt-get install -y -qq wabt curl gcc libc6-dev > /dev/null
-          curl -sSf https://sh.rustup.rs | sh -s -- -y -q --profile minimal
-          "$HOME/.cargo/bin/cargo" install twiggy --version 0.7.0 --locked -q
-
-      - name: Sizes by setting, and what keeps the name tables
-        run: PATH="$HOME/.cargo/bin:$PATH" playground/measure.sh
+          size "wasm-opt -Oz --converge" gpkit-playground.wasm | tee -a size.txt
+          sent=$(brotli -q 11 -c gpkit-playground.wasm | wc -c)
+          budget=1153434
+          echo "as sent: $sent bytes brotli; budget $budget (1.1 MiB), aim 614,400" | tee -a size.txt
+          if [ "$sent" -gt "$budget" ]; then echo "the module is over its budget: $sent > $budget" >&2; exit 1; fi
+          sha256sum gpkit-playground.wasm | tee -a size.txt
 
       - uses: actions/upload-artifact@v4
         with:
@@ -215,7 +208,6 @@ jobs:
           path: |
             gpkit-playground.wasm
             size.txt
-            measure.txt
 
   # Windows, with swift.org's installer for the same pinned release: build and test.
   windows:
