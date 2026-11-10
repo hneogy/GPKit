@@ -23,6 +23,10 @@ Nothing in the public interface is added, removed or changed; `docs/public-api.s
   Leap_Second.dat, the last 2016-12-31; the list is closed, UTC running without leap seconds from 20 May 2027 by CGPM
   2026 Resolution 5). 1.1.0 read a second 60 at 23:59 on any day; such an epoch is now refused as `.notAnEpoch`, with
   the reason. gpconf's `ccsds-epoch-strings` vectors pass with it.
+- The gpconf adapter (`gpkit-gpconf vectors`) answers gpconf's `propagate` op: each step's position and velocity, or
+  Vallado's error code where SGP4 stops; a set GPKit will not propagate, one for SGP4-XP among them (refused as
+  `.notSGP4` in 1.x), is an error for the call. It reads a set with its checksums unchecked, as Vallado's reader does,
+  since gpconf holds his verification sets valid input for propagation; `parse` still verifies them.
 
 ## 1.1.0 (2026-11-09)
 
