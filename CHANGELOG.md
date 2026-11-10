@@ -15,7 +15,9 @@ Changed in the public interface; this breaks code written against 1.x, so it wai
   `.sgp4XP`. The set is still read as written, and the TLE writer keeps its type. Tested in every format, with the
   type-0 twins propagating alike (`SGP4XPTests`).
 - The gpconf adapter (`gpkit-gpconf vectors`) answers gpconf's `propagate` op, each step's position and velocity or
-  Vallado's error code; gpconf's `ephemeris-type-4-refused` case passes with it.
+  Vallado's error code; gpconf's `ephemeris-type-4-refused` and `propagation-tle-omm-twins` cases pass with it. It
+  reads a set with its checksums unchecked, as Vallado's reader does, since gpconf holds his verification sets valid
+  input for propagation; `parse` still verifies them.
 
 ## 1.1.0 (2026-11-09)
 

@@ -146,7 +146,9 @@ case "vectors":
             // the runner's probe, with no times: the op is here
             if times.isEmpty { emit("{\"result\":[]}"); break }
             guard let format = Format(rawValue: fmt) else { throw Refusal(.malformedFile, "GPKit does not read \(fmt)") }
-            let file = try ElementSets.read(raw, as: format)
+            // Vallado's verification sets carry checksums his own reader never checks, and gpconf's adapter guide holds
+            // them valid input for propagation; parse, graded on reading, still verifies every checksum
+            let file = try ElementSets.read(raw, as: format, checksum: .ignore)
             guard file.elementSets.count == 1 else {
                 throw file.refusals.first ?? Refusal(.malformedFile, "\(file.elementSets.count) element sets, where one was sent")
             }
