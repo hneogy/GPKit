@@ -83,7 +83,7 @@ const when = (unix) => `${local(unix)} <span class="utc">(${utc(unix)})</span>`;
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 function refusal(r) {
   return `<p class="refusal"><strong>GPKit refuses it: ${esc(r.kind)}.</strong> ${esc(r.message)}` +
-    (r.line ? ` (line ${r.line})` : '') + '</p>';
+    (r.line ? ` (line ${r.line} of the text)` : '') + '</p>';
 }
 const row = (name, value) => `<tr><th scope="row">${name}</th><td>${value}</td></tr>`;
 
@@ -175,7 +175,7 @@ function showChart(i) {
     ring(0) + ring(30) + ring(60) +
     `<text x="${c}" y="14" class="dir">N</text><text x="${c}" y="316" class="dir">S</text><text x="312" y="${c + 4}" class="dir">E</text><text x="8" y="${c + 4}" class="dir">W</text>` +
     `<polyline points="${path.join(' ')}" class="track"/><circle cx="${hx}" cy="${hy}" r="4" class="top"/></svg>` +
-    `<figcaption>The pass rising at ${esc(local(t0))}, seen from above your head: the centre is straight up, the edge the horizon, north at the top; rings at 0°, 30° and 60° up.</figcaption></figure>`;
+    `<figcaption>The pass rising at ${esc(local(t0))}, drawn as on a map: the centre is straight up, the edge the horizon, north at the top and east to the right; rings at 0°, 30° and 60° up.</figcaption></figure>`;
 }
 
 function update() {
