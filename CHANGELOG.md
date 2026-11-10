@@ -4,6 +4,25 @@ Every change to GPKit's public interface is said here, in the release that makes
 the interface, and CI stops a change to it that this file does not say (`tools/public-api.sh --check`). Within 1.x
 nothing public is removed or changed in a way that breaks code written against an earlier 1.x release.
 
+## Unreleased
+
+Added to GPKitSources' public interface; nothing is removed or changed (`docs/public-api-sources.swift`):
+
+- `ElementSetStore`, the element sets a program holds, by catalog number: the newest of each object and up to `keep`
+  sets of it (4 by default), newest first. `merge` takes a file or sets and reports what it did with each: added,
+  replaced, unchanged, older (kept in the history while it has room), conflicting (another set at a held epoch; the
+  held one is kept), uncatalogued (not held) and refused. `current`, `history`, `catalogNumbers` and `stale(at:olderThan:)`
+  read it. `save()` writes every set as an OMM in CelesTrak's JSON form, each number in its own digits, and
+  `init(saved:keep:)` reads it back to the same values.
+- `FolderSource`, element sets from files already held, with no request: a file's format is its extension's (`.csv`,
+  `.json`, `.xml`, `.kvn`, `.tle`, `.txt`); hidden files and other extensions are skipped and named, and a file GPKit
+  refuses whole is named with the reason. `load(into:)` merges the folder into a store.
+- `Ledger.nextAsk(_:at:)`, when the rules next let an address be asked: nil when it may be asked now, else the end of
+  the latest quiet time that holds it, the address's own or its host's.
+
+All of it is tested against recorded fixtures only (`Tests/GPKitSourcesTests/Resources/fixtures`, made up from the
+Space Station's 1998 set); no test makes a request, and seven planted faults each fail the tests.
+
 ## 1.2.1 (2026-11-10)
 
 Nothing in the public interface is added, removed or changed; `docs/public-api.swift` is as in 1.2.0.

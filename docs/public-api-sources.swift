@@ -75,6 +75,7 @@ public actor Ledger {
   public var state: Ledger.State { get }
   public init(state: Ledger.State = State(), quiet: Foundation.TimeInterval = 2 * 3600)
   public func holding(_ url: Foundation.URL, at now: Foundation.Date) -> Attempt?
+  public func nextAsk(_ url: Foundation.URL, at now: Foundation.Date) -> Foundation.Date?
   public func record(_ attempt: Attempt, host: String?)
   @_semantics("defaultActor") nonisolated final public var unownedExecutor: _Concurrency::UnownedSerialExecutor { get }
 }
@@ -92,6 +93,19 @@ public struct SourceClient : Sendable {
   public init(transport: any Transport, application: String, ledger: Ledger = Ledger(), cache: AnswerCache = AnswerCache())
   public var userAgent: String { get }
   public static let excerpt: Int
+}
+public struct FolderSource : Sendable {
+  public let folder: Foundation.URL
+  public let checksum: TLE.Checksum
+  public init(folder: Foundation.URL, checksum: TLE.Checksum = .verify)
+  public static func format(of name: String) -> Format?
+  public struct Reading : Sendable {
+    public var files: [(name: String, file: ElementSetFile)]
+    public var failed: [(name: String, refusal: Refusal)]
+    public var skipped: [String]
+  }
+  public func read() throws -> FolderSource.Reading
+  public func load(into store: ElementSetStore) async throws -> (report: ElementSetStore.Report, reading: FolderSource.Reading)
 }
 public enum SatNOGS {
   public static let host: String
@@ -130,4 +144,29 @@ public struct Transmitter : Sendable, Hashable, Identifiable {
 }
 extension Collection where Self.Element == Transmitter {
   public func of(catalogNumber: Int) -> [Transmitter]
+}
+public actor ElementSetStore {
+  public struct Report : Sendable, Hashable {
+    public var added: Int
+    public var replaced: Int
+    public var unchanged: Int
+    public var older: Int
+    public var conflicting: [Int]
+    public var uncatalogued: Int
+    public var refused: Int
+    public init()
+  }
+  nonisolated final public let keep: Int
+  public init(keep: Int = 4)
+  public init(saved: Foundation.Data, keep: Int = 4) throws(Refusal)
+  @discardableResult
+  public func merge(_ file: ElementSetFile) -> ElementSetStore.Report
+  @discardableResult
+  public func merge(_ elementSets: [ElementSet]) -> ElementSetStore.Report
+  public func current(_ catalogNumber: Int) -> ElementSet?
+  public func history(_ catalogNumber: Int) -> [ElementSet]
+  public var catalogNumbers: [Int] { get }
+  public func stale(at time: Epoch, olderThan days: Double) -> [Int]
+  public func save() -> Foundation.Data
+  @_semantics("defaultActor") nonisolated final public var unownedExecutor: _Concurrency::UnownedSerialExecutor { get }
 }
