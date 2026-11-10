@@ -1,0 +1,34 @@
+name: playground repro
+
+# A diagnostic, on the branch playground-repro only: is the playground's module byte-identical from build to build,
+# and where does it part if not (playground/repro/repro.sh).
+on:
+  push:
+    branches: [playground-repro]
+
+permissions:
+  contents: read
+
+jobs:
+  repro:
+    runs-on: ubuntu-latest
+    container: swift:6.4.2-noble
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: The Wasm SDK
+        run: |
+          swift sdk install https://download.swift.org/swift-6.4.2-release/wasm-sdk/swift-6.4.2-RELEASE/swift-6.4.2-RELEASE_wasm.artifactbundle.tar.gz \
+            --checksum 83baca83553f8c443cda7b84800912e6e709c3acd2e7ebf277794ca5836c0da5
+      - name: Tools
+        run: apt-get update -qq && apt-get install -y -qq binaryen wabt python3 > /dev/null
+      - name: Four builds, compared
+        run: |
+          git config --global --add safe.directory "$PWD"
+          sh playground/repro/repro.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: repro
+          path: out/*.wasm
