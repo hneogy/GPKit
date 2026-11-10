@@ -97,9 +97,11 @@ public struct Propagator: Sendable {
         /// writes its epoch, to a hundred-millionth of a day.
         ///
         /// For matching his published verification output, `tcppver.out`, to its last digits: with it, set 23333 of
-        /// `SGP4-VER.TLE` (eccentricity 0.97) agrees to 7e-9 km, where the exact epoch puts it 4e-6 km away. Times
-        /// given to `state(minutesFromEpoch:)` are minutes from this epoch, as his `tsince` is; `state(at:)` still
-        /// counts them from the set's stated epoch.
+        /// `SGP4-VER.TLE` (eccentricity 0.97) is at most 4.9e-9 km and 4.9e-10 km/s from his reference over its 15
+        /// rows, where the exact epoch puts it 4.1e-6 km away, as measured by
+        /// `ValladoEpochTests.set23333MeetsGpconfsBarWithValladosEpochAndNotWithTheExactOne`. Times given to
+        /// `state(minutesFromEpoch:)` are minutes from this epoch, as his `tsince` is; `state(at:)` still counts them
+        /// from the set's stated epoch.
         case vallado
     }
 

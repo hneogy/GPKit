@@ -4,6 +4,14 @@ Every change to GPKit's public interface is said here, in the release that makes
 the interface, and CI stops a change to it that this file does not say (`tools/public-api.sh --check`). Within 1.x
 nothing public is removed or changed in a way that breaks code written against an earlier 1.x release.
 
+## 1.3.1 (not yet released: the date is set on the owner's word)
+
+Nothing in the public interface is added, removed or changed; `docs/public-api.swift` is as in 1.3.0.
+
+- `Propagator.EpochReading.vallado`'s documentation said set 23333 agrees with `tcppver.out` "to 7e-9 km". It now
+  says what `ValladoEpochTests` measures and names the test: at most 4.9e-9 km and 4.9e-10 km/s over its 15 rows,
+  against 4.1e-6 km at the exact epoch. The changelog's 1.3.0 entry already said 4.9e-9 km.
+
 ## 1.3.0 (2026-11-10)
 
 Added to the public interface; nothing is removed or changed:
