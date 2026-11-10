@@ -4,6 +4,21 @@ Every change to GPKit's public interface is said here, in the release that makes
 the interface, and CI stops a change to it that this file does not say (`tools/public-api.sh --check`). Within 1.x
 nothing public is removed or changed in a way that breaks code written against an earlier 1.x release.
 
+## Unreleased
+
+Added to the public interface; nothing is removed or changed:
+
+- `DataAge`, groundwork for the data-age estimate (roadmap 2.0-c): `DataAge.samples(_:maximumAge:)` propagates each
+  older set of a satellite to the epoch of each newer set of it and gives the position error there, whole and as
+  radial, in-track and cross-track parts; `DataAge.table(_:edges:)` sums samples up as percentiles (median, 68th,
+  95th, maximum, by nearest rank) by regime and span of age; `DataAge.estimate(for:at:from:)` reads a set's row from
+  such a table, extrapolating nothing. GPKit ships no table: the measurement waits for gpconf 0.9.0's re-measure
+  fetch, with medium-Earth and geosynchronous sets (the owner's ruling, 2026-11-07).
+- `OrbitRegime` and `ElementSet.regime`: low Earth, medium Earth, geosynchronous or highly elliptical, by mean motion
+  and eccentricity, the boundaries stated in the documentation; `ElementSet.age(at:)`, in days.
+- `tools/data-age`, a package of its own: `gpkit-data-age OUT-DIR FILE...` measures over element-set files already
+  held, makes no request, and writes the samples and the table to OUT-DIR.
+
 ## 1.1.0 (2026-11-09)
 
 Added to the public interface; nothing is removed or changed:

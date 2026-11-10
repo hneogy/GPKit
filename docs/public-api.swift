@@ -33,6 +33,48 @@ public enum CloseApproach {
   public static let heightMargin: Double
   public static func screen(_ propagators: [Propagator], from start: Epoch, for seconds: Double, step: Double = 60, within: Double = 10) -> CloseApproach.Screen
 }
+public enum OrbitRegime : String, Sendable, Hashable, CaseIterable {
+  case lowEarth
+  case mediumEarth
+  case geosynchronous
+  case highlyElliptical
+  public init(meanMotion: Double, eccentricity: Double)
+}
+extension ElementSet {
+  public var regime: OrbitRegime { get }
+  public func age(at time: Epoch) -> Double
+}
+public enum DataAge {
+  public struct Sample : Sendable, Hashable {
+    public let catalogNumber: Int
+    public let regime: OrbitRegime
+    public let older: Epoch
+    public let newer: Epoch
+    public let age: Double
+    public let positionError: Double
+    public let radial: Double
+    public let inTrack: Double
+    public let crossTrack: Double
+  }
+  public static func samples(_ sets: [ElementSet], maximumAge: Double = 30) -> (samples: [DataAge.Sample], failures: Int)
+  public struct Percentiles : Sendable, Hashable {
+    public let count: Int
+    public let median: Double
+    public let p68: Double
+    public let p95: Double
+    public let maximum: Double
+    public init?(_ values: [Double])
+  }
+  public struct Row : Sendable, Hashable {
+    public let regime: OrbitRegime
+    public let fromAge: Double
+    public let toAge: Double
+    public let positionError: DataAge.Percentiles
+    public init(regime: OrbitRegime, fromAge: Double, toAge: Double, positionError: DataAge.Percentiles)
+  }
+  public static func table(_ samples: [DataAge.Sample], edges: [Double] = [0, 1, 2, 3, 5, 7, 10, 14, 21, 30]) -> [DataAge.Row]
+  public static func estimate(for set: ElementSet, at time: Epoch, from table: [DataAge.Row]) -> DataAge.Row?
+}
 // only where Foundation can be imported (Sources/GPKit/Date.swift)
 extension Epoch {
   public init(_ date: Foundation.Date) throws(Refusal)
