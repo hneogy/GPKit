@@ -13,7 +13,13 @@
 //
 // --stream measures Propagator.streamStates instead, alone in its process so that the most memory held is its own:
 // the most memory held once the propagators are made, then a day at one-minute steps streamed with the default
-// budget (or --budget MiB), timed, and the most memory held after it. The stream is checked first against one propagator at a time,
+// budget (or --budget MiB), timed, and the most memory held after it.
+//
+// --memory STAGE splits what --count N sets hold, one stage a process: none (nothing made), text (the CSV text),
+// file (the text and the file read from it), all (the text, the file and the propagators, as the other modes keep
+// them), sets-only (the element sets, read 1,000 at a time, so that no whole text or file is ever held) and
+// propagators-only (the propagators, made 1,000 sets at a time, the same way). Each prints the most memory held and,
+// on Darwin, the process's footprint at the end, with every value it made still held. The stream is checked first against one propagator at a time,
 // to the bit, on a few instants of every set.
 //
 // Each figure is the median of N runs (5 by default) after one run to warm up. The batch's results are checked
@@ -29,13 +35,13 @@ func fail(_ message: String) -> Never {
 
 /// The made-up constellation as CSV: element sets that look like a large constellation's, made from a rule, the same
 /// on every run and every machine. No provider's data is in it.
-func constellation(_ count: Int) -> String {
+func constellation(_ count: Int, from first: Int = 0) -> String {
     var csv = "OBJECT_NAME,OBJECT_ID,EPOCH,MEAN_MOTION,ECCENTRICITY,INCLINATION,RA_OF_ASC_NODE,ARG_OF_PERICENTER,MEAN_ANOMALY,"
         + "EPHEMERIS_TYPE,CLASSIFICATION_TYPE,NORAD_CAT_ID,ELEMENT_SET_NO,REV_AT_EPOCH,BSTAR,MEAN_MOTION_DOT,MEAN_MOTION_DDOT\n"
     // revolutions a day and inclination: about 550 km at 53 degrees, 540 at 53.2, 570 at 70, 560 at 97.6
     let shells: [(motion: String, inclination: String)] = [("15.06000000", "53.0000"), ("15.10000000", "53.2000"),
                                                            ("14.98000000", "70.0000"), ("15.02000000", "97.6000")]
-    for i in 0..<count {
+    for i in first..<(first + count) {
         let shell = shells[i % 4]
         let plane = (i / 4) % 72, slot = i / 288
         let node = Double(plane) * 5.0 + Double(i % 4) * 1.25
@@ -60,9 +66,10 @@ let screenCount = option("--screen-count").flatMap(Int.init) ?? 1000
 let workloads = arguments.contains("--workloads")
 let streaming = arguments.contains("--stream")
 let budgetMiB = option("--budget").flatMap(Int.init)
+let memoryStage = option("--memory")
 arguments.removeAll { $0 == "--workloads" || $0 == "--stream" }
 guard arguments.isEmpty, runs > 0, count > 0 else {
-    fail("usage: benchmark [--file PATH --format csv|json|xml|kvn|tle] [--runs N] [--count N] [--workloads [--screen-count N]] [--stream [--budget MiB]]")
+    fail("usage: benchmark [--file PATH --format csv|json|xml|kvn|tle] [--runs N] [--count N] [--workloads [--screen-count N]] [--stream [--budget MiB]] [--memory none|text|file|all|sets-only|propagators-only]")
 }
 
 func sysctl(_ name: String) -> String? {
@@ -88,6 +95,62 @@ print("machine: \(sysctl("hw.model") ?? "?"), \(sysctl("machdep.cpu.brand_string
 print("system: \(process.operatingSystemVersionString)")
 var load = [0.0, 0.0, 0.0]
 if getloadavg(&load, 3) == 3 { print(String(format: "load at the start: %.2f %.2f %.2f", load[0], load[1], load[2])) }
+
+/// The process's footprint now, in MB (Darwin's phys_footprint, what the system counts against an app); nil elsewhere.
+func footprint() -> Double? {
+    #if canImport(Darwin)
+    var info = task_vm_info_data_t()
+    var size = mach_msg_type_number_t(MemoryLayout<task_vm_info_data_t>.size / MemoryLayout<natural_t>.size)
+    let result = withUnsafeMutablePointer(to: &info) {
+        $0.withMemoryRebound(to: integer_t.self, capacity: Int(size)) { task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), $0, &size) }
+    }
+    return result == KERN_SUCCESS ? Double(info.phys_footprint) / 1_048_576 : nil
+    #else
+    return nil
+    #endif
+}
+
+if let stage = memoryStage {
+    let stages = ["none", "text", "file", "all", "sets-only", "propagators-only"]
+    guard stages.contains(stage), path == nil else { fail("--memory takes one of \(stages.joined(separator: ", ")), with made-up sets only") }
+    print("--memory \(stage), \(count) made-up element sets")
+    print("sizes: Propagator \(MemoryLayout<Propagator>.stride) bytes, ElementSet \(MemoryLayout<ElementSet>.stride), "
+        + "the propagator's SGP4 state and gravity \(MemoryLayout<Propagator>.stride - MemoryLayout<ElementSet>.stride) (a Propagator holds its ElementSet)")
+    var kept: [Any] = []
+    var made = 0
+    do {
+        switch stage {
+        case "text":
+            let text = constellation(count); kept.append(text); made = text.utf8.count
+            print(String(format: "the text: %.1f MB of UTF-8", Double(made) / 1_048_576))
+        case "file", "all":
+            let text = constellation(count)
+            let file = try ElementSets.read(text, as: .csv)
+            kept.append(text); kept.append(file)
+            if stage == "all" { let ps = try file.elementSets.map { try Propagator($0) }; kept.append(ps); made = ps.count } else { made = file.elementSets.count }
+        case "sets-only", "propagators-only":
+            var sets: [ElementSet] = [], ps: [Propagator] = []
+            if stage == "propagators-only" { ps.reserveCapacity(count) } else { sets.reserveCapacity(count) }
+            var first = 0
+            while first < count {
+                let n = min(1000, count - first)
+                let file = try ElementSets.read(constellation(n, from: first), as: .csv)
+                if stage == "propagators-only" { ps += try file.elementSets.map { try Propagator($0) } } else { sets += file.elementSets }
+                first += n
+            }
+            if stage == "propagators-only" { kept.append(ps); made = ps.count } else { kept.append(sets); made = sets.count }
+            print(String(format: "the array alone: %.1f MB (%d × %d bytes)", Double(made * (stage == "propagators-only" ? MemoryLayout<Propagator>.stride : MemoryLayout<ElementSet>.stride)) / 1_048_576,
+                         made, stage == "propagators-only" ? MemoryLayout<Propagator>.stride : MemoryLayout<ElementSet>.stride))
+        default: break
+        }
+    } catch {
+        fail("\(error)")
+    }
+    print(String(format: "the most memory held: %.1f MB", peakMemory()))
+    if let now = footprint() { print(String(format: "the footprint at the end, everything still held: %.1f MB", now)) }
+    if kept.count < 0 || made < 0 { print("") }   // what was made is held to here
+    exit(0)
+}
 
 let input: String
 let format: Format
