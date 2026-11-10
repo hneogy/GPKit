@@ -18,7 +18,7 @@ STAGE is one of:
 - sets-only: the element sets alone, read 1,000 at a time, so that no whole text or file is ever held;
 - propagators-only: the propagators alone, made the same way.
 
-"Most memory held" is the process's resident peak. "Footprint" is Darwin's phys_footprint at the end, with
+Sizes in MB are MiB (1,048,576 bytes), as the tool prints them. "Most memory held" is the process's resident peak. "Footprint" is Darwin's phys_footprint at the end, with
 everything the stage made still held: what the system counts against an app. The sets are the tool's made-up
 constellation. A real provider file's names and keywords would differ in size per set [untested].
 
@@ -48,7 +48,7 @@ The split of the 174 MB at 40,000 sets (footprints less the 2.3 MB of an empty p
 footprint, its 174 MB peak including what parsing holds while it runs):
 
 - the propagators, with the element sets they hold: 79.4 MB, 55 per cent. Of that:
-  - the Propagator array, 52.2 MB: 35.8 MB of SGP4 state and 16.4 MB of element sets held inline;
+  - the Propagator array, 52.2 MB: 34.2 MB of SGP4 state (40,000 × 896 bytes) and 18.0 MB of element sets held inline (40,000 × 472);
   - the element sets' own allocations, about 27 MB (sets-only's 45.1 MB less its 18.0 MB array), about 690 bytes a
     set. That figure includes what the allocator kept from reading 1,000 at a time [inferred: not split further].
 - the input text, 13.6 MB, 9 per cent.
