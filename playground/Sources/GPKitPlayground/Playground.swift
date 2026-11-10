@@ -44,6 +44,7 @@ enum Out {
     static func elementSet(_ set: ElementSet) -> String {
         object([("catalog_number", optional(set.catalogNumber) { String($0) }), ("object_name", optional(set.objectName, string)),
                 ("object_id", optional(set.objectID, string)), ("epoch", string(set.epoch.description)),
+                ("epoch_unix", number(set.epoch.unixTime)),
                 ("mean_motion", string(set.meanMotion.description)), ("eccentricity", string(set.eccentricity.description)),
                 ("inclination", string(set.inclination.description)), ("right_ascension", string(set.rightAscension.description)),
                 ("argument_of_pericenter", string(set.argumentOfPericenter.description)), ("mean_anomaly", string(set.meanAnomaly.description)),

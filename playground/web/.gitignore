@@ -1,0 +1,2 @@
+# the module comes from CI (the playground job), never committed here
+*.wasm
