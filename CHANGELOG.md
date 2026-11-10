@@ -24,6 +24,12 @@ Added to the public interface; nothing is removed or changed:
   - The batch, which keeps the day: 3,386 MB.
   - Both at 55 to 56 ns a state on the same Mac at the same load.
 
+- A DocC article, "Working with a whole catalogue": read the input in pieces and keep only the propagators (87 to
+  89 MB at the peak at 40,000 made-up sets, against 174 MB holding everything), with the array made at its full size,
+  and stream a run of states. Its code is compiled and run in a test, and `tools/check-article-code.sh` (in CI) checks
+  that the article prints the code the test runs. Its figures, about 2 KB a set with made-up sets and about 3 KB with a
+  real supplemental GP file, are in `conformance/memory-split-2026-11-10.txt`.
+
 ## 1.3.0 (2026-11-10)
 
 Added to the public interface; nothing is removed or changed:

@@ -19,7 +19,13 @@
 // file (the text and the file read from it), all (the text, the file and the propagators, as the other modes keep
 // them), sets-only (the element sets, read 1,000 at a time, so that no whole text or file is ever held) and
 // propagators-only (the propagators, made 1,000 sets at a time, the same way). Each prints the most memory held and,
-// on Darwin, the process's footprint at the end, with every value it made still held. The stream is checked first against one propagator at a time,
+// on Darwin, the process's footprint at the end, with every value it made still held. With --file PATH --format F
+// (csv or tle for the pieces) the stages read that file: a piece is about 1,000 records read from the disk line by
+// line, so the whole file is never held. "pieces" is propagators-only under the name of the pattern it measures
+// (read in pieces, keep only the propagators); "check-pieces" checks that the pieces give the element sets and
+// refusals the whole gives, to the value, and exits 1 if they do not. The pieces stages make their array at its full
+// size first, counting a file's records a line at a time; --unreserved lets it grow by doubling instead, to show
+// what that costs. The stream is checked first against one propagator at a time,
 // to the bit, on a few instants of every set.
 //
 // Each figure is the median of N runs (5 by default) after one run to warm up. The batch's results are checked
@@ -67,9 +73,11 @@ let workloads = arguments.contains("--workloads")
 let streaming = arguments.contains("--stream")
 let budgetMiB = option("--budget").flatMap(Int.init)
 let memoryStage = option("--memory")
+let unreserved = CommandLine.arguments.contains("--unreserved")
+arguments.removeAll { $0 == "--unreserved" }
 arguments.removeAll { $0 == "--workloads" || $0 == "--stream" }
 guard arguments.isEmpty, runs > 0, count > 0 else {
-    fail("usage: benchmark [--file PATH --format csv|json|xml|kvn|tle] [--runs N] [--count N] [--workloads [--screen-count N]] [--stream [--budget MiB]] [--memory none|text|file|all|sets-only|propagators-only]")
+    fail("usage: benchmark [--file PATH --format csv|json|xml|kvn|tle] [--runs N] [--count N] [--workloads [--screen-count N]] [--stream [--budget MiB]] [--memory none|text|file|all|sets-only|propagators-only|pieces|check-pieces [--unreserved]]")
 }
 
 func sysctl(_ name: String) -> String? {
@@ -110,10 +118,64 @@ func footprint() -> Double? {
     #endif
 }
 
+/// Each line of a file, read from the disk a megabyte at a time, with its line ending: so that the whole file is never
+/// held. `body` is given each line's bytes.
+func forEachLine(of path: String, _ body: ([UInt8]) throws -> Void) throws {
+    guard let handle = FileHandle(forReadingAtPath: path) else { fail("\(path): cannot be read") }
+    defer { try? handle.close() }
+    var pending: [UInt8] = []
+    while true {
+        let chunk = handle.readData(ofLength: 1 << 20)
+        if chunk.isEmpty { break }
+        for byte in chunk {
+            pending.append(byte)
+            if byte == 0x0A { try body(pending); pending.removeAll(keepingCapacity: true) }
+        }
+    }
+    if !pending.isEmpty { try body(pending) }
+}
+
+/// The input in pieces of about 1,000 records, each piece a text GPKit reads as it would the whole: the made-up sets
+/// made a piece at a time, or a file read from the disk line by line. A CSV piece carries the header; a TLE piece is
+/// whole records, a record ending at its line 2. Other formats are not read in pieces here.
+func forEachPiece(_ body: (String) throws -> Void) throws {
+    guard let path else {
+        var first = 0
+        while first < count { let n = min(1000, count - first); try body(constellation(n, from: first)); first += n }
+        return
+    }
+    let name = formatName ?? ""
+    guard name == "csv" || name == "tle" else { fail("--memory reads csv or tle in pieces, not \(name)") }
+    var header: [UInt8]? = nil, piece: [UInt8] = [], records = 0
+    try forEachLine(of: path) { line in
+        if name == "csv" {
+            if header == nil { header = line; return }
+            if line.allSatisfy({ $0 == 0x0D || $0 == 0x0A }) { return }
+            piece += line; records += 1
+        } else {
+            piece += line
+            if line.first == 0x32 && line.dropFirst().first == 0x20 { records += 1 }   // "2 ": a record's last line
+        }
+        if records == 1000 {
+            try body(String(decoding: (header ?? []) + piece, as: UTF8.self))
+            piece.removeAll(keepingCapacity: true); records = 0
+        }
+    }
+    if !piece.isEmpty { try body(String(decoding: (header ?? []) + piece, as: UTF8.self)) }
+}
+
 if let stage = memoryStage {
-    let stages = ["none", "text", "file", "all", "sets-only", "propagators-only"]
-    guard stages.contains(stage), path == nil else { fail("--memory takes one of \(stages.joined(separator: ", ")), with made-up sets only") }
-    print("--memory \(stage), \(count) made-up element sets")
+    let stages = ["none", "text", "file", "all", "sets-only", "propagators-only", "pieces", "check-pieces"]
+    guard stages.contains(stage) else { fail("--memory takes one of \(stages.joined(separator: ", "))") }
+    let readAs: Format = path == nil ? .csv : (formatName.flatMap(Format.init(rawValue:)) ?? .csv)
+    if path != nil && formatName.flatMap(Format.init(rawValue:)) == nil { fail("--file wants --format csv, json, xml, kvn or tle") }
+    /// The input whole, as the other modes hold it.
+    func whole() -> String {
+        guard let path else { return constellation(count) }
+        guard let data = FileManager.default.contents(atPath: path) else { fail("\(path): cannot be read") }
+        return String(decoding: data, as: UTF8.self)
+    }
+    print("--memory \(stage), " + (path == nil ? "\(count) made-up element sets" : "a file read as \(readAs.rawValue) (its name and contents are not printed)"))
     print("sizes: Propagator \(MemoryLayout<Propagator>.stride) bytes, ElementSet \(MemoryLayout<ElementSet>.stride), "
         + "the propagator's SGP4 state and gravity \(MemoryLayout<Propagator>.stride - MemoryLayout<ElementSet>.stride) (a Propagator holds its ElementSet)")
     var kept: [Any] = []
@@ -121,26 +183,53 @@ if let stage = memoryStage {
     do {
         switch stage {
         case "text":
-            let text = constellation(count); kept.append(text); made = text.utf8.count
+            let text = whole(); kept.append(text); made = text.utf8.count
             print(String(format: "the text: %.1f MB of UTF-8", Double(made) / 1_048_576))
         case "file", "all":
-            let text = constellation(count)
-            let file = try ElementSets.read(text, as: .csv)
+            let text = whole()
+            let file = try ElementSets.read(text, as: readAs)
             kept.append(text); kept.append(file)
+            print("element sets read: \(file.elementSets.count), refused: \(file.refusals.count)")
             if stage == "all" { let ps = try file.elementSets.map { try Propagator($0) }; kept.append(ps); made = ps.count } else { made = file.elementSets.count }
-        case "sets-only", "propagators-only":
-            var sets: [ElementSet] = [], ps: [Propagator] = []
-            if stage == "propagators-only" { ps.reserveCapacity(count) } else { sets.reserveCapacity(count) }
-            var first = 0
-            while first < count {
-                let n = min(1000, count - first)
-                let file = try ElementSets.read(constellation(n, from: first), as: .csv)
-                if stage == "propagators-only" { ps += try file.elementSets.map { try Propagator($0) } } else { sets += file.elementSets }
-                first += n
+        case "sets-only", "propagators-only", "pieces":
+            // "pieces" is the pattern for a catalogue: read the input a piece at a time and keep only the propagators
+            let keepSets = stage == "sets-only"
+            var sets: [ElementSet] = [], ps: [Propagator] = [], refused = 0
+            // the array is made at its full size first, as the article says to: one that grows by doubling can hold up
+            // to twice what it keeps. For a file, its records are counted first, a line at a time.
+            var records = count
+            if let path {
+                records = 0
+                var first = true
+                try forEachLine(of: path) { line in
+                    if formatName == "csv" {
+                        if first { first = false; return }
+                        if !line.allSatisfy({ $0 == 0x0D || $0 == 0x0A }) { records += 1 }
+                    } else if line.first == 0x32 && line.dropFirst().first == 0x20 { records += 1 }
+                }
             }
-            if stage == "propagators-only" { kept.append(ps); made = ps.count } else { kept.append(sets); made = sets.count }
-            print(String(format: "the array alone: %.1f MB (%d × %d bytes)", Double(made * (stage == "propagators-only" ? MemoryLayout<Propagator>.stride : MemoryLayout<ElementSet>.stride)) / 1_048_576,
-                         made, stage == "propagators-only" ? MemoryLayout<Propagator>.stride : MemoryLayout<ElementSet>.stride))
+            if unreserved { records = 0 }
+            if keepSets { sets.reserveCapacity(records) } else { ps.reserveCapacity(records) }
+            try forEachPiece { text in
+                let file = try ElementSets.read(text, as: readAs)
+                refused += file.refusals.count
+                if keepSets { sets += file.elementSets } else { ps += try file.elementSets.map { try Propagator($0) } }
+            }
+            made = keepSets ? sets.count : ps.count
+            if keepSets { kept.append(sets) } else { kept.append(ps) }
+            let stride = keepSets ? MemoryLayout<ElementSet>.stride : MemoryLayout<Propagator>.stride
+            print("element sets read: \(made), refused: \(refused)")
+            print(String(format: "the array alone: %.1f MB (%d × %d bytes)", Double(made * stride) / 1_048_576, made, stride))
+        case "check-pieces":
+            // read in pieces, the input gives the element sets and refusals the whole gives, in order, to the value
+            let all = try ElementSets.read(whole(), as: readAs)
+            var sets: [ElementSet] = [], refused = 0
+            try forEachPiece { text in let file = try ElementSets.read(text, as: readAs); sets += file.elementSets; refused += file.refusals.count }
+            guard sets == all.elementSets, refused == all.refusals.count else {
+                fail("read in pieces, the input does not give what it gives whole (\(sets.count) sets against \(all.elementSets.count), \(refused) refusals against \(all.refusals.count))")
+            }
+            print("read in pieces, the input gives what it gives whole: \(sets.count) element sets, \(refused) refusals, the same values in the same order")
+            exit(0)
         default: break
         }
     } catch {

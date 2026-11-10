@@ -240,3 +240,404 @@ The printed output, 40,000 sets:
   the most memory held: 30.0 MB
   the footprint at the end, everything still held: 24.6 MB
   exit 0
+
+
+A real capture beside the made-up sets (added 2026-11-10, 17:18Z to 17:19Z, the owner's ruling: does real data change
+the figure of about 2 KB a set?)
+
+The file is the largest element-set capture held privately: the maintainer's fetch of 2026-09-21, the supplemental GP
+CSV of one large constellation, 11,141 element sets, all read, none refused. It was read in place, for this only, with
+no request made. Nothing of it is kept here, and the tool prints no name or value from it. Beside it are 11,141
+made-up sets, the same count. Each stage ran in a process of its own, twice, behind the same gate as above (load 8 to
+11).
+
+How it was run:
+
+  swift run -c release --package-path tools/benchmark benchmark --memory STAGE --file PATH --format csv
+  swift run -c release --package-path tools/benchmark benchmark --memory STAGE --count 11141
+
+"pieces" is propagators-only under the name of the pattern it measures. It reads the file from the disk about 1,000
+records at a time and keeps only the propagators. Before measuring, "--memory check-pieces" checked that the file read
+in pieces gives the element sets it gives whole: 11,141, the same values in the same order. A planted fault, the last
+short piece dropped, made it fail ("11000 sets against 11141", exit 1).
+
+Footprints in MB at the end of each stage (runs 1 and 2; an empty process holds 2.2 to 2.3):
+
+  stage                         the real file    made-up, 11,141
+  none                          2.3   2.3        2.2   2.2
+  text                          5.8   5.7        6.0   5.9      (1.7 and 1.5 MB of UTF-8)
+  file                         42.8  40.8       39.1  38.0
+  all                          55.4  56.3       52.5  52.6
+  sets-only                    23.2  23.5       17.3  17.0
+  pieces                       34.4  34.0       28.5  28.0
+
+  peaks: all 60.8 / 61.7 (real) and 58.0 / 58.0 (made-up); pieces 39.9 / 39.5 and 34.0 / 33.5.
+
+Bytes a set, less an empty process, from the means of the two runs:
+- the propagators kept alone ("pieces"): 3.0 KB a set from the real file, 2.45 KB a set from made-up sets at the same
+  count. At 40,000 made-up sets it is 2.1 KB, and the fixed part counts for less: a run at 17:18:43Z gave 83.3 MB of
+  footprint and 88.7 MB at the peak.
+- the element sets kept alone ("sets-only"): 1.98 KB a set from the real file, 1.41 KB from made-up sets.
+
+So real data changes the figure: about 3 KB a set, not 2. The extra is about 0.57 KB a set, and it is in the element
+sets' own allocations. The SGP4 state and the 1,368-byte Propagator are the same. A supplemental GP CSV carries more
+columns than the made-up sets, which GPKit keeps in each set's otherKeywords, and longer names and ids. That this is
+where the extra comes from is [inferred: not split further]. A plain GP file of the same objects might sit between
+the two [untested].
+
+The made-up result stands for what it measured. The catalogue-scale article now gives both figures.
+
+The array made at its full size matters. In a first pass the pieces stages let the array of propagators grow by
+doubling ("--unreserved" now). The real file's "pieces" then held 54.0 MB (59.4 MB at the peak), against 34.2 MB made
+at full size. That is close to the 61 MB peak of reading the whole file, so most of the pattern's saving was undone.
+The tool now counts a file's records first, a line at a time, and makes the array at that size. The article says to
+do the same.
+
+The printed output (the file's runs first):
+
+  -- the stages, the array let grow (first pass; real file then made-up, runs alternating):
+  == run 1, 17:17:57Z, load { 9.16 38.42 37.80 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 9.16 38.42 37.80
+  --memory none, a file read as csv (its name and contents are not printed)
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  the most memory held: 7.5 MB
+  the footprint at the end, everything still held: 2.3 MB
+  exit 0
+  == run 1, 17:17:57Z, load { 9.16 38.42 37.80 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 9.16 38.42 37.80
+  --memory text, a file read as csv (its name and contents are not printed)
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  the text: 1.7 MB of UTF-8
+  the most memory held: 11.0 MB
+  the footprint at the end, everything still held: 5.8 MB
+  exit 0
+  == run 1, 17:17:57Z, load { 9.16 38.42 37.80 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 9.16 38.42 37.80
+  --memory file, a file read as csv (its name and contents are not printed)
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  element sets read: 11141, refused: 0
+  the most memory held: 48.3 MB
+  the footprint at the end, everything still held: 42.8 MB
+  exit 0
+  == run 1, 17:17:57Z, load { 9.16 38.42 37.80 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 9.16 38.42 37.80
+  --memory all, a file read as csv (its name and contents are not printed)
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  element sets read: 11141, refused: 0
+  the most memory held: 60.8 MB
+  the footprint at the end, everything still held: 55.4 MB
+  exit 0
+  == run 1, 17:17:58Z, load { 9.16 38.42 37.80 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 9.16 38.42 37.80
+  --memory sets-only, a file read as csv (its name and contents are not printed)
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  element sets read: 11141, refused: 0
+  the array alone: 5.0 MB (11141 × 472 bytes)
+  the most memory held: 35.7 MB
+  the footprint at the end, everything still held: 30.2 MB
+  exit 0
+  == run 1, 17:17:58Z, load { 9.16 38.42 37.80 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 9.16 38.42 37.80
+  --memory pieces, a file read as csv (its name and contents are not printed)
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  element sets read: 11141, refused: 0
+  the array alone: 14.5 MB (11141 × 1368 bytes)
+  the most memory held: 59.4 MB
+  the footprint at the end, everything still held: 54.0 MB
+  exit 0
+  == run 2, 17:17:59Z, load { 9.16 38.42 37.80 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 9.16 38.42 37.80
+  --memory none, a file read as csv (its name and contents are not printed)
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  the most memory held: 7.5 MB
+  the footprint at the end, everything still held: 2.3 MB
+  exit 0
+  == run 2, 17:17:59Z, load { 9.16 38.42 37.80 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 9.16 38.42 37.80
+  --memory text, a file read as csv (its name and contents are not printed)
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  the text: 1.7 MB of UTF-8
+  the most memory held: 11.0 MB
+  the footprint at the end, everything still held: 5.7 MB
+  exit 0
+  == run 2, 17:18:00Z, load { 9.16 38.42 37.80 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 9.16 38.42 37.80
+  --memory file, a file read as csv (its name and contents are not printed)
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  element sets read: 11141, refused: 0
+  the most memory held: 46.2 MB
+  the footprint at the end, everything still held: 40.8 MB
+  exit 0
+  == run 2, 17:18:00Z, load { 9.16 38.42 37.80 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 9.16 38.42 37.80
+  --memory all, a file read as csv (its name and contents are not printed)
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  element sets read: 11141, refused: 0
+  the most memory held: 61.7 MB
+  the footprint at the end, everything still held: 56.3 MB
+  exit 0
+  == run 2, 17:18:00Z, load { 9.16 38.42 37.80 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 9.16 38.42 37.80
+  --memory sets-only, a file read as csv (its name and contents are not printed)
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  element sets read: 11141, refused: 0
+  the array alone: 5.0 MB (11141 × 472 bytes)
+  the most memory held: 34.7 MB
+  the footprint at the end, everything still held: 29.3 MB
+  exit 0
+  == run 2, 17:18:01Z, load { 9.16 38.42 37.80 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 9.16 38.42 37.80
+  --memory pieces, a file read as csv (its name and contents are not printed)
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  element sets read: 11141, refused: 0
+  the array alone: 14.5 MB (11141 × 1368 bytes)
+  the most memory held: 59.4 MB
+  the footprint at the end, everything still held: 54.0 MB
+  exit 0
+  == run 1, 17:17:57Z, load { 9.16 38.42 37.80 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 9.16 38.42 37.80
+  --memory none, 11141 made-up element sets
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  the most memory held: 7.4 MB
+  the footprint at the end, everything still held: 2.2 MB
+  exit 0
+  == run 1, 17:17:57Z, load { 9.16 38.42 37.80 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 9.16 38.42 37.80
+  --memory text, 11141 made-up element sets
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  the text: 1.5 MB of UTF-8
+  the most memory held: 11.1 MB
+  the footprint at the end, everything still held: 6.0 MB
+  exit 0
+  == run 1, 17:17:57Z, load { 9.16 38.42 37.80 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 9.16 38.42 37.80
+  --memory file, 11141 made-up element sets
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  element sets read: 11141, refused: 0
+  the most memory held: 44.5 MB
+  the footprint at the end, everything still held: 39.1 MB
+  exit 0
+  == run 1, 17:17:58Z, load { 9.16 38.42 37.80 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 9.16 38.42 37.80
+  --memory all, 11141 made-up element sets
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  element sets read: 11141, refused: 0
+  the most memory held: 58.0 MB
+  the footprint at the end, everything still held: 52.5 MB
+  exit 0
+  == run 1, 17:17:58Z, load { 9.16 38.42 37.80 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 9.16 38.42 37.80
+  --memory sets-only, 11141 made-up element sets
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  element sets read: 11141, refused: 0
+  the array alone: 5.0 MB (11141 × 472 bytes)
+  the most memory held: 31.6 MB
+  the footprint at the end, everything still held: 26.1 MB
+  exit 0
+  == run 1, 17:17:59Z, load { 9.16 38.42 37.80 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 9.16 38.42 37.80
+  --memory pieces, 11141 made-up element sets
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  element sets read: 11141, refused: 0
+  the array alone: 14.5 MB (11141 × 1368 bytes)
+  the most memory held: 53.3 MB
+  the footprint at the end, everything still held: 47.9 MB
+  exit 0
+  == run 2, 17:17:59Z, load { 9.16 38.42 37.80 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 9.16 38.42 37.80
+  --memory none, 11141 made-up element sets
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  the most memory held: 7.4 MB
+  the footprint at the end, everything still held: 2.2 MB
+  exit 0
+  == run 2, 17:17:59Z, load { 9.16 38.42 37.80 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 9.16 38.42 37.80
+  --memory text, 11141 made-up element sets
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  the text: 1.5 MB of UTF-8
+  the most memory held: 11.1 MB
+  the footprint at the end, everything still held: 5.9 MB
+  exit 0
+  == run 2, 17:18:00Z, load { 9.16 38.42 37.80 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 9.16 38.42 37.80
+  --memory file, 11141 made-up element sets
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  element sets read: 11141, refused: 0
+  the most memory held: 43.5 MB
+  the footprint at the end, everything still held: 38.0 MB
+  exit 0
+  == run 2, 17:18:00Z, load { 9.16 38.42 37.80 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 9.16 38.42 37.80
+  --memory all, 11141 made-up element sets
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  element sets read: 11141, refused: 0
+  the most memory held: 58.0 MB
+  the footprint at the end, everything still held: 52.6 MB
+  exit 0
+  == run 2, 17:18:00Z, load { 9.16 38.42 37.80 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 9.16 38.42 37.80
+  --memory sets-only, 11141 made-up element sets
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  element sets read: 11141, refused: 0
+  the array alone: 5.0 MB (11141 × 472 bytes)
+  the most memory held: 31.4 MB
+  the footprint at the end, everything still held: 26.0 MB
+  exit 0
+  == run 2, 17:18:01Z, load { 9.16 38.42 37.80 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 9.16 38.42 37.80
+  --memory pieces, 11141 made-up element sets
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  element sets read: 11141, refused: 0
+  the array alone: 14.5 MB (11141 × 1368 bytes)
+  the most memory held: 53.1 MB
+  the footprint at the end, everything still held: 47.7 MB
+  exit 0
+
+  -- sets-only and pieces, the array made at its full size, and pieces at 40,000 made-up sets:
+  == run 1 sets-only real, 17:18:41Z, load { 8.10 34.00 36.20 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 8.10 34.00 36.20
+  --memory sets-only, a file read as csv (its name and contents are not printed)
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  element sets read: 11141, refused: 0
+  the array alone: 5.0 MB (11141 × 472 bytes)
+  the most memory held: 28.7 MB
+  the footprint at the end, everything still held: 23.2 MB
+  exit 0
+  == run 1 sets-only made-up11141, 17:18:41Z, load { 8.10 34.00 36.20 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 8.10 34.00 36.20
+  --memory sets-only, 11141 made-up element sets
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  element sets read: 11141, refused: 0
+  the array alone: 5.0 MB (11141 × 472 bytes)
+  the most memory held: 22.7 MB
+  the footprint at the end, everything still held: 17.3 MB
+  exit 0
+  == run 1 pieces real, 17:18:41Z, load { 8.10 34.00 36.20 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 8.10 34.00 36.20
+  --memory pieces, a file read as csv (its name and contents are not printed)
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  element sets read: 11141, refused: 0
+  the array alone: 14.5 MB (11141 × 1368 bytes)
+  the most memory held: 39.9 MB
+  the footprint at the end, everything still held: 34.4 MB
+  exit 0
+  == run 1 pieces made-up11141, 17:18:42Z, load { 8.10 34.00 36.20 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 8.10 34.00 36.20
+  --memory pieces, 11141 made-up element sets
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  element sets read: 11141, refused: 0
+  the array alone: 14.5 MB (11141 × 1368 bytes)
+  the most memory held: 34.0 MB
+  the footprint at the end, everything still held: 28.5 MB
+  exit 0
+  == run 2 sets-only real, 17:18:42Z, load { 8.10 34.00 36.20 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 8.10 34.00 36.20
+  --memory sets-only, a file read as csv (its name and contents are not printed)
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  element sets read: 11141, refused: 0
+  the array alone: 5.0 MB (11141 × 472 bytes)
+  the most memory held: 28.9 MB
+  the footprint at the end, everything still held: 23.5 MB
+  exit 0
+  == run 2 sets-only made-up11141, 17:18:42Z, load { 8.10 34.00 36.20 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 8.10 34.00 36.20
+  --memory sets-only, 11141 made-up element sets
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  element sets read: 11141, refused: 0
+  the array alone: 5.0 MB (11141 × 472 bytes)
+  the most memory held: 22.4 MB
+  the footprint at the end, everything still held: 17.0 MB
+  exit 0
+  == run 2 pieces real, 17:18:42Z, load { 8.10 34.00 36.20 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 8.10 34.00 36.20
+  --memory pieces, a file read as csv (its name and contents are not printed)
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  element sets read: 11141, refused: 0
+  the array alone: 14.5 MB (11141 × 1368 bytes)
+  the most memory held: 39.5 MB
+  the footprint at the end, everything still held: 34.0 MB
+  exit 0
+  == run 2 pieces made-up11141, 17:18:42Z, load { 8.10 34.00 36.20 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 8.10 34.00 36.20
+  --memory pieces, 11141 made-up element sets
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  element sets read: 11141, refused: 0
+  the array alone: 14.5 MB (11141 × 1368 bytes)
+  the most memory held: 33.5 MB
+  the footprint at the end, everything still held: 28.0 MB
+  exit 0
+  == pieces made-up 40000, 17:18:43Z, load { 8.10 34.00 36.20 }
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 8.10 34.00 36.20
+  --memory pieces, 40000 made-up element sets
+  sizes: Propagator 1368 bytes, ElementSet 472, the propagator's SGP4 state and gravity 896 (a Propagator holds its ElementSet)
+  element sets read: 40000, refused: 0
+  the array alone: 52.2 MB (40000 × 1368 bytes)
+  the most memory held: 88.7 MB
+  the footprint at the end, everything still held: 83.3 MB
+  exit 0
