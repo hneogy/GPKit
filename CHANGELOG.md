@@ -10,7 +10,8 @@ Added to the public interface; nothing is removed or changed:
 
 - `DataAge`, groundwork for the data-age estimate (roadmap 2.0-c): `DataAge.samples(_:maximumAge:)` propagates each
   older set of a satellite to the epoch of each newer set of it and gives the position error there, whole and as
-  radial, in-track and cross-track parts; `DataAge.table(_:edges:)` sums samples up as percentiles (median, 68th,
+  radial, transverse (called in-track) and cross-track parts, a set given twice counted once and sets of one
+  satellite sharing an epoch but differing left out; `DataAge.table(_:edges:)` sums samples up as percentiles (median, 68th,
   95th, maximum, by nearest rank) by regime and span of age; `DataAge.estimate(for:at:from:)` reads a set's row from
   such a table, extrapolating nothing. GPKit ships no table: the measurement waits for gpconf 0.9.0's re-measure
   fetch, with medium-Earth and geosynchronous sets (the owner's ruling, 2026-11-07).

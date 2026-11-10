@@ -4,6 +4,7 @@
 # here, that the tool reads the files and writes what it says it writes. Run from the package's root.
 set -eu
 dir=$(mktemp -d)
+trap 'rm -rf "$dir"' EXIT
 printf 'ISS\r\n1 25544U 98067A   98324.28472222 -.00003657  11563-4  00000+0 0    10\r\n2 25544  51.5908 168.3788 0125362  86.4185 359.7454 16.05064833    05\r\nISS\r\n1 25544U 98067A   98325.28472222 -.00003657  11563-4  00000+0 0    11\r\n2 25544  51.5908 168.3788 0125362  86.4185 359.7454 16.05064833    05\r\n' > "$dir/two.tle"
 swift run --package-path tools/data-age gpkit-data-age "$dir/out" "$dir/two.tle"
 test "$(sed -n 2p "$dir/out/samples.csv" | cut -d, -f1-5)" = "25544,LEO,1998-11-20T06:49:59.999808,1998-11-21T06:49:59.999808,1.0" \

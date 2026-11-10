@@ -51,6 +51,26 @@ import Testing
         // would put both above 2,000)
         #expect(OrbitRegime(meanMotion: 11.322952506624489, eccentricity: 0, inclination: 0) == .lowEarth)
         #expect(OrbitRegime(meanMotion: 11.318898767133655, eccentricity: 0, inclination: 0) == .mediumEarth)
+        // perigee and apogee given directly: a = R + (h_p + h_a) / 2, e = (h_a - h_p) / (2a)
+        func orbit(_ hp: Double, _ ha: Double, _ i: Double) -> OrbitRegime {
+            let a = 6_378.135 + (hp + ha) / 2
+            return OrbitRegime(semiMajorAxis: a, eccentricity: (ha - hp) / (2 * a), inclination: i, radius: 6_378.135)
+        }
+        #expect(orbit(250, 35_786, 90) == .geostationaryTransfer)
+        #expect(orbit(250, 35_786, 90.01) == .undefined)             // GTO's inclinations end at 90, and no other class holds it
+        #expect(orbit(-20, 35_786, 27) == .geostationaryTransfer)    // a perigee below the equatorial radius
+        #expect(orbit(250, 40_000, 27) == .geostationaryTransfer)
+        #expect(orbit(250, 40_001, 27) == .highlyEccentric)
+        #expect(orbit(31_570, 70_000, 27) == .geoSuperGeoCrossing)    // 31,570 is in both GHO and HEO; GHO is tested first
+        #expect(orbit(31_569, 70_000, 27) == .highlyEccentric)
+        #expect(orbit(31_570, 40_001, 27) == .inclinedGeosynchronous) // a = 42,164 km, e 0.1: IGO, before both
+        #expect(orbit(31_571, 50_000, 27) == .geoSuperGeoCrossing)
+        #expect(orbit(2_001, 35_000, 27) == .meoGeoCrossing)
+        #expect(orbit(1_999, 35_000, 27) == .geostationaryTransfer)
+        #expect(orbit(1_999, 20_000, 27) == .leoMeoCrossing)
+        #expect(orbit(-20, 1_000, 97) == .lowEarth)
+        #expect(OrbitRegime(meanMotion: -15.5, eccentricity: 0, inclination: 51.6) == .undefined)
+        #expect(OrbitRegime(meanMotion: 0, eccentricity: 0, inclination: 51.6) == .undefined)
         #expect(OrbitRegime.allCases.map(\.rawValue)
                 == ["GEO", "IGO", "EGO", "NSO", "GTO", "MEO", "GHO", "LEO", "HEO", "MGO", "LMO", "UFO"])
     }
@@ -102,6 +122,63 @@ import Testing
         sgp4XP.ephemerisType = 4
         let (samples, failures) = DataAge.samples([sgp4XP, try moved(1)])
         #expect(samples.isEmpty && failures == 1)
+    }
+
+    @Test func aSetGivenTwiceCountsOnceAndSetsSharingAnEpochAreLeftOut() throws {
+        let (a, b, c) = (try moved(0), try moved(1), try moved(2))
+        // the same set twice, as overlapping files give it: one pair, not two
+        #expect(DataAge.samples([a, a, b]).samples.count == 1)
+        #expect(DataAge.samples([a, b, a, b, b]).samples.count == 1)
+        // two different sets at one epoch: neither is used, the pairs of the others stand
+        var other = a
+        other.bstar = try #require(ExactDecimal("0.0001"))
+        let (samples, failures) = DataAge.samples([a, other, b, c])
+        #expect(samples.map(\.age) == [1] && failures == 0)
+    }
+
+    @Test func failuresAreCountedByPairWhicheverSetFails() throws {
+        var bad = try moved(1)
+        bad.ephemerisType = 4
+        // the failing set as the newer of a pair, and as the older of another: two pairs fail, a to c stands
+        let (samples, failures) = DataAge.samples([try moved(0), bad, try moved(2)])
+        #expect(failures == 2)
+        #expect(samples.map(\.age) == [2])
+    }
+
+    @Test func pairsPastTheMaximumAgeAreLeftAndTheRestKept() throws {
+        // a to c is 40 days, past 30; a to b and b to c are 20 each
+        let (samples, failures) = DataAge.samples([try moved(0), try moved(20), try moved(40)])
+        #expect(samples.map(\.age) == [20, 20] && failures == 0)
+    }
+
+    @Test func theComponentsAreInTheNewerSetsFrame() throws {
+        let (a, b) = (try moved(0), try moved(1))
+        let sample = try #require(DataAge.samples([a, b]).samples.first)
+        // the frame worked out here, from the newer set's own state, apart from DataAge's code
+        let truth = try Propagator(b).state(at: b.epoch)
+        let drifted = try Propagator(a).state(at: b.epoch).position
+        let d = (drifted.x - truth.position.x, drifted.y - truth.position.y, drifted.z - truth.position.z)
+        let p = truth.position, v = truth.velocity
+        let pm = p.magnitude
+        let r = (p.x / pm, p.y / pm, p.z / pm)
+        var c = (p.y * v.z - p.z * v.y, p.z * v.x - p.x * v.z, p.x * v.y - p.y * v.x)
+        let cm = (c.0 * c.0 + c.1 * c.1 + c.2 * c.2).squareRoot()
+        c = (c.0 / cm, c.1 / cm, c.2 / cm)
+        let t = (c.1 * r.2 - c.2 * r.1, c.2 * r.0 - c.0 * r.2, c.0 * r.1 - c.1 * r.0)
+        func dot(_ u: (Double, Double, Double), _ w: (Double, Double, Double)) -> Double { u.0 * w.0 + u.1 * w.1 + u.2 * w.2 }
+        let tolerance = 1e-9 * sample.positionError
+        #expect(abs(sample.radial - dot(d, r)) <= tolerance)
+        #expect(abs(sample.inTrack - dot(d, t)) <= tolerance)
+        #expect(abs(sample.crossTrack - dot(d, c)) <= tolerance)
+    }
+
+    @Test func theSampleTakesTheOlderSetsClass() throws {
+        let older = try moved(0)
+        var newer = try moved(1)
+        newer.meanMotion = try #require(ExactDecimal("11.0"))    // about 2,200 km up: MEO, where the older set is LEO
+        #expect(older.regime == .lowEarth && newer.regime == .mediumEarth)
+        let sample = try #require(DataAge.samples([older, newer]).samples.first)
+        #expect(sample.regime == .lowEarth)
     }
 
     @Test func componentsAlongTheTrack() {

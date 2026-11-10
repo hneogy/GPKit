@@ -39,7 +39,11 @@ import WASILibc
 /// is GEO and not also EGO. The report's ESO (escape orbits) does not arise: an element set's orbit is closed. The
 /// semi-major axis is Kepler's from the mean motion, with WGS-72's gravitational parameter (398,600.8 km³/s²), and
 /// heights are above WGS-72's equatorial radius (6,378.135 km); a set below the surface at perigee is still LEO or
-/// another class by its numbers, never refused.
+/// another class by its numbers, never refused, and a mean motion that is not positive is UFO.
+///
+/// The class is only as exact as that: the mean motion a set carries is SGP4's (Kozai's) mean, not an osculating
+/// value, and Kepler's law on it puts the semi-major axis a few kilometres from the osculating one in low Earth, so a
+/// satellite within a few kilometres of a range's end can change class from one fit to the next.
 public enum OrbitRegime: String, Sendable, Hashable, CaseIterable {
     case geostationary = "GEO"
     case inclinedGeosynchronous = "IGO"
@@ -58,6 +62,7 @@ public enum OrbitRegime: String, Sendable, Hashable, CaseIterable {
     /// `inclination` degrees.
     public init(meanMotion: Double, eccentricity: Double, inclination: Double) {
         let mu = 398_600.8, radius = 6_378.135
+        guard meanMotion > 0, meanMotion.isFinite else { self = .undefined; return }
         let n = meanMotion * 2 * Double.pi / 86_400
         let a = pow(mu / (n * n), 1.0 / 3.0)
         self.init(semiMajorAxis: a, eccentricity: eccentricity, inclination: inclination, radius: radius)
@@ -70,7 +75,7 @@ public enum OrbitRegime: String, Sendable, Hashable, CaseIterable {
         else if within(a, 37_948, 46_380) && within(e, 0, 0.25) && within(i, 25, 180) { self = .inclinedGeosynchronous }
         else if within(a, 37_948, 46_380) && within(e, 0, 0.25) && within(i, 0, 25) { self = .extendedGeostationary }
         else if within(i, 50, 70) && within(hp, 18_100, 24_300) && within(ha, 18_100, 24_300) { self = .navigationSatellites }
-        else if within(i, 0, 90) && within(hp, 0, 2_000) && within(ha, 31_570, 40_000) { self = .geostationaryTransfer }
+        else if within(i, 0, 90) && hp <= 2_000 && within(ha, 31_570, 40_000) { self = .geostationaryTransfer }
         else if within(hp, 2_000, 31_570) && within(ha, 2_000, 31_570) { self = .mediumEarth }
         else if within(hp, 31_570, 40_000) && ha > 40_000 { self = .geoSuperGeoCrossing }
         else if hp <= 2_000 && ha <= 2_000 { self = .lowEarth }
@@ -117,37 +122,46 @@ public enum DataAge {
         public let positionError: Double
         /// The difference (older minus newer) along the newer set's position: up, positive. Kilometres.
         public let radial: Double
-        /// The difference along the newer set's track, in the direction it moves: ahead, positive. Kilometres.
+        /// The difference in the newer set's orbital plane at right angles to the radial, toward its motion (the
+        /// transverse direction, c × r): ahead, positive. Kilometres. On a circular orbit it is along the velocity; on
+        /// an eccentric one the two part by the flight-path angle.
         public let inTrack: Double
         /// The difference across the newer set's orbital plane, along its angular momentum. Kilometres.
         public let crossTrack: Double
     }
 
     /// Every pair of sets of one satellite, the older propagated to the newer's epoch, the age more than 0 and at most
-    /// `maximumAge` days. Sets with no catalog number are left out, and so are pairs of sets with the same epoch.
-    /// A pair that either set cannot be propagated for is counted in `failures`, and no sample is made of it.
+    /// `maximumAge` days, by catalog number, then the older set's epoch, then the newer's.
+    ///
+    /// Sets with no catalog number are left out. A set given more than once (the same set in overlapping files) counts
+    /// once. Sets of one satellite that share an epoch and differ are all left out: which is the provider's fit cannot
+    /// be told. A pair that either set cannot be propagated for is counted in `failures`, and no sample is made of it.
     public static func samples(_ sets: [ElementSet], maximumAge: Double = 30) -> (samples: [Sample], failures: Int) {
-        var bySatellite: [Int: [ElementSet]] = [:]
+        var bySatellite: [Int: Set<ElementSet>] = [:]
         for set in sets {
             guard let number = set.catalogNumber else { continue }
-            bySatellite[number, default: []].append(set)
+            bySatellite[number, default: []].insert(set)
         }
         var samples: [Sample] = []
         var failures = 0
         for number in bySatellite.keys.sorted() {
-            let ordered = bySatellite[number]!.sorted { $0.epoch < $1.epoch }
-            for (i, older) in ordered.enumerated() {
-                for newer in ordered[(i + 1)...] {
-                    let age = older.age(at: newer.epoch)
-                    guard age > 0, age <= maximumAge else { continue }
-                    guard let drifted = try? Propagator(older).state(at: newer.epoch),
-                          let truth = try? Propagator(newer).state(at: newer.epoch) else {
+            let byEpoch = Dictionary(grouping: bySatellite[number]!, by: \.epoch)
+            let ordered = byEpoch.values.compactMap { $0.count == 1 ? $0[0] : nil }.sorted { $0.epoch < $1.epoch }
+            // each set's propagator, and its state at its own epoch (the truth for every pair it ends), made once
+            let propagators = ordered.map { try? Propagator($0) }
+            let truths = zip(ordered, propagators).map { set, propagator in try? propagator?.state(at: set.epoch) }
+            for i in ordered.indices {
+                for j in ordered.indices where j > i {
+                    let age = ordered[i].age(at: ordered[j].epoch)
+                    guard age <= maximumAge else { break }   // sorted by epoch: every later pair is older still
+                    guard let drifted = try? propagators[i]?.state(at: ordered[j].epoch), let truth = truths[j] else {
                         failures += 1
                         continue
                     }
-                    let (radial, inTrack, crossTrack) = components(of: difference(drifted.position, truth.position), along: truth)
-                    samples.append(Sample(catalogNumber: number, regime: older.regime, older: older.epoch, newer: newer.epoch, age: age,
-                                          positionError: difference(drifted.position, truth.position).magnitude,
+                    let delta = difference(drifted.position, truth.position)
+                    let (radial, inTrack, crossTrack) = components(of: delta, along: truth)
+                    samples.append(Sample(catalogNumber: number, regime: ordered[i].regime, older: ordered[i].epoch,
+                                          newer: ordered[j].epoch, age: age, positionError: delta.magnitude,
                                           radial: radial, inTrack: inTrack, crossTrack: crossTrack))
                 }
             }
@@ -199,13 +213,18 @@ public enum DataAge {
         }
     }
 
-    /// A table from samples: one row for each regime and each span of age between consecutive `edges` (days,
-    /// increasing) that holds at least one sample. A sample older than the last edge is in no row.
+    /// A table from samples: one row for each class and each span of age between consecutive `edges` (days, each
+    /// greater than the one before, or the call stops) that holds at least one sample, in `OrbitRegime.allCases`'s
+    /// order and then by age. A sample older than the last edge is in no row, and an error that is not finite is
+    /// left out of its row.
     public static func table(_ samples: [Sample], edges: [Double] = [0, 1, 2, 3, 5, 7, 10, 14, 21, 30]) -> [Row] {
+        precondition(edges.count >= 2 && zip(edges, edges.dropFirst()).allSatisfy { $0 < $1 },
+                     "the edges are at least two, each greater than the one before")
         var rows: [Row] = []
         for regime in OrbitRegime.allCases {
             for (from, to) in zip(edges, edges.dropFirst()) {
                 let errors = samples.filter { $0.regime == regime && $0.age > from && $0.age <= to }.map(\.positionError)
+                    .filter(\.isFinite)
                 if let percentiles = Percentiles(errors) {
                     rows.append(Row(regime: regime, fromAge: from, toAge: to, positionError: percentiles))
                 }
@@ -214,8 +233,10 @@ public enum DataAge {
         return rows
     }
 
-    /// The row of `table` for this set at `time`: its regime, and the span its age falls in. nil when the table has
-    /// none, a set used before its epoch included: nothing is extrapolated.
+    /// The row of `table` for this set at `time`: its class, and the span its age falls in, each span holding its
+    /// upper end and not its lower. nil when the table has none: for a class it has no row for, an age past its last
+    /// span, and a time at the set's epoch or before it (age 0 is in no span, since every span starts above its lower
+    /// end). Nothing is extrapolated.
     public static func estimate(for set: ElementSet, at time: Epoch, from table: [Row]) -> Row? {
         let age = set.age(at: time)
         let regime = set.regime
