@@ -145,6 +145,10 @@ jobs:
       - name: The adapter's epoch readings
         run: python3 tools/check_adapter_epoch.py "$PWD/.build/debug/gpkit-gpconf"
 
+      # the catalogue-scale article's code is the code its test runs
+      - name: The article's code
+        run: sh tools/check-article-code.sh
+
   # WebAssembly (WASI), with swift.org's Wasm SDK for the pinned release, its checksum the one swift.org lists for
   # 6.4.2: the package built and its tests run.
   wasm:

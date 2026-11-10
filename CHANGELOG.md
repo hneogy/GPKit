@@ -30,6 +30,30 @@ Added to GPKitSources' public interface; nothing is removed or changed (`docs/pu
 All of it is tested against recorded fixtures only (`Tests/GPKitSourcesTests/Resources/fixtures`, made up from the
 Space Station's 1998 set); no test makes a request, and seven planted faults each fail the tests.
 
+Added to the public interface; nothing is removed or changed:
+
+- `Propagator.streamStates(of:from:every:count:budget:chunk:isolation:_:)` hands a run of many satellites' states
+  to a closure, one block of instants at a time and in time order, instead of keeping the run.
+  - Each state is the batch's and `state(at:)`'s, to the bit.
+  - A block holds as many instants as fit in `budget` bytes (`Propagator.defaultStreamBudget`, 8 MiB), and never
+    fewer than one. While a block is made, its parts are held beside it.
+  - A thrown error stops the stream. The closure runs in the caller's isolation.
+  - Also added: `StateBlock`, `Propagator.streamBlockLength(satellites:budget:)` and
+    `Propagator.bytesPerStreamedState`.
+  - The documented promise: with the default budget, streaming adds at most 24 MB on top of the propagators (up to
+    149,796 satellites, the most of whom one instant fits in 8 MiB). For memory-tight apps the documentation gives
+    `budget: 2 * 1_048_576` as an example: 5 MB added at 40,000 satellites, at 69 ns a state against 55.
+- Measured (`conformance/benchmark-stream-2026-11-10.txt`): a day at one-minute steps of 40,000 sets.
+  - Streamed: the process held 189 MB, the stream adding 15 MB over the propagators.
+  - The batch, which keeps the day: 3,386 MB.
+  - Both at 55 to 56 ns a state on the same Mac at the same load.
+
+- A DocC article, "Working with a whole catalogue": read the input in pieces and keep only the propagators (87 to
+  89 MB at the peak at 40,000 made-up sets, against 174 MB holding everything), with the array made at its full size,
+  and stream a run of states. Its code is compiled and run in a test, and `tools/check-article-code.sh` (in CI) checks
+  that the article prints the code the test runs. Its figures, about 3 KB a set (real capture of 11,141 sets) with
+  about 2 KB for made-up sets as a lower bound, are in `conformance/memory-split-2026-11-10.txt`.
+
 ## 1.3.0 (2026-11-10)
 
 Added to the public interface; nothing is removed or changed:
