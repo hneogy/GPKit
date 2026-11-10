@@ -4,6 +4,23 @@ Every change to GPKit's public interface is said here, in the release that makes
 the interface, and CI stops a change to it that this file does not say (`tools/public-api.sh --check`). Within 1.x
 nothing public is removed or changed in a way that breaks code written against an earlier 1.x release.
 
+## Unreleased
+
+Added to the public interface; nothing is removed or changed:
+
+- `Propagator.streamStates(of:from:every:count:budget:chunk:isolation:_:)` hands a run of many satellites' states
+  to a closure, one block of instants at a time and in time order, instead of keeping the run.
+  - Each state is the batch's and `state(at:)`'s, to the bit.
+  - A block holds as many instants as fit in `budget` bytes (`Propagator.defaultStreamBudget`, 8 MiB), and never
+    fewer than one. While a block is made, its parts are held beside it.
+  - A thrown error stops the stream. The closure runs in the caller's isolation.
+  - Also added: `StateBlock`, `Propagator.streamBlockLength(satellites:budget:)` and
+    `Propagator.bytesPerStreamedState`.
+- Measured (`conformance/benchmark-stream-2026-11-10.txt`): a day at one-minute steps of 40,000 sets.
+  - Streamed: the process held 189 MB, the stream adding 15 MB over the propagators.
+  - The batch, which keeps the day: 3,386 MB.
+  - Both at 55 to 56 ns a state on the same Mac at the same load.
+
 ## 1.3.0 (2026-11-10)
 
 Added to the public interface; nothing is removed or changed:

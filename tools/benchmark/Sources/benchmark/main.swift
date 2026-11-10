@@ -11,6 +11,11 @@
 // ones to the bit before they are timed; and the most memory the process held. The screen compares every pair, so
 // it is timed once, on the first --screen-count sets (1,000 by default) and on half of them.
 //
+// --stream measures Propagator.streamStates instead, alone in its process so that the most memory held is its own:
+// the most memory held once the propagators are made, then a day at one-minute steps streamed with the default
+// budget (or --budget MiB), timed, and the most memory held after it. The stream is checked first against one propagator at a time,
+// to the bit, on a few instants of every set.
+//
 // Each figure is the median of N runs (5 by default) after one run to warm up. The batch's results are checked
 // against the one-at-a-time results, to the bit, before anything is timed. With --file the element sets are read
 // from that file instead, and only their count and the times are printed.
@@ -53,9 +58,11 @@ let runs = option("--runs").flatMap(Int.init) ?? 5
 let count = option("--count").flatMap(Int.init) ?? 10_000
 let screenCount = option("--screen-count").flatMap(Int.init) ?? 1000
 let workloads = arguments.contains("--workloads")
-arguments.removeAll { $0 == "--workloads" }
+let streaming = arguments.contains("--stream")
+let budgetMiB = option("--budget").flatMap(Int.init)
+arguments.removeAll { $0 == "--workloads" || $0 == "--stream" }
 guard arguments.isEmpty, runs > 0, count > 0 else {
-    fail("usage: benchmark [--file PATH --format csv|json|xml|kvn|tle] [--runs N] [--count N] [--workloads [--screen-count N]]")
+    fail("usage: benchmark [--file PATH --format csv|json|xml|kvn|tle] [--runs N] [--count N] [--workloads [--screen-count N]] [--stream [--budget MiB]]")
 }
 
 func sysctl(_ name: String) -> String? {
@@ -156,6 +163,36 @@ do {
     let propagators = try sets.map { try Propagator($0) }
     let instant = try Epoch(ccsds: path == nil ? "2026-11-01T06:00:00" : sets[0].epoch.description).advanced(by: 0)
     print("\(path == nil ? "made-up element sets" : "element sets read"): \(sets.count) (\(file.refusals.count) refused)")
+
+    if streaming {
+        let day = 1440
+        print(String(format: "the most memory held with the propagators made: %.0f MB", peakMemory()))
+        // the stream gives what one propagator at a time gives, on three instants of every set, before anything is timed
+        try await Propagator.streamStates(of: propagators, from: instant, every: 60, count: 3, budget: 1) { block in
+            for p in 0..<block.satellites {
+                let time = try instant.advanced(by: Double(block.firstStep) * 60)
+                let single = Result { () throws(PropagationFailure) -> StateVector in try propagators[p].state(at: time) }
+                guard block[0, p] == single else { fail("the stream does not give what one propagator gives") }
+            }
+        }
+        print("the stream's results are one at a time's, to the bit: checked")
+        let budget = budgetMiB.map { $0 * 1_048_576 } ?? Propagator.defaultStreamBudget
+        let length = Propagator.streamBlockLength(satellites: propagators.count, budget: budget)
+        print("budget \(budget / 1_048_576) MiB: \(length) instants a block, "
+            + String(format: "%.1f MB a block", Double(length * propagators.count * Propagator.bytesPerStreamedState) / 1_048_576))
+        var sink = 0.0, blocks = 0
+        let seconds = await median {
+            await Propagator.streamStates(of: propagators, from: instant, every: 60, count: day, budget: budget) { block in
+                blocks += 1
+                for s in 0..<block.steps { for p in 0..<block.satellites { if case .success(let v) = block[s, p] { sink += v.position.x } } }
+            }
+        }
+        say("a day at one-minute steps, streamed", seconds, states: propagators.count * day)
+        print(String(format: "the most memory held after streaming: %.0f MB", peakMemory()))
+        if getloadavg(&load, 3) == 3 { print(String(format: "load at the end: %.2f %.2f %.2f", load[0], load[1], load[2])) }
+        if sink.isNaN || blocks < 0 { print("") }
+        exit(0)
+    }
 
     // the batch gives what one at a time gives, before anything is timed
     let one = propagators.map { p in Result { () throws(PropagationFailure) -> StateVector in try p.state(at: instant) } }

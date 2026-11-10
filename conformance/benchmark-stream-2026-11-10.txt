@@ -1,0 +1,104 @@
+Streamed batch propagation (Propagator.streamStates, branch v2-streaming) against the batch that keeps a run: a
+day at one-minute steps of 10,000, 20,000 and 40,000 made-up element sets, with the most memory each process held.
+Run on 2026-11-10 (UTC), 16:33:59Z to 16:37Z, on a Mac17,4 (Apple M5, 10 cores: 4 performance, 6 efficiency,
+16 GB), macOS 27.2.1 (26B131), Apple Swift version 6.4.2, release build, branch v2-streaming on GPKit 1.3.0. Each
+run was started only with the one-minute load at 12 or less, no xcodebuild and no simulator round. The load at each
+start and end is printed; it was 7.7 to 12.4, a busy Mac, so compare these runs with one another and not with
+benchmark-2026-11-10.txt.
+
+How it was run, each in a process of its own so that its peak memory is its own:
+
+  swift run -c release --package-path tools/benchmark benchmark --count 10000 --stream
+  swift run -c release --package-path tools/benchmark benchmark --count 20000 --stream
+  swift run -c release --package-path tools/benchmark benchmark --count 40000 --stream
+  swift run -c release --package-path tools/benchmark benchmark --count 40000 --stream --budget 2
+  swift run -c release --package-path tools/benchmark benchmark --count 40000 --stream --budget 32
+  swift run -c release --package-path tools/benchmark benchmark --count 40000
+
+The element sets are the tool's made-up constellation; no provider's data is in them. Each time is the median of 5
+runs after one to warm up. Before timing, --stream checks the stream against one propagator at a time, to the bit,
+on three instants of every set; a planted fault there stopped it ("the stream does not give what one propagator
+gives", exit 1).
+
+What it printed:
+
+  -- 10000
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 7.71 8.14 6.58
+  made-up element sets: 10000 (0 refused)
+  the most memory held with the propagators made: 54 MB
+  the stream's results are one at a time's, to the bit: checked
+  budget 8 MiB: 14 instants a block, 7.5 MB a block
+  a day at one-minute steps, streamed: 0.8624 s, 60 ns a state, 16.70 million states a second
+  the most memory held after streaming: 66 MB
+  load at the end: 8.44 8.29 6.65
+
+  -- 20000
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 8.44 8.29 6.65
+  made-up element sets: 20000 (0 refused)
+  the most memory held with the propagators made: 103 MB
+  the stream's results are one at a time's, to the bit: checked
+  budget 8 MiB: 7 instants a block, 7.5 MB a block
+  a day at one-minute steps, streamed: 1.9116 s, 66 ns a state, 15.07 million states a second
+  the most memory held after streaming: 114 MB
+  load at the end: 9.97 8.62 6.79
+
+  -- 40000
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 9.97 8.62 6.79
+  made-up element sets: 40000 (0 refused)
+  the most memory held with the propagators made: 174 MB
+  the stream's results are one at a time's, to the bit: checked
+  budget 8 MiB: 3 instants a block, 6.4 MB a block
+  a day at one-minute steps, streamed: 3.1837 s, 55 ns a state, 18.09 million states a second
+  the most memory held after streaming: 189 MB
+  load at the end: 11.31 9.00 6.97
+
+  -- 40000budget2
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 11.31 9.00 6.97
+  made-up element sets: 40000 (0 refused)
+  the most memory held with the propagators made: 174 MB
+  the stream's results are one at a time's, to the bit: checked
+  budget 2 MiB: 1 instants a block, 2.1 MB a block
+  a day at one-minute steps, streamed: 4.0028 s, 69 ns a state, 14.39 million states a second
+  the most memory held after streaming: 179 MB
+  load at the end: 12.33 9.42 7.17
+
+  -- 40000budget32
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 9.62 9.04 7.11
+  made-up element sets: 40000 (0 refused)
+  the most memory held with the propagators made: 174 MB
+  the stream's results are one at a time's, to the bit: checked
+  budget 32 MiB: 14 instants a block, 29.9 MB a block
+  a day at one-minute steps, streamed: 2.9191 s, 51 ns a state, 19.73 million states a second
+  the most memory held after streaming: 232 MB
+  load at the end: 12.37 9.72 7.40
+
+  -- batch40000
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 10.07 9.42 7.37
+  made-up element sets: 40000 (0 refused)
+  the batch's results are one at a time's, to the bit: checked
+  read the file: 0.3122 s
+  make the propagators: 0.0801 s
+  one instant, one at a time: 0.0101 s, 252 ns a state, 3.97 million states a second
+  one instant, the batch: 0.0021 s, 51 ns a state, 19.44 million states a second
+  a day at one-minute steps, one at a time: 12.2937 s, 213 ns a state, 4.69 million states a second
+  a day at one-minute steps, the batch: 3.2052 s, 56 ns a state, 17.97 million states a second
+  the most memory held: 3386 MB
+  load at the end: 11.66 9.52 7.59
+
+What it shows: with the default 8 MiB budget the stream added 12, 11 and 15 MB to what the propagators held at
+10,000, 20,000 and 40,000 sets, where the batch's day held 3,386 MB at 40,000. At the same load the two ran at the
+same speed, 55 and 56 ns a state. The proposed bound for phones, at most 24 MB added at any count with the default
+budget, is met at every count measured. The propagators' own 174 MB at 40,000 sets (with the tool's input text and
+read sets) is outside it, and is the next issue (docs/design/streaming-2.0.md).
