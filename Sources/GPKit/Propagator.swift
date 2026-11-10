@@ -31,8 +31,12 @@ public struct StateVector: Sendable, Hashable {
 public struct PropagationFailure: Error, Sendable, Hashable, CustomStringConvertible {
 
     public enum Kind: String, Sendable, Hashable, CaseIterable {
-        /// The element set is not for SGP4: its `MEAN_ELEMENT_THEORY` is another, or its ephemeris type is 4 (SGP4-XP).
+        /// The element set is not for SGP4: its `MEAN_ELEMENT_THEORY` is a theory other than SGP4 or SGP4-XP.
         case notSGP4
+        /// The element set is for SGP4-XP: its ephemeris type is 4, or its `MEAN_ELEMENT_THEORY` is `SGP4-XP`. SGP4-XP's
+        /// model and drag term are not SGP4's, and SGP4 run on such a set gives positions that look right and are not,
+        /// so it is refused, from a TLE and from every OMM format alike. GPKit has no SGP4-XP.
+        case sgp4XP
         /// The mean eccentricity has reached 1, or gone below -0.001.
         case eccentricity
         /// The mean motion is zero or negative.
@@ -55,6 +59,7 @@ public struct PropagationFailure: Error, Sendable, Hashable, CustomStringConvert
         let what: String
         switch kind {
         case .notSGP4: what = "the element set is not for SGP4"
+        case .sgp4XP: what = "the element set is for SGP4-XP (ephemeris type 4), which this library does not propagate"
         case .eccentricity: what = "the mean eccentricity is 1 or more, or below -0.001"
         case .meanMotion: what = "the mean motion is zero or less"
         case .perturbedEccentricity: what = "the perturbed eccentricity is outside 0 to 1"
@@ -92,7 +97,11 @@ public struct Propagator: Sendable {
     /// and back and lands up to 20 microseconds away, so a position from here and one from that reader can differ
     /// by what those microseconds are worth: nothing that shows for most orbits, millimetres for a few.
     public init(_ elementSet: ElementSet, gravity: Gravity = .wgs72) throws(PropagationFailure) {
-        guard elementSet.isSGP4, elementSet.ephemerisType != 4 else {
+        // SGP4-XP first: its theory is not SGP4's either, and its own kind says what it is
+        guard elementSet.ephemerisType != 4, elementSet.meanElementTheory != "SGP4-XP" else {
+            throw PropagationFailure(kind: .sgp4XP, minutesFromEpoch: nil)
+        }
+        guard elementSet.isSGP4 else {
             throw PropagationFailure(kind: .notSGP4, minutesFromEpoch: nil)
         }
         self.elementSet = elementSet

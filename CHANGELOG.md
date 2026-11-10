@@ -4,6 +4,19 @@ Every change to GPKit's public interface is said here, in the release that makes
 the interface, and CI stops a change to it that this file does not say (`tools/public-api.sh --check`). Within 1.x
 nothing public is removed or changed in a way that breaks code written against an earlier 1.x release.
 
+## Unreleased (for 2.0)
+
+Changed in the public interface; this breaks code written against 1.x, so it waits for 2.0:
+
+- `PropagationFailure.Kind.sgp4XP`: an element set for SGP4-XP, whose ephemeris type is 4 or whose
+  `MEAN_ELEMENT_THEORY` is `SGP4-XP`, is refused by `Propagator.init` with this kind of its own, from a TLE and from
+  every OMM format alike; 1.x refuses it as `.notSGP4`, which now means a theory other than SGP4 or SGP4-XP. A
+  `switch` that lists every kind of `PropagationFailure.Kind` without a `default` no longer compiles until it handles
+  `.sgp4XP`. The set is still read as written, and the TLE writer keeps its type. Tested in every format, with the
+  type-0 twins propagating alike (`SGP4XPTests`).
+- The gpconf adapter (`gpkit-gpconf vectors`) answers gpconf's `propagate` op, each step's position and velocity or
+  Vallado's error code; gpconf's `ephemeris-type-4-refused` case passes with it.
+
 ## 1.1.0 (2026-11-09)
 
 Added to the public interface; nothing is removed or changed:

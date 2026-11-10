@@ -2,7 +2,10 @@
 //
 //   gpkit-gpconf parse <format>   a file on standard input; a JSON array of records and refusals on standard output;
 //                                 exit 3 for a format GPKit does not read
-//   gpkit-gpconf vectors          {"op": ..., "input": ...} on standard input; {"result": ...} or {"error": ...}
+//   gpkit-gpconf vectors          {"op": ..., "input": ...} on standard input; {"result": ...} or {"error": ...};
+//                                 the op propagate takes {"raw", "fmt", "tsince"} and answers each step as
+//                                 {"r": [x, y, z], "v": [x, y, z]}, or {"error": code} with Vallado's code where SGP4
+//                                 stops; a set GPKit will not propagate (one for SGP4-XP, say) is an error for the call
 //   gpkit-gpconf write            one record on standard input; the TLE's lines on standard output; a non-zero exit
 //                                 when GPKit refuses to write it
 //
@@ -135,6 +138,33 @@ case "vectors":
             emit("{\"result\":\(jsonString(String(epoch.description.prefix(26))))}")
         case "parse_catalog_id":
             emit("{\"result\":\(try OMM.catalogNumber(text))}")
+        case "propagate":
+            guard let job = request["input"] as? [String: Any], let raw = job["raw"] as? String,
+                  let fmt = job["fmt"] as? String, let times = job["tsince"] as? [Any] else {
+                throw Refusal(.malformedRecord, "propagate's input is not {raw, fmt, tsince}")
+            }
+            // the runner's probe, with no times: the op is here
+            if times.isEmpty { emit("{\"result\":[]}"); break }
+            guard let format = Format(rawValue: fmt) else { throw Refusal(.malformedFile, "GPKit does not read \(fmt)") }
+            let file = try ElementSets.read(raw, as: format)
+            guard file.elementSets.count == 1 else {
+                throw file.refusals.first ?? Refusal(.malformedFile, "\(file.elementSets.count) element sets, where one was sent")
+            }
+            let propagator = try Propagator(file.elementSets[0])
+            let codes: [PropagationFailure.Kind: Int] = [.eccentricity: 1, .meanMotion: 2, .perturbedEccentricity: 3,
+                                                         .semiLatusRectum: 4, .decayed: 6]
+            var steps: [String] = []
+            for time in times {
+                guard let minutes = plainText(time).flatMap(Double.init) else { throw Refusal(.notANumber, "a time is not a number") }
+                do {
+                    let s = try propagator.state(minutesFromEpoch: minutes)
+                    steps.append("{\"r\":[\(s.position.x),\(s.position.y),\(s.position.z)],\"v\":[\(s.velocity.x),\(s.velocity.y),\(s.velocity.z)]}")
+                } catch {
+                    guard let code = codes[error.kind] else { throw error }
+                    steps.append("{\"error\":\(code)}")
+                }
+            }
+            emit("{\"result\":[" + steps.joined(separator: ",") + "]}")
         default:
             emit("{\"error\":\(jsonString("unknown op \(op)"))}")
             exit(1)

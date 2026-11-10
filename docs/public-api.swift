@@ -214,6 +214,7 @@ public struct StateVector : Sendable, Hashable {
 public struct PropagationFailure : Error, Sendable, Hashable, CustomStringConvertible {
   public enum Kind : String, Sendable, Hashable, CaseIterable {
     case notSGP4
+    case sgp4XP
     case eccentricity
     case meanMotion
     case perturbedEccentricity
