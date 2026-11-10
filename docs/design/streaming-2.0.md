@@ -54,9 +54,12 @@ this benchmark]**.
 
 ## What the bound does not cover
 
-- **The propagators themselves.** In this tool, 40,000 sets hold 174 MB once read and made. That figure includes the
-  CSV text and the read sets the tool keeps; how it splits has not been measured apart. For a phone with a whole
-  catalogue, that is the next design issue. Neither part is changed here.
+- **The propagators themselves.** A propagator costs about 3 KB a set (real capture of 11,141 sets), with about 2 KB
+  for made-up sets as a lower bound (`conformance/memory-split-2026-11-10.txt`). In this tool, 40,000 made-up sets
+  held 174 MB at the peak once read and made. Measured apart since, that is the propagators with their element sets,
+  55 per cent, plus the input text and the file read from it. Reading in pieces and keeping only the propagators
+  gives 87 to 89 MB (the article "Working with a whole catalogue"). Per the owner's rulings, no smaller propagator is
+  designed; it is recorded as an option, not a goal.
 - **What `body` keeps.** A program that copies every block keeps the run again.
 
 ## Speed

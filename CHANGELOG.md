@@ -27,8 +27,8 @@ Added to the public interface; nothing is removed or changed:
 - A DocC article, "Working with a whole catalogue": read the input in pieces and keep only the propagators (87 to
   89 MB at the peak at 40,000 made-up sets, against 174 MB holding everything), with the array made at its full size,
   and stream a run of states. Its code is compiled and run in a test, and `tools/check-article-code.sh` (in CI) checks
-  that the article prints the code the test runs. Its figures, about 2 KB a set with made-up sets and about 3 KB with a
-  real supplemental GP file, are in `conformance/memory-split-2026-11-10.txt`.
+  that the article prints the code the test runs. Its figures, about 3 KB a set (real capture of 11,141 sets) with
+  about 2 KB for made-up sets as a lower bound, are in `conformance/memory-split-2026-11-10.txt`.
 
 ## 1.3.0 (2026-11-10)
 

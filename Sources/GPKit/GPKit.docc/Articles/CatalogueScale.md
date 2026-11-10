@@ -15,9 +15,9 @@ It also pays for the states it asks for. Two habits keep all of it bounded:
 - **stream a run of states instead of keeping it.**
 
 The figures below are for 40,000 made-up element sets on an Apple M5, from the records in GPKit's `conformance/`
-folder. Each propagator holds its ``ElementSet``, and each costs about 2 KB in all with made-up sets. With a real
-provider file of 11,141 sets of one constellation, the supplemental GP CSV with its extra columns, it costs about
-3 KB. The extra half kilobyte is in the element sets' own text, and the SGP4 state is the same.
+folder. Each propagator holds its ``ElementSet``, and a propagator costs **about 3 KB a set** in all. That figure is
+from a real capture of 11,141 sets, a provider's supplemental GP CSV of one constellation. Made-up sets cost about
+2 KB, a lower bound. The extra in real data is in the element sets' own text; the SGP4 state is the same.
 
 | At 40,000 sets | Most memory held |
 |---|---|
