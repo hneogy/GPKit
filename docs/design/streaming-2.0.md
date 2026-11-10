@@ -34,10 +34,12 @@ struct StateBlock: Sendable { firstStep, steps, satellites; subscript(step:satel
 - **The batch stays.** `states(of:from:every:count:)` is not changed (1.x promise). Its documentation already says
   it keeps every state. 2.0 could point it at the stream.
 
-## The bound for phones, proposed
+## The bound for phones (the owner's ruling, 2026-11-10)
 
-**With the default budget, a streamed run adds at most 24 MB to what the propagators hold, at any count** (three
-times the 8 MiB budget, for the block, its parts and the task group). Measured on a Mac (the M5, macOS 27.2.1,
+The 8 MiB default stays. **The documented promise: streaming adds at most 24 MB on top of the propagators**, up to
+149,796 satellites, the most of whom one instant fits in 8 MiB. That allows three times the budget, for the block,
+its parts and the task group. The budget option is documented for memory-tight apps, with 2 MiB as the example and
+its cost in speed (below). Measured on a Mac (the M5, macOS 27.2.1,
 release build):
 
 | sets | propagators made | after a streamed day | the stream added | the batch's day (same tool) |

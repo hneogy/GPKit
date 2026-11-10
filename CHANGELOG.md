@@ -16,6 +16,9 @@ Added to the public interface; nothing is removed or changed:
   - A thrown error stops the stream. The closure runs in the caller's isolation.
   - Also added: `StateBlock`, `Propagator.streamBlockLength(satellites:budget:)` and
     `Propagator.bytesPerStreamedState`.
+  - The documented promise: with the default budget, streaming adds at most 24 MB on top of the propagators (up to
+    149,796 satellites, the most of whom one instant fits in 8 MiB). For memory-tight apps the documentation gives
+    `budget: 2 * 1_048_576` as an example: 5 MB added at 40,000 satellites, at 69 ns a state against 55.
 - Measured (`conformance/benchmark-stream-2026-11-10.txt`): a day at one-minute steps of 40,000 sets.
   - Streamed: the process held 189 MB, the stream adding 15 MB over the propagators.
   - The batch, which keeps the day: 3,386 MB.

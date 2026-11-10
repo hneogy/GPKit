@@ -22,6 +22,16 @@ extension Propagator {
     /// take at most twice the block. The next block is made only after `body` returns. If `body` throws, no more blocks
     /// are made and the error comes out of the call.
     ///
+    /// **The promise:** with the default budget, streaming adds at most 24 MB on top of the propagators, at any
+    /// count up to 149,796 satellites (the most of whom one instant fits in 8 MiB; above that, a block is one instant,
+    /// 56 bytes a satellite). What `body` keeps of the blocks is its own. Measured on an Apple M5: 12, 11 and 15 MB
+    /// added at 10,000, 20,000 and 40,000 satellites over a day at one-minute steps, where the batch kept 857 MB,
+    /// 1,752 MB and 3,386 MB (`conformance/benchmark-stream-2026-11-10.txt`).
+    ///
+    /// **For a memory-tight app**, a smaller budget holds less at some cost in speed. With `budget: 2 * 1_048_576`,
+    /// 40,000 satellites stream one instant a block, the stream added 5 MB, and a day took 69 ns a state against
+    /// 55 ns with the default (the same Mac and record). A larger budget gains little: 32 MiB gave 51 ns.
+    ///
     /// Within a block, the satellites are cut into runs of `chunk` and each run is a child task, as in the batch.
     /// `body` runs in the caller's isolation (the main actor, for a call from it), so it may touch what the caller
     /// owns.
