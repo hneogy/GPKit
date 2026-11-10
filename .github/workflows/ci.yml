@@ -66,6 +66,10 @@ jobs:
       - name: The bar
         run: python tools/check_gpconf.py gpconf-report.json
 
+      # the adapter's two epoch readings: exact by default, vallado declared and answered with --epoch vallado
+      - name: The adapter's epoch readings
+        run: python tools/check_adapter_epoch.py "$PWD/.build/debug/gpkit-gpconf"
+
   # Linux, on the official Swift image at a pinned release: the same steps as on macOS.
   linux:
     name: build, test, gpconf (ubuntu-latest, Swift 6.4.2)
@@ -137,6 +141,9 @@ jobs:
 
       - name: The bar
         run: '"$RUNNER_TEMP/venv/bin/python" tools/check_gpconf.py gpconf-report.json'
+
+      - name: The adapter's epoch readings
+        run: python3 tools/check_adapter_epoch.py "$PWD/.build/debug/gpkit-gpconf"
 
   # WebAssembly (WASI), with swift.org's Wasm SDK for the pinned release, its checksum the one swift.org lists for
   # 6.4.2: the package built and its tests run.

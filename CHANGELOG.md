@@ -23,6 +23,26 @@ Added to GPKitSources' public interface; nothing is removed or changed (`docs/pu
 All of it is tested against recorded fixtures only (`Tests/GPKitSourcesTests/Resources/fixtures`, made up from the
 Space Station's 1998 set); no test makes a request, and seven planted faults each fail the tests.
 
+## 1.3.0 (2026-11-10)
+
+Added to the public interface; nothing is removed or changed:
+
+- `Propagator.EpochReading` and `Propagator.init(_:gravity:epochReading:)`: `.exact`, the default and what
+  `init(_:gravity:)` keeps doing, or `.vallado`, the epoch as David Vallado's C++ reader makes it from a TLE (its day
+  read as a `Double`, his `days2mdhms` and `jday`, the Julian date and fraction summed less 2,433,281.5), up to about
+  20 microseconds from the exact epoch. It is for matching his `tcppver.out` to its last digits: on all 33 sets of
+  `SGP4-VER.TLE` the epoch is his reader's to the bit, and set 23333 (eccentricity 0.97), 4.1e-6 km from it at the
+  exact epoch, comes within 4.9e-9 km and 4.9e-10 km/s, inside gpconf's 2e-7 bar for its `sgp4-ver-positions` case.
+  A set not from a TLE is first rounded as a TLE writes its epoch.
+
+Outside the public interface:
+
+- The gpconf adapter declares its propagate op's constants in gpconf's constants declaration, `{"gravity": "wgs72",
+  "opsmode": "i", "epoch": "exact"}` beside the refusals declaration, and takes `--epoch vallado` before a command to
+  propagate from `.vallado` and declare `"epoch": "vallado"`, for a run recorded beside the default one. The default
+  stays the exact epoch, and GPKit's recorded result is made from it. `tools/check_adapter_epoch.py` checks both
+  readings (set 23333 inside gpconf's bar with `--epoch vallado` and outside it by default), and CI runs it.
+
 ## 1.2.1 (2026-11-10)
 
 Nothing in the public interface is added, removed or changed; `docs/public-api.swift` is as in 1.2.0.
