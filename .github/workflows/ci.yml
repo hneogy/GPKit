@@ -159,6 +159,11 @@ jobs:
       - name: Unit tests
         run: swift test --swift-sdk swift-6.4.2-RELEASE_wasm
 
+  # The playground's module (gpkit.gppasses.com/playground/), built, held to its budget and to GPKit's native answers
+  # in playground-module.yml, which release.yml also calls to attach the module built from a release's tag.
+  playground:
+    uses: ./.github/workflows/playground-module.yml
+
   # Windows, with swift.org's installer for the same pinned release: build and test.
   windows:
     name: build, test (windows-latest, Swift 6.4.2)

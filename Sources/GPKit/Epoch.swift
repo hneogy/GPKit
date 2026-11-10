@@ -4,7 +4,8 @@
 /// An epoch is kept as integers, never as a `Double` of days or seconds. A TLE's eight-decimal day is an exact
 /// number of microseconds (one hundred-millionth of a day is 864 of them), and an OMM writes its fraction in
 /// digits; both arrive here unchanged. The time system is the record's (`ElementSet.timeSystem`), UTC for every GP
-/// element set a provider serves. Second 60, a leap second, is accepted at 23:59 and kept.
+/// element set a provider serves. Second 60 is accepted at 23:59:60 on the 27 days that ended in a leap second, and
+/// kept; anywhere else it is refused.
 public struct Epoch: Sendable, Hashable, Comparable, CustomStringConvertible {
 
     public let year: Int
@@ -19,6 +20,20 @@ public struct Epoch: Sendable, Hashable, Comparable, CustomStringConvertible {
 
     static let attosecondsPerSecond: UInt64 = 1_000_000_000_000_000_000
 
+    /// The days that ended in a leap second, as (year, month, day): the 27 of IERS's Leap_Second.dat, through
+    /// Bulletin C 72, the last 2016-12-31. The list is closed: by CGPM 2026 Resolution 5, UTC runs without leap seconds
+    /// from 20 May 2027, and none was announced before then.
+    static let leapSecondDays: [(year: Int, month: Int, day: Int)] = [
+        (1972, 6, 30), (1972, 12, 31), (1973, 12, 31), (1974, 12, 31), (1975, 12, 31), (1976, 12, 31), (1977, 12, 31),
+        (1978, 12, 31), (1979, 12, 31), (1981, 6, 30), (1982, 6, 30), (1983, 6, 30), (1985, 6, 30), (1987, 12, 31),
+        (1989, 12, 31), (1990, 12, 31), (1992, 6, 30), (1993, 6, 30), (1994, 6, 30), (1995, 12, 31), (1997, 6, 30),
+        (1998, 12, 31), (2005, 12, 31), (2008, 12, 31), (2012, 6, 30), (2015, 6, 30), (2016, 12, 31),
+    ]
+
+    static func isLeapSecondDay(year: Int, month: Int, day: Int) -> Bool {
+        leapSecondDays.contains { $0.year == year && $0.month == month && $0.day == day }
+    }
+
     public init(year: Int, month: Int, day: Int, hour: Int, minute: Int, second: Int, attosecond: UInt64 = 0) throws(Refusal) {
         func refuse(_ what: String) -> Refusal { Refusal(.notAnEpoch, "the epoch's \(what)", field: "EPOCH") }
         guard (1...9999).contains(year) else { throw refuse("year \(year) is not 1 to 9999") }
@@ -26,8 +41,10 @@ public struct Epoch: Sendable, Hashable, Comparable, CustomStringConvertible {
         guard (1...Epoch.days(inMonth: month, of: year)).contains(day) else { throw refuse("day \(day) is not a day of month \(month) of \(year)") }
         guard (0...23).contains(hour) else { throw refuse("hour \(hour) is not 0 to 23") }
         guard (0...59).contains(minute) else { throw refuse("minute \(minute) is not 0 to 59") }
-        guard (0...59).contains(second) || (second == 60 && hour == 23 && minute == 59) else {
-            throw refuse("second \(second) is not 0 to 59, or 60 at 23:59")
+        guard (0...59).contains(second) || second == 60 else { throw refuse("second \(second) is not 0 to 59") }
+        guard second < 60 || (hour == 23 && minute == 59 && Epoch.isLeapSecondDay(year: year, month: month, day: day)) else {
+            throw refuse("second 60 is not a leap second: UTC had one only at 23:59:60 on \(Epoch.leapSecondDays.count) days, "
+                         + "the last 2016-12-31")
         }
         guard attosecond < Epoch.attosecondsPerSecond else { throw refuse("fraction is a second or more") }
         self.year = year

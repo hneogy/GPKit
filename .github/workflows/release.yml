@@ -1,6 +1,7 @@
 name: Release
 
-# For a published release: the gpkit binaries built from its tag, checked as in CI, and attached to it.
+# For a published release: the gpkit binaries and the playground's module built from its tag, checked as in CI, and
+# attached to it.
 on:
   release:
     types: [published]
@@ -12,9 +13,12 @@ jobs:
   binaries:
     uses: ./.github/workflows/gpkit-binaries.yml
 
+  playground:
+    uses: ./.github/workflows/playground-module.yml
+
   attach:
-    name: attach the binaries to the release
-    needs: binaries
+    name: attach the binaries and the playground's module to the release
+    needs: [binaries, playground]
     runs-on: ubuntu-latest
     permissions:
       contents: write
