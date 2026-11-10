@@ -19,6 +19,10 @@ Nothing in the public interface is added, removed or changed; `docs/public-api.s
   must stop the comparison, in every run.
 - A published release attaches the module built from its tag, `gpkit-playground.wasm`, with its SHA-256 and the
   checks' output (`release.yml`, through `playground-module.yml`, which CI also runs on every push).
+- An epoch's second 60 is read only at 23:59:60 UTC on the 27 days that ended in a leap second (IERS's
+  Leap_Second.dat, the last 2016-12-31; the list is closed, UTC running without leap seconds from 20 May 2027 by CGPM
+  2026 Resolution 5). 1.1.0 read a second 60 at 23:59 on any day; such an epoch is now refused as `.notAnEpoch`, with
+  the reason. gpconf's `ccsds-epoch-strings` vectors pass with it.
 
 ## 1.1.0 (2026-11-09)
 
