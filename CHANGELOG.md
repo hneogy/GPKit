@@ -4,6 +4,22 @@ Every change to GPKit's public interface is said here, in the release that makes
 the interface, and CI stops a change to it that this file does not say (`tools/public-api.sh --check`). Within 1.x
 nothing public is removed or changed in a way that breaks code written against an earlier 1.x release.
 
+## 1.2.0 (not yet released: the date is set on the owner's word)
+
+Nothing in the public interface is added, removed or changed; `docs/public-api.swift` is as in 1.1.0.
+
+- The playground's module: GPKit built for WebAssembly as a WASI reactor (`playground/`), for a page that reads a TLE
+  or an OMM and works out the look, the point beneath and the next day's passes in the browser, with no request but
+  its own files. It is built from GPKit's own sources without `Date.swift`, so no Foundation is linked in, with
+  `--strip-all` and then `wasm-opt -Oz --converge`; CI holds it to 1.1 MiB as sent (brotli -q 11) and fails above it.
+- Its answers are held to GPKit's native build: under Node's WASI, CI makes 145 calls of the module over the pass-check
+  sets, the ISS as OMM and two refused texts, at four places, and each answer matches the native one to within 1e-9:
+  its shape, strings, times and integers the same, every other number within 1e-9 (WebAssembly's maths library is not
+  the platform's, so sines and arctangents part in the last bits, at most 7.3e-12 measured). A planted difference
+  must stop the comparison, in every run.
+- A published release attaches the module built from its tag, `gpkit-playground.wasm`, with its SHA-256 and the
+  checks' output (`release.yml`, through `playground-module.yml`, which CI also runs on every push).
+
 ## 1.1.0 (2026-11-09)
 
 Added to the public interface; nothing is removed or changed:

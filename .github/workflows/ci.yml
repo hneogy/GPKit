@@ -159,84 +159,10 @@ jobs:
       - name: Unit tests
         run: swift test --swift-sdk swift-6.4.2-RELEASE_wasm
 
-  # The playground's module (gpkit.gppasses.com, GPKit 2.0-b): GPKit built for WebAssembly as a WASI reactor, its
-  # exports read back, and its size said against the plan's budget (at most 1.0 MB as sent, brotli). The size is
-  # measured here and not on a developer's machine (the owner, 2026-11-09). Nothing fails on size yet: the first
-  # numbers go to the owner before a budget is held.
+  # The playground's module (gpkit.gppasses.com/playground/), built, held to its budget and to GPKit's native answers
+  # in playground-module.yml, which release.yml also calls to attach the module built from a release's tag.
   playground:
-    name: playground module (WebAssembly, Swift 6.4.2)
-    runs-on: ubuntu-latest
-    container: swift:6.4.2-noble
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: The Wasm SDK
-        run: |
-          swift sdk install https://download.swift.org/swift-6.4.2-release/wasm-sdk/swift-6.4.2-RELEASE/swift-6.4.2-RELEASE_wasm.artifactbundle.tar.gz \
-            --checksum 83baca83553f8c443cda7b84800912e6e709c3acd2e7ebf277794ca5836c0da5
-
-      - name: Build
-        run: swift build --package-path playground --product GPKitPlayground --swift-sdk swift-6.4.2-RELEASE_wasm -c release
-
-      - name: Tools to measure with
-        run: apt-get update -qq && apt-get install -y -qq brotli binaryen > /dev/null
-
-      - name: Exports and size
-        run: |
-          bin=$(swift build --package-path playground --product GPKitPlayground --swift-sdk swift-6.4.2-RELEASE_wasm -c release --show-bin-path)
-          wasm=$(find "$bin" -maxdepth 1 -type f \( -name 'GPKitPlayground.wasm' -o -name 'GPKitPlayground' \) | head -1)
-          if [ -z "$wasm" ]; then echo "no module in $bin:" >&2; ls -la "$bin" >&2; exit 1; fi
-          echo "the module: $wasm"
-          for name in gpkit_alloc gpkit_free gpkit_answer gpkit_read gpkit_now gpkit_passes _initialize; do
-            wasm-dis "$wasm" | grep -q "(export \"$name\"" || { echo "the module does not export $name" >&2; exit 1; }
-          done
-          # the shipped module: --strip-all at the link (the manifest), then wasm-opt -Oz --converge; the
-          # budget is 1.1 MiB as sent, brotli (the owner's ruling of 2026-11-10; 600 KB stays the aim): above it, this fails
-          wasm-opt -Oz --converge --enable-bulk-memory --enable-sign-ext --enable-mutable-globals --enable-nontrapping-float-to-int "$wasm" -o gpkit-playground.wasm
-          size() { printf '%-30s raw %9d  gzip -9 %9d  brotli -q 11 %9d\n' "$1" "$(wc -c < "$2")" "$(gzip -9c "$2" | wc -c)" "$(brotli -q 11 -c "$2" | wc -c)"; }
-          size "as built" "$wasm" | tee size.txt
-          size "wasm-opt -Oz --converge" gpkit-playground.wasm | tee -a size.txt
-          sent=$(brotli -q 11 -c gpkit-playground.wasm | wc -c)
-          budget=1153434
-          echo "as sent: $sent bytes brotli; budget $budget (1.1 MiB), aim 614,400" | tee -a size.txt
-          if [ "$sent" -gt "$budget" ]; then echo "the module is over its budget: $sent > $budget" >&2; exit 1; fi
-          sha256sum gpkit-playground.wasm | tee -a size.txt
-
-      # the same answers worked out natively, by the same code, for the module's to be held to
-      - name: The native reference
-        run: |
-          swift build --package-path playground --product playground-reference -c release
-          "$(swift build --package-path playground --product playground-reference -c release --show-bin-path)/playground-reference" \
-            Tests/GPKitTests/Resources/pass-check-sets.tle reference.json
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      # the shipped module under Node's WASI, every call against the native answer (playground/test/equal.mjs says how)
-      - name: The module answers as GPKit does natively
-        shell: bash  # -eo pipefail: the comparison's exit status, not tee's
-        run: node --no-warnings playground/test/equal.mjs gpkit-playground.wasm reference.json | tee -a size.txt
-
-      # the comparison itself, tried on a known-bad case: one azimuth moved by a millionth of a degree must stop it
-      - name: The comparison stops on a planted difference
-        run: |
-          node -e '
-            const fs = require("fs"); const r = JSON.parse(fs.readFileSync("reference.json", "utf8"));
-            const c = r.calls.find((c) => c.call === "now" && c.answer.includes("\"look\""));
-            const a = JSON.parse(c.answer); a.look.azimuth += 1e-6; c.answer = JSON.stringify(a);
-            fs.writeFileSync("planted.json", JSON.stringify(r));'
-          if node --no-warnings playground/test/equal.mjs gpkit-playground.wasm planted.json; then
-            echo "the comparison let a planted difference through" >&2; exit 1
-          fi
-          echo "the planted difference was stopped"
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: gpkit-playground
-          path: |
-            gpkit-playground.wasm
-            size.txt
+    uses: ./.github/workflows/playground-module.yml
 
   # Windows, with swift.org's installer for the same pinned release: build and test.
   windows:
