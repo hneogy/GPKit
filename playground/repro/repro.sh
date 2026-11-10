@@ -1,30 +1,23 @@
 #!/bin/sh
-# Second diagnostic: what the 432-byte segment at memory 0x111c20 depends on, and which file holds it.
-#   A this checkout; F the same, with one file added to playground/ that no target uses; G a copy of this checkout
-#   (.git and all) in another folder; H a copy at a path of the same length as this one.
+# Third diagnostic: what sits at memory 0x111c20 (wasm-ld's map), and whether the environment alone moves it.
+#   A here; E here with one more environment variable; M here under a minimal environment; M2 the same again.
 set -eu
 SDK=swift-6.4.2-RELEASE_wasm
-build() {
-    dir=$1; name=$2
-    rm -rf "$dir/playground/.build"
-    swift build --package-path "$dir/playground" --product GPKitPlayground --swift-sdk $SDK -c release -v > "out/$name.log" 2>&1
-    bin=$(swift build --package-path "$dir/playground" --product GPKitPlayground --swift-sdk $SDK -c release --show-bin-path)
+build() {  # build NAME [env prefix...]
+    name=$1; shift
+    rm -rf playground/.build
+    "$@" swift build --package-path playground --product GPKitPlayground --swift-sdk $SDK -c release -Xlinker -Map=$PWD/out/$name.map > "out/$name.log" 2>&1 || { tail -20 "out/$name.log"; exit 1; }
+    bin=$("$@" swift build --package-path playground --product GPKitPlayground --swift-sdk $SDK -c release -Xlinker -Map=$PWD/out/$name.map --show-bin-path)
     cp "$(find "$bin" -maxdepth 1 -type f \( -name GPKitPlayground.wasm -o -name GPKitPlayground \) | head -1)" "out/$name.wasm"
 }
 mkdir -p out
-build . A
-echo "the link line:"; /usr/bin/grep -E "wasm-ld|clang.*-o .*GPKitPlayground" out/A.log | tail -2 | cut -c1-3000
-echo "where the segment's bytes are, under the build, the SDK and the toolchain:"
-python3 playground/repro/where.py out/A.wasm 1121312 432 "$PWD/playground/.build" "$HOME/.swiftpm" /root/.swiftpm /usr/lib/swift /usr/lib/swift_static /usr/bin
-cp -a . /tmp/elsewhere-longer-path
-build /tmp/elsewhere-longer-path G
-here=$PWD; same=$(echo "$here" | sed 's/./x/g' | sed 's|^x|/|'); mkdir -p "$(dirname "$same")"; cp -a . "$same"
-echo "H at $same (length ${#same}, here ${#here})"
-build "$same" H
-echo "unused" > playground/unused.txt
-build . F
-rm playground/unused.txt
+build A env
+build E env GPKIT_REPRO_PADDING=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+build M env -i PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin HOME=/root
+build M2 env -i PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin HOME=/root
 sha256sum out/*.wasm
-for x in F G H; do echo "== A and $x"; python3 playground/repro/find.py out/A.wasm "out/$x.wasm" playground/.build | head -4; done
-echo "the segment in each:"
-for x in A F G H; do python3 -c "import sys;d=open('out/$x.wasm','rb').read();i=d.find(bytes.fromhex(sys.argv[1]));print('$x', d[i-0:i+48].hex() if i>=0 else 'prefix not found')" 41a0b8c4000bb003; done
+echo "the map around 0x111c20:"
+awk 'NR==1{print} /^ *[0-9a-f]+ / { a=strtonum("0x"$1); if (a >= 0x111a00 && a <= 0x111e00) print }' out/A.map | head -40
+/usr/bin/grep -n -i "111c" out/A.map | head -20
+for x in E M M2; do echo "== A and $x"; python3 playground/repro/find.py out/A.wasm "out/$x.wasm" playground/.build | head -3; done
+echo "== M and M2"; python3 playground/repro/find.py out/M.wasm out/M2.wasm playground/.build | head -3
