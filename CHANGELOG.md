@@ -11,6 +11,7 @@ Nothing in the public interface is added, removed or changed; `docs/public-api.s
 - `Propagator.EpochReading.vallado`'s documentation said set 23333 agrees with `tcppver.out` "to 7e-9 km". It now
   says what `ValladoEpochTests` measures and names the test: at most 4.9e-9 km and 4.9e-10 km/s over its 15 rows,
   against 4.1e-6 km at the exact epoch. The changelog's 1.3.0 entry already said 4.9e-9 km.
+- The README's installation line asks for `from: "1.3.0"`, where 1.3.0 left it at "1.2.0".
 
 ## 1.3.0 (2026-11-10)
 
