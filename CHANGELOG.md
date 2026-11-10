@@ -4,6 +4,15 @@ Every change to GPKit's public interface is said here, in the release that makes
 the interface, and CI stops a change to it that this file does not say (`tools/public-api.sh --check`). Within 1.x
 nothing public is removed or changed in a way that breaks code written against an earlier 1.x release.
 
+## Unreleased
+
+Nothing in the public interface is added, removed or changed.
+
+- An epoch's second 60 is read only at 23:59:60 UTC on the 27 days that ended in a leap second (IERS's
+  Leap_Second.dat, the last 2016-12-31; the list is closed, UTC running without leap seconds from 20 May 2027 by CGPM
+  2026 Resolution 5). 1.1.0 read a second 60 at 23:59 on any day; such an epoch is now refused as `.notAnEpoch`, with
+  the reason. gpconf's `ccsds-epoch-strings` vectors pass with it.
+
 ## 1.1.0 (2026-11-09)
 
 Added to the public interface; nothing is removed or changed:

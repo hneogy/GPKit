@@ -1,5 +1,5 @@
 import Testing
-import GPKit
+@testable import GPKit
 
 @Suite struct ExactDecimalTests {
 
@@ -63,6 +63,37 @@ import GPKit
         #expect(leap.description == "2016-12-31T23:59:60.000000")
         #expect(try Epoch(ccsds: "2016-12-31T23:59:59.5") < leap)
         #expect(refusal { _ = try Epoch(ccsds: "2016-12-31T12:00:60") }?.kind == .notAnEpoch)
+    }
+
+    @Test func secondSixtyOnlyAtTheTwentySevenLeapSeconds() throws {
+        func pad(_ n: Int, _ width: Int) -> String { String(repeating: "0", count: max(0, width - String(n).count)) + String(n) }
+        // each of the 27 is read, in both forms, and kept as second 60
+        #expect(Epoch.leapSecondDays.count == 27)
+        for (year, month, day) in Epoch.leapSecondDays {
+            let calendar = "\(pad(year, 4))-\(pad(month, 2))-\(pad(day, 2))T23:59:60.25"
+            let leap = try Epoch(ccsds: calendar)
+            #expect(leap.second == 60 && leap.attosecond == 250_000_000_000_000_000, "\(calendar)")
+            #expect(try Epoch(ccsds: "\(pad(year, 4))-\(pad(leap.dayOfYear, 3))T23:59:60.25") == leap)
+        }
+        // every other 30 June and 31 December from 1960 to 2040 is refused, in both forms, and so is a second 60 at any
+        // other time of a leap-second day
+        var refused = 0
+        for year in 1960...2040 {
+            for (month, day) in [(6, 30), (12, 31)] where !Epoch.leapSecondDays.contains(where: { $0 == (year, month, day) }) {
+                let text = "\(pad(year, 4))-\(pad(month, 2))-\(pad(day, 2))T23:59:60"
+                #expect(refusal { _ = try Epoch(ccsds: text) }?.kind == .notAnEpoch, "\(text)")
+                let dayOfYear = try Epoch(year: year, month: month, day: day, hour: 0, minute: 0, second: 0).dayOfYear
+                #expect(refusal { _ = try Epoch(ccsds: "\(pad(year, 4))-\(pad(dayOfYear, 3))T23:59:60Z") }?.kind == .notAnEpoch)
+                refused += 1
+            }
+        }
+        #expect(refused == 2 * 81 - 27)
+        for text in ["2016-12-30T23:59:60", "2016-12-31T22:59:60", "2016-12-31T23:58:60", "2017-01-01T00:00:60", "2015-07-01T23:59:60"] {
+            #expect(refusal { _ = try Epoch(ccsds: text) }?.kind == .notAnEpoch, "\(text)")
+        }
+        // and the refusal says why
+        let why = try #require(refusal { _ = try Epoch(ccsds: "2026-12-31T23:59:60") })
+        #expect(why.message.contains("not a leap second"))
     }
 
     @Test func whatIsNotACCSDSEpochIsRefused() {
