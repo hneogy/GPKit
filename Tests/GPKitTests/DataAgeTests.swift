@@ -3,17 +3,56 @@ import Testing
 
 @Suite struct DataAgeTests {
 
-    @Test func regimesAtTheirBoundaries() throws {
+    @Test func esasOrbitClassesForKnownOrbits() throws {
         #expect(try TLE.parse(line1: Sample.line1, line2: Sample.line2).regime == .lowEarth)
-        let cases: [(Double, Double, OrbitRegime)] = [
-            (15.5, 0.0005, .lowEarth), (11.25, 0.1, .lowEarth), (11.24, 0.1, .mediumEarth),
-            (2.0056, 0.01, .mediumEarth), (1.0027, 0.0002, .geosynchronous), (0.99, 0.0, .geosynchronous),
-            (1.01, 0.0, .geosynchronous), (1.011, 0.0, .mediumEarth), (0.98, 0.0, .mediumEarth),
-            (2.006, 0.72, .highlyElliptical), (15.5, 0.25, .highlyElliptical), (1.0027, 0.3, .highlyElliptical),
+        // mean motion (rev/day), eccentricity, inclination (degrees): orbits of a known kind
+        let cases: [(Double, Double, Double, OrbitRegime, String)] = [
+            (15.5, 0.0005, 51.6, .lowEarth, "the ISS"),
+            (1.0027, 0.0002, 0.05, .geostationary, "a geostationary satellite"),
+            (1.0027, 0.0002, 30, .inclinedGeosynchronous, "a geosynchronous orbit inclined 30 degrees"),
+            (1.0027, 0.0002, 14, .geostationary, "a geostationary satellite drifted to 14 degrees: GEO runs to 25"),
+            (1.0027, 0.01, 5, .extendedGeostationary, "a geosynchronous orbit too eccentric for GEO's band"),
+            (0.95, 0.001, 3, .extendedGeostationary, "a graveyard orbit above GEO"),
+            (2.0056, 0.01, 55, .navigationSatellites, "a GPS satellite"),
+            (1.7048, 0.0002, 56, .navigationSatellites, "a Galileo satellite"),
+            (2.1314, 0.0004, 64.8, .navigationSatellites, "a GLONASS satellite"),
+            (2.2557, 0.0010, 25, .mediumEarth, "a navigation-like orbit out of NSO's inclinations"),
+            (5.0, 0.0005, 0.04, .mediumEarth, "an O3b satellite"),
+            (2.26, 0.73, 27, .geostationaryTransfer, "a transfer orbit's upper stage"),
+            (2.006, 0.72, 63.4, .geostationaryTransfer, "a Molniya orbit, by ESA's numbers"),
+            (0.25, 0.8, 30, .highlyEccentric, "a long HEO"),
+            (0.5, 0.2, 10, .undefined, "beyond 40,000 km all the way round"),
+            (0.7765, 0.15, 10, .geoSuperGeoCrossing, "from GEO's height to above it"),
+            (1.6, 0.25, 10, .meoGeoCrossing, "from MEO to GEO's height"),
+            (8.0, 0.3, 40, .leoMeoCrossing, "from LEO to MEO"),
         ]
-        for (n, e, regime) in cases {
-            #expect(OrbitRegime(meanMotion: n, eccentricity: e) == regime, "n \(n), e \(e)")
+        for (n, e, i, regime, what) in cases {
+            #expect(OrbitRegime(meanMotion: n, eccentricity: e, inclination: i) == regime, "\(what): n \(n), e \(e), i \(i)")
         }
+    }
+
+    @Test func esasRangesAtTheirEnds() {
+        // a circular orbit at height h, i degrees: a = R + h, the radius GPKit uses
+        func circular(_ h: Double, _ i: Double = 0) -> OrbitRegime {
+            OrbitRegime(semiMajorAxis: 6_378.135 + h, eccentricity: 0, inclination: i, radius: 6_378.135)
+        }
+        #expect(circular(1_999.99) == .lowEarth)
+        #expect(circular(2_000.01) == .mediumEarth)         // 2,000 km itself is MEO's too, and MEO is tested first
+        #expect(circular(35_586) == .geostationary)
+        #expect(circular(35_585.999) == .extendedGeostationary)   // just below GEO's band: a = 41,964 km is in EGO's
+        #expect(circular(35_786, 25) == .geostationary)
+        #expect(circular(35_786, 25.001) == .inclinedGeosynchronous)
+        #expect(circular(20_200, 50) == .navigationSatellites)
+        #expect(circular(20_200, 49.999) == .mediumEarth)
+        #expect(circular(31_569) == .mediumEarth)            // a = 37,947.1 km, below EGO's
+        #expect(circular(31_570.01) == .extendedGeostationary)   // a = 37,948 km and more: EGO, tested before MEO
+        #expect(circular(50_000) == .undefined)             // circular beyond 40,000 km: none of the classes
+        // from the mean motion, with WGS-72's mu and radius: circular 1,999 and 2,001 km up (a radius of 6,371 km, say,
+        // would put both above 2,000)
+        #expect(OrbitRegime(meanMotion: 11.322952506624489, eccentricity: 0, inclination: 0) == .lowEarth)
+        #expect(OrbitRegime(meanMotion: 11.318898767133655, eccentricity: 0, inclination: 0) == .mediumEarth)
+        #expect(OrbitRegime.allCases.map(\.rawValue)
+                == ["GEO", "IGO", "EGO", "NSO", "GTO", "MEO", "GHO", "LEO", "HEO", "MGO", "LMO", "UFO"])
     }
 
     @Test func ageIsDaysSinceTheEpoch() throws {
@@ -93,11 +132,11 @@ import Testing
         let samples = [try sample(0.5, 1), try sample(0.9, 3), try sample(1, 2), try sample(4, 10), try sample(4, 20, .mediumEarth), try sample(40, 99)]
         let table = DataAge.table(samples, edges: [0, 1, 7])
         #expect(table.map { "\($0.regime) \($0.fromAge)-\($0.toAge) \($0.positionError.count)" }
-                == ["lowEarth 0.0-1.0 3", "lowEarth 1.0-7.0 1", "mediumEarth 1.0-7.0 1"])
-        #expect(table[0].positionError.median == 2)
+                == ["mediumEarth 1.0-7.0 1", "lowEarth 0.0-1.0 3", "lowEarth 1.0-7.0 1"])
+        #expect(table[1].positionError.median == 2)
         // the ISS set a day old is in the first row (the span includes its end), three days old in the second
-        #expect(DataAge.estimate(for: base, at: try base.epoch.advanced(by: 86_400), from: table) == table[0])
-        #expect(DataAge.estimate(for: base, at: try base.epoch.advanced(by: 3 * 86_400), from: table) == table[1])
+        #expect(DataAge.estimate(for: base, at: try base.epoch.advanced(by: 86_400), from: table) == table[1])
+        #expect(DataAge.estimate(for: base, at: try base.epoch.advanced(by: 3 * 86_400), from: table) == table[2])
         // nothing before the epoch, at it, or past the last span
         #expect(DataAge.estimate(for: base, at: try base.epoch.advanced(by: -60), from: table) == nil)
         #expect(DataAge.estimate(for: base, at: base.epoch, from: table) == nil)

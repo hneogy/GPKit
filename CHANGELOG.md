@@ -14,8 +14,10 @@ Added to the public interface; nothing is removed or changed:
   95th, maximum, by nearest rank) by regime and span of age; `DataAge.estimate(for:at:from:)` reads a set's row from
   such a table, extrapolating nothing. GPKit ships no table: the measurement waits for gpconf 0.9.0's re-measure
   fetch, with medium-Earth and geosynchronous sets (the owner's ruling, 2026-11-07).
-- `OrbitRegime` and `ElementSet.regime`: low Earth, medium Earth, geosynchronous or highly elliptical, by mean motion
-  and eccentricity, the boundaries stated in the documentation; `ElementSet.age(at:)`, in days.
+- `OrbitRegime` and `ElementSet.regime`: the orbit's class among ESA's orbit classes (the ESA Space Debris Office's
+  Annual Space Environment Report, "Orbit class definitions": GEO, IGO, EGO, NSO, GTO, MEO, GHO, LEO, HEO, MGO, LMO
+  or UFO), from the mean motion, eccentricity and inclination, the ranges stated in the documentation;
+  `ElementSet.age(at:)`, in days.
 - `tools/data-age`, a package of its own: `gpkit-data-age OUT-DIR FILE...` measures over element-set files already
   held, makes no request, and writes the samples and the table to OUT-DIR.
 

@@ -34,11 +34,19 @@ public enum CloseApproach {
   public static func screen(_ propagators: [Propagator], from start: Epoch, for seconds: Double, step: Double = 60, within: Double = 10) -> CloseApproach.Screen
 }
 public enum OrbitRegime : String, Sendable, Hashable, CaseIterable {
-  case lowEarth
+  case geostationary
+  case inclinedGeosynchronous
+  case extendedGeostationary
+  case navigationSatellites
+  case geostationaryTransfer
   case mediumEarth
-  case geosynchronous
-  case highlyElliptical
-  public init(meanMotion: Double, eccentricity: Double)
+  case geoSuperGeoCrossing
+  case lowEarth
+  case highlyEccentric
+  case meoGeoCrossing
+  case leoMeoCrossing
+  case undefined
+  public init(meanMotion: Double, eccentricity: Double, inclination: Double)
 }
 extension ElementSet {
   public var regime: OrbitRegime { get }

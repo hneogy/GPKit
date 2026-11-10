@@ -1,32 +1,91 @@
-/// The kind of orbit an element set describes, by its mean motion and eccentricity: what the error to expect at an
-/// age depends on most, so the data-age measurement is kept by regime.
-///
-/// The boundaries are GPKit's own, stated here so a measurement can be repeated: an eccentricity of 0.25 or more is
-/// highly elliptical; otherwise 0.99 to 1.01 revolutions a day is geosynchronous, 11.25 or more (a period of 128
-/// minutes or less) low Earth, and anything between medium Earth.
-public enum OrbitRegime: String, Sendable, Hashable, CaseIterable {
-    case lowEarth
-    case mediumEarth
-    case geosynchronous
-    case highlyElliptical
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(Musl)
+import Musl
+#elseif canImport(ucrt)
+import ucrt
+#elseif canImport(Android)
+import Android
+#elseif canImport(WASILibc)
+import WASILibc
+#endif
 
-    /// The regime of an orbit of `meanMotion` revolutions a day and eccentricity `eccentricity`.
-    public init(meanMotion: Double, eccentricity: Double) {
-        if eccentricity >= 0.25 {
-            self = .highlyElliptical
-        } else if (0.99...1.01).contains(meanMotion) {
-            self = .geosynchronous
-        } else if meanMotion >= 11.25 {
-            self = .lowEarth
-        } else {
-            self = .mediumEarth
-        }
+/// The class of orbit an element set describes, by ESA's orbit classes: what the error to expect at an age depends on
+/// most, so the data-age measurement is kept by class.
+///
+/// The classes and their ranges are those of the ESA Space Debris Office's Annual Space Environment Report (the table
+/// "Orbit class definitions"; ESA/ESOC, Darmstadt), each the report's abbreviation as its raw value. They are given
+/// there by perigee and apogee height (h_p, h_a, km), semi-major axis (a, km), eccentricity (e) and inclination
+/// (i, degrees):
+///
+/// | class | range |
+/// |---|---|
+/// | GEO | i 0 to 25, h_p and h_a 35,586 to 35,986 |
+/// | IGO | a 37,948 to 46,380, e 0 to 0.25, i 25 to 180 |
+/// | EGO | a 37,948 to 46,380, e 0 to 0.25, i 0 to 25 |
+/// | NSO | i 50 to 70, h_p and h_a 18,100 to 24,300 |
+/// | GTO | i 0 to 90, h_p 0 to 2,000, h_a 31,570 to 40,000 |
+/// | MEO | h_p and h_a 2,000 to 31,570 |
+/// | GHO | h_p 31,570 to 40,000, h_a above 40,000 |
+/// | LEO | h_p and h_a 0 to 2,000 |
+/// | HEO | h_p 0 to 31,570, h_a above 40,000 |
+/// | MGO | h_p 2,000 to 31,570, h_a 31,570 to 40,000 |
+/// | LMO | h_p 0 to 2,000, h_a 2,000 to 31,570 |
+/// | UFO | none of the above |
+///
+/// GPKit tests them in that order, the first that holds, each range including both its ends, so a geostationary orbit
+/// is GEO and not also EGO. The report's ESO (escape orbits) does not arise: an element set's orbit is closed. The
+/// semi-major axis is Kepler's from the mean motion, with WGS-72's gravitational parameter (398,600.8 km³/s²), and
+/// heights are above WGS-72's equatorial radius (6,378.135 km); a set below the surface at perigee is still LEO or
+/// another class by its numbers, never refused.
+public enum OrbitRegime: String, Sendable, Hashable, CaseIterable {
+    case geostationary = "GEO"
+    case inclinedGeosynchronous = "IGO"
+    case extendedGeostationary = "EGO"
+    case navigationSatellites = "NSO"
+    case geostationaryTransfer = "GTO"
+    case mediumEarth = "MEO"
+    case geoSuperGeoCrossing = "GHO"
+    case lowEarth = "LEO"
+    case highlyEccentric = "HEO"
+    case meoGeoCrossing = "MGO"
+    case leoMeoCrossing = "LMO"
+    case undefined = "UFO"
+
+    /// The class of an orbit of `meanMotion` revolutions a day, eccentricity `eccentricity` and inclination
+    /// `inclination` degrees.
+    public init(meanMotion: Double, eccentricity: Double, inclination: Double) {
+        let mu = 398_600.8, radius = 6_378.135
+        let n = meanMotion * 2 * Double.pi / 86_400
+        let a = pow(mu / (n * n), 1.0 / 3.0)
+        self.init(semiMajorAxis: a, eccentricity: eccentricity, inclination: inclination, radius: radius)
+    }
+
+    init(semiMajorAxis a: Double, eccentricity e: Double, inclination i: Double, radius: Double) {
+        let hp = a * (1 - e) - radius, ha = a * (1 + e) - radius
+        func within(_ x: Double, _ lo: Double, _ hi: Double) -> Bool { x >= lo && x <= hi }
+        if within(i, 0, 25) && within(hp, 35_586, 35_986) && within(ha, 35_586, 35_986) { self = .geostationary }
+        else if within(a, 37_948, 46_380) && within(e, 0, 0.25) && within(i, 25, 180) { self = .inclinedGeosynchronous }
+        else if within(a, 37_948, 46_380) && within(e, 0, 0.25) && within(i, 0, 25) { self = .extendedGeostationary }
+        else if within(i, 50, 70) && within(hp, 18_100, 24_300) && within(ha, 18_100, 24_300) { self = .navigationSatellites }
+        else if within(i, 0, 90) && within(hp, 0, 2_000) && within(ha, 31_570, 40_000) { self = .geostationaryTransfer }
+        else if within(hp, 2_000, 31_570) && within(ha, 2_000, 31_570) { self = .mediumEarth }
+        else if within(hp, 31_570, 40_000) && ha > 40_000 { self = .geoSuperGeoCrossing }
+        else if hp <= 2_000 && ha <= 2_000 { self = .lowEarth }
+        else if hp <= 31_570 && ha > 40_000 { self = .highlyEccentric }
+        else if within(hp, 2_000, 31_570) && within(ha, 31_570, 40_000) { self = .meoGeoCrossing }
+        else if hp <= 2_000 && within(ha, 2_000, 31_570) { self = .leoMeoCrossing }
+        else { self = .undefined }
     }
 }
 
 extension ElementSet {
     /// The regime of the orbit this set describes.
-    public var regime: OrbitRegime { OrbitRegime(meanMotion: meanMotion.double, eccentricity: eccentricity.double) }
+    public var regime: OrbitRegime {
+        OrbitRegime(meanMotion: meanMotion.double, eccentricity: eccentricity.double, inclination: inclination.double)
+    }
 
     /// How old this set is at `time`, in days: the time since its epoch, negative before it.
     public func age(at time: Epoch) -> Double { time.seconds(since: epoch) / 86_400 }
