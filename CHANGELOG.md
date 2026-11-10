@@ -4,7 +4,7 @@ Every change to GPKit's public interface is said here, in the release that makes
 the interface, and CI stops a change to it that this file does not say (`tools/public-api.sh --check`). Within 1.x
 nothing public is removed or changed in a way that breaks code written against an earlier 1.x release.
 
-## 1.3.0 (not yet released: the date is set on the owner's word)
+## 1.3.0 (2026-11-10)
 
 Added to the public interface; nothing is removed or changed:
 
@@ -15,6 +15,14 @@ Added to the public interface; nothing is removed or changed:
   `SGP4-VER.TLE` the epoch is his reader's to the bit, and set 23333 (eccentricity 0.97), 4.1e-6 km from it at the
   exact epoch, comes within 4.9e-9 km and 4.9e-10 km/s, inside gpconf's 2e-7 bar for its `sgp4-ver-positions` case.
   A set not from a TLE is first rounded as a TLE writes its epoch.
+
+Outside the public interface:
+
+- The gpconf adapter declares its propagate op's constants in gpconf's constants declaration, `{"gravity": "wgs72",
+  "opsmode": "i", "epoch": "exact"}` beside the refusals declaration, and takes `--epoch vallado` before a command to
+  propagate from `.vallado` and declare `"epoch": "vallado"`, for a run recorded beside the default one. The default
+  stays the exact epoch, and GPKit's recorded result is made from it. `tools/check_adapter_epoch.py` checks both
+  readings (set 23333 inside gpconf's bar with `--epoch vallado` and outside it by default), and CI runs it.
 
 ## 1.2.1 (2026-11-10)
 

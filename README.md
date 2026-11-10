@@ -158,6 +158,16 @@ Thirteen of the cases read provider files, which the corpus fetches once to your
 never fetches: it runs the five cases that need no provider file, and `tools/check_gpconf.py` without `--gate` is
 its bar. The full run is made before a release, from a copy of the corpus that holds its files.
 
+GPKit's recorded result propagates from the exact epoch. For a second run beside it, `--epoch vallado` before each
+command makes the adapter propagate from the epoch as Vallado's C++ reader makes it
+(`Propagator.EpochReading.vallado`), which is how his `tcppver.out` was made, and declares
+`"epoch": "vallado"` in gpconf's constants declaration; without it the declaration says `"epoch": "exact"`. Give it
+to `--cmd` and `--vectors-cmd` alike. `tools/check_adapter_epoch.py` checks both readings, and CI runs it.
+
+```bash
+gpconf run --cmd "'$PWD/.build/debug/gpkit-gpconf' --epoch vallado parse {fmt}" --vectors-cmd "'$PWD/.build/debug/gpkit-gpconf' --epoch vallado vectors" --write-cmd "'$PWD/.build/debug/gpkit-gpconf' write" --json gpconf-report-vallado.json
+```
+
 ## Propagating
 
 ```swift
