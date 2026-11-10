@@ -1,0 +1,91 @@
+GPKit at constellation scale: propagation from 10,000 to 40,000 element sets, and what a program does with 10,000 of
+them once propagated (looks, map positions, a day's passes over one place, the close-approach screen), with the most
+memory held.
+Run on 2026-11-10 (UTC), 16:05:58Z to 16:09:21Z, on a Mac17,4 (Apple M5, 10 cores: 4 performance, 6 efficiency,
+16 GB), macOS 27.2.1 (26B131), Apple Swift version 6.4.2, release build, GPKit 1.3.0 (main 1f5405b) with this
+branch's tool. Each run was started only when the Mac's one-minute load was 12 or less, with no xcodebuild and no
+simulator round running. The load at each run's start and end is printed. The Mac was not otherwise idle.
+
+How it was run, the same on any machine:
+
+  swift run -c release --package-path tools/benchmark benchmark --workloads
+  swift run -c release --package-path tools/benchmark benchmark --count 20000
+  swift run -c release --package-path tools/benchmark benchmark --count 40000
+
+The element sets are made up by the tool's rule (four shells like a large constellation's), as in
+benchmark-2026-11-07.txt. No provider's data is in them. Each figure is the median of 5 runs after one run to warm
+up, except the close-approach screen, which compares every pair and is timed once. Before anything is timed, the tool
+checks that the batch gives the one-at-a-time results, and the spread workloads give the one-at-a-time results, to
+the bit. A planted fault in the spread's order stopped it there ("the spread looks are not one at a time's", exit 1).
+
+What it printed:
+
+  -- benchmark --workloads (10,000 sets)
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 3.66 4.85 4.15
+  made-up element sets: 10000 (0 refused)
+  the batch's results are one at a time's, to the bit: checked
+  read the file: 0.0440 s
+  make the propagators: 0.0137 s
+  one instant, one at a time: 0.0017 s, 167 ns a state, 5.98 million states a second
+  one instant, the batch: 0.0005 s, 51 ns a state, 19.69 million states a second
+  a day at one-minute steps, one at a time: 2.1458 s, 149 ns a state, 6.71 million states a second
+  a day at one-minute steps, the batch: 0.4158 s, 29 ns a state, 34.63 million states a second
+  workloads from one place (40 N, 75 W, 10 m), 10 cores for the spread ones; the spread results are one at a time's, to the bit: checked
+    looks at one instant, one at a time: 0.0024 s, 0.2 µs a set
+    looks at one instant, spread: 0.0009 s, 0.1 µs a set
+    map positions at one instant, one at a time: 0.0042 s, 0.4 µs a set
+    map positions at one instant, spread: 0.0012 s, 0.1 µs a set
+    the next day's passes: 65048 passes above the horizon over the place, 6.5 a set
+    the next day's passes, one at a time: 7.2724 s, 727.2 µs a set
+    the next day's passes, spread: 1.3955 s, 139.5 µs a set
+    close-approach screen of the first 500 sets, an hour at 60 s steps within 10 km, timed once: 3.36 s; 124750 pairs screened, 0 passed over by height, 515 candidates
+    close-approach screen of the first 1000 sets, an hour at 60 s steps within 10 km, timed once: 14.16 s; 499500 pairs screened, 0 passed over by height, 1367 candidates
+  the most memory held: 857 MB
+  load at the end: 5.26 4.98 4.27
+
+  -- benchmark --count 20000
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 5.26 4.98 4.27
+  made-up element sets: 20000 (0 refused)
+  the batch's results are one at a time's, to the bit: checked
+  read the file: 0.0967 s
+  make the propagators: 0.0296 s
+  one instant, one at a time: 0.0036 s, 178 ns a state, 5.63 million states a second
+  one instant, the batch: 0.0009 s, 47 ns a state, 21.30 million states a second
+  a day at one-minute steps, one at a time: 4.6410 s, 161 ns a state, 6.21 million states a second
+  a day at one-minute steps, the batch: 0.8815 s, 31 ns a state, 32.67 million states a second
+  the most memory held: 1752 MB
+  load at the end: 4.45 4.82 4.23
+
+  -- benchmark --count 40000
+  machine: Mac17,4, Apple M5, 10 cores (4 performance, 6 efficiency), 16 GB
+  system: Version 27.2.1 (Build 26B131)
+  load at the start: 4.45 4.82 4.23
+  made-up element sets: 40000 (0 refused)
+  the batch's results are one at a time's, to the bit: checked
+  read the file: 0.1960 s
+  make the propagators: 0.0594 s
+  one instant, one at a time: 0.0074 s, 184 ns a state, 5.43 million states a second
+  one instant, the batch: 0.0019 s, 48 ns a state, 21.00 million states a second
+  a day at one-minute steps, one at a time: 9.5851 s, 166 ns a state, 6.01 million states a second
+  a day at one-minute steps, the batch: 2.1713 s, 38 ns a state, 26.53 million states a second
+  the most memory held: 3371 MB
+  load at the end: 8.40 5.54 4.53
+
+What it shows:
+
+- Propagation grows with the count. A day at one-minute steps through the batch is 29, 31 and 38 ns a state at
+  10,000, 20,000 and 40,000 sets; one at a time it is 149, 161 and 166 ns. 10,000 sets agree with
+  benchmark-2026-11-07.txt to within 12 per cent (the batch's day: 0.416 s against 0.371 s), at a higher load.
+- A day's passes of 10,000 sets over one place: 7.3 s one at a time, 1.4 s spread over the 10 cores, 65,048 passes.
+- Looks and map positions of 10,000 sets at one instant take a few milliseconds.
+- The close-approach screen compares every pair, so its time grows as the square of the count: 3.4 s for 500 sets
+  and 14.2 s for 1,000. 10,000 would be about 100 times 1,000's, roughly 24 minutes **[inferred, not run]**. Its
+  height filter passes over no pair here, since the four made-up shells overlap in height. The screen is a rough one
+  (CloseApproach's documentation), and at constellation scale it would want a spatial index before anything else.
+- Memory: the day's batch keeps every state of every set, so the process held 857 MB at 10,000 sets, 1,752 MB at
+  20,000 and 3,371 MB at 40,000. That is a finding for 2.0: a batch that hands each step to the caller and does not
+  keep the day would hold a step's states only **[inferred]**.

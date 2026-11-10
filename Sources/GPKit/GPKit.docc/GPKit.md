@@ -28,6 +28,8 @@ your radio.
 
 - ``Propagator``
 - ``Epoch``
+- <doc:CatalogueScale>
+- ``StateBlock``
 
 ### Passes and Doppler
 

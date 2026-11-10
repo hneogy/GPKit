@@ -168,6 +168,15 @@ public actor Ledger {
         return candidates.first { now < $0.askedAt.addingTimeInterval(quiet) }
     }
 
+    /// When the rules next let `url` be asked, seen from `now`: nil when it may be asked now, else the end of the
+    /// latest quiet time that holds it, its own or its host's. For a program that schedules its next fetch instead of
+    /// trying and being told `tooSoon`; whether it is asked then is still `fetch`'s to decide.
+    public func nextAsk(_ url: URL, at now: Date) -> Date? {
+        guard holding(url, at: now) != nil else { return nil }
+        let candidates = [state.byURL[url.absoluteString], url.host.flatMap { state.failedByHost[$0] }].compactMap { $0 }
+        return candidates.map { $0.askedAt.addingTimeInterval(quiet) }.filter { $0 > now }.max()
+    }
+
     public func record(_ attempt: Attempt, host: String?) {
         state.byURL[attempt.url] = attempt
         if let host, attempt.status != 200 { state.failedByHost[host] = attempt }

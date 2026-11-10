@@ -2,6 +2,31 @@
 // from CSV and propagated one at a time and in GPKit's batch, at one instant and over a day at one-minute steps.
 //
 //   swift run -c release --package-path tools/benchmark benchmark [--file PATH --format FORMAT] [--runs N]
+//                                                                 [--count N] [--workloads]
+//
+// --count N makes N made-up sets instead of 10,000. --workloads adds what a program does with a constellation once
+// it is propagated, at that scale: looks and map positions from one place at one instant, the next day's passes of
+// every set over that place, and the close-approach screen over an hour, each one at a time and spread over every
+// core (GPKit is Sendable, so a program can do this itself), the spread results checked against the one-at-a-time
+// ones to the bit before they are timed; and the most memory the process held. The screen compares every pair, so
+// it is timed once, on the first --screen-count sets (1,000 by default) and on half of them.
+//
+// --stream measures Propagator.streamStates instead, alone in its process so that the most memory held is its own:
+// the most memory held once the propagators are made, then a day at one-minute steps streamed with the default
+// budget (or --budget MiB), timed, and the most memory held after it.
+//
+// --memory STAGE splits what --count N sets hold, one stage a process: none (nothing made), text (the CSV text),
+// file (the text and the file read from it), all (the text, the file and the propagators, as the other modes keep
+// them), sets-only (the element sets, read 1,000 at a time, so that no whole text or file is ever held) and
+// propagators-only (the propagators, made 1,000 sets at a time, the same way). Each prints the most memory held and,
+// on Darwin, the process's footprint at the end, with every value it made still held. With --file PATH --format F
+// (csv or tle for the pieces) the stages read that file: a piece is about 1,000 records read from the disk line by
+// line, so the whole file is never held. "pieces" is propagators-only under the name of the pattern it measures
+// (read in pieces, keep only the propagators); "check-pieces" checks that the pieces give the element sets and
+// refusals the whole gives, to the value, and exits 1 if they do not. The pieces stages make their array at its full
+// size first, counting a file's records a line at a time; --unreserved lets it grow by doubling instead, to show
+// what that costs. The stream is checked first against one propagator at a time,
+// to the bit, on a few instants of every set.
 //
 // Each figure is the median of N runs (5 by default) after one run to warm up. The batch's results are checked
 // against the one-at-a-time results, to the bit, before anything is timed. With --file the element sets are read
@@ -16,13 +41,13 @@ func fail(_ message: String) -> Never {
 
 /// The made-up constellation as CSV: element sets that look like a large constellation's, made from a rule, the same
 /// on every run and every machine. No provider's data is in it.
-func constellation(_ count: Int) -> String {
+func constellation(_ count: Int, from first: Int = 0) -> String {
     var csv = "OBJECT_NAME,OBJECT_ID,EPOCH,MEAN_MOTION,ECCENTRICITY,INCLINATION,RA_OF_ASC_NODE,ARG_OF_PERICENTER,MEAN_ANOMALY,"
         + "EPHEMERIS_TYPE,CLASSIFICATION_TYPE,NORAD_CAT_ID,ELEMENT_SET_NO,REV_AT_EPOCH,BSTAR,MEAN_MOTION_DOT,MEAN_MOTION_DDOT\n"
     // revolutions a day and inclination: about 550 km at 53 degrees, 540 at 53.2, 570 at 70, 560 at 97.6
     let shells: [(motion: String, inclination: String)] = [("15.06000000", "53.0000"), ("15.10000000", "53.2000"),
                                                            ("14.98000000", "70.0000"), ("15.02000000", "97.6000")]
-    for i in 0..<count {
+    for i in first..<(first + count) {
         let shell = shells[i % 4]
         let plane = (i / 4) % 72, slot = i / 288
         let node = Double(plane) * 5.0 + Double(i % 4) * 1.25
@@ -42,7 +67,18 @@ var arguments = Array(CommandLine.arguments.dropFirst())
 let path = option("--file")
 let formatName = option("--format")
 let runs = option("--runs").flatMap(Int.init) ?? 5
-guard arguments.isEmpty, runs > 0 else { fail("usage: benchmark [--file PATH --format csv|json|xml|kvn|tle] [--runs N]") }
+let count = option("--count").flatMap(Int.init) ?? 10_000
+let screenCount = option("--screen-count").flatMap(Int.init) ?? 1000
+let workloads = arguments.contains("--workloads")
+let streaming = arguments.contains("--stream")
+let budgetMiB = option("--budget").flatMap(Int.init)
+let memoryStage = option("--memory")
+let unreserved = CommandLine.arguments.contains("--unreserved")
+arguments.removeAll { $0 == "--unreserved" }
+arguments.removeAll { $0 == "--workloads" || $0 == "--stream" }
+guard arguments.isEmpty, runs > 0, count > 0 else {
+    fail("usage: benchmark [--file PATH --format csv|json|xml|kvn|tle] [--runs N] [--count N] [--workloads [--screen-count N]] [--stream [--budget MiB]] [--memory none|text|file|all|sets-only|propagators-only|pieces|check-pieces [--unreserved]]")
+}
 
 func sysctl(_ name: String) -> String? {
     #if canImport(Darwin)
@@ -68,6 +104,143 @@ print("system: \(process.operatingSystemVersionString)")
 var load = [0.0, 0.0, 0.0]
 if getloadavg(&load, 3) == 3 { print(String(format: "load at the start: %.2f %.2f %.2f", load[0], load[1], load[2])) }
 
+/// The process's footprint now, in MB (Darwin's phys_footprint, what the system counts against an app); nil elsewhere.
+func footprint() -> Double? {
+    #if canImport(Darwin)
+    var info = task_vm_info_data_t()
+    var size = mach_msg_type_number_t(MemoryLayout<task_vm_info_data_t>.size / MemoryLayout<natural_t>.size)
+    let result = withUnsafeMutablePointer(to: &info) {
+        $0.withMemoryRebound(to: integer_t.self, capacity: Int(size)) { task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), $0, &size) }
+    }
+    return result == KERN_SUCCESS ? Double(info.phys_footprint) / 1_048_576 : nil
+    #else
+    return nil
+    #endif
+}
+
+/// Each line of a file, read from the disk a megabyte at a time, with its line ending: so that the whole file is never
+/// held. `body` is given each line's bytes.
+func forEachLine(of path: String, _ body: ([UInt8]) throws -> Void) throws {
+    guard let handle = FileHandle(forReadingAtPath: path) else { fail("\(path): cannot be read") }
+    defer { try? handle.close() }
+    var pending: [UInt8] = []
+    while true {
+        let chunk = handle.readData(ofLength: 1 << 20)
+        if chunk.isEmpty { break }
+        for byte in chunk {
+            pending.append(byte)
+            if byte == 0x0A { try body(pending); pending.removeAll(keepingCapacity: true) }
+        }
+    }
+    if !pending.isEmpty { try body(pending) }
+}
+
+/// The input in pieces of about 1,000 records, each piece a text GPKit reads as it would the whole: the made-up sets
+/// made a piece at a time, or a file read from the disk line by line. A CSV piece carries the header; a TLE piece is
+/// whole records, a record ending at its line 2. Other formats are not read in pieces here.
+func forEachPiece(_ body: (String) throws -> Void) throws {
+    guard let path else {
+        var first = 0
+        while first < count { let n = min(1000, count - first); try body(constellation(n, from: first)); first += n }
+        return
+    }
+    let name = formatName ?? ""
+    guard name == "csv" || name == "tle" else { fail("--memory reads csv or tle in pieces, not \(name)") }
+    var header: [UInt8]? = nil, piece: [UInt8] = [], records = 0
+    try forEachLine(of: path) { line in
+        if name == "csv" {
+            if header == nil { header = line; return }
+            if line.allSatisfy({ $0 == 0x0D || $0 == 0x0A }) { return }
+            piece += line; records += 1
+        } else {
+            piece += line
+            if line.first == 0x32 && line.dropFirst().first == 0x20 { records += 1 }   // "2 ": a record's last line
+        }
+        if records == 1000 {
+            try body(String(decoding: (header ?? []) + piece, as: UTF8.self))
+            piece.removeAll(keepingCapacity: true); records = 0
+        }
+    }
+    if !piece.isEmpty { try body(String(decoding: (header ?? []) + piece, as: UTF8.self)) }
+}
+
+if let stage = memoryStage {
+    let stages = ["none", "text", "file", "all", "sets-only", "propagators-only", "pieces", "check-pieces"]
+    guard stages.contains(stage) else { fail("--memory takes one of \(stages.joined(separator: ", "))") }
+    let readAs: Format = path == nil ? .csv : (formatName.flatMap(Format.init(rawValue:)) ?? .csv)
+    if path != nil && formatName.flatMap(Format.init(rawValue:)) == nil { fail("--file wants --format csv, json, xml, kvn or tle") }
+    /// The input whole, as the other modes hold it.
+    func whole() -> String {
+        guard let path else { return constellation(count) }
+        guard let data = FileManager.default.contents(atPath: path) else { fail("\(path): cannot be read") }
+        return String(decoding: data, as: UTF8.self)
+    }
+    print("--memory \(stage), " + (path == nil ? "\(count) made-up element sets" : "a file read as \(readAs.rawValue) (its name and contents are not printed)"))
+    print("sizes: Propagator \(MemoryLayout<Propagator>.stride) bytes, ElementSet \(MemoryLayout<ElementSet>.stride), "
+        + "the propagator's SGP4 state and gravity \(MemoryLayout<Propagator>.stride - MemoryLayout<ElementSet>.stride) (a Propagator holds its ElementSet)")
+    var kept: [Any] = []
+    var made = 0
+    do {
+        switch stage {
+        case "text":
+            let text = whole(); kept.append(text); made = text.utf8.count
+            print(String(format: "the text: %.1f MB of UTF-8", Double(made) / 1_048_576))
+        case "file", "all":
+            let text = whole()
+            let file = try ElementSets.read(text, as: readAs)
+            kept.append(text); kept.append(file)
+            print("element sets read: \(file.elementSets.count), refused: \(file.refusals.count)")
+            if stage == "all" { let ps = try file.elementSets.map { try Propagator($0) }; kept.append(ps); made = ps.count } else { made = file.elementSets.count }
+        case "sets-only", "propagators-only", "pieces":
+            // "pieces" is the pattern for a catalogue: read the input a piece at a time and keep only the propagators
+            let keepSets = stage == "sets-only"
+            var sets: [ElementSet] = [], ps: [Propagator] = [], refused = 0
+            // the array is made at its full size first, as the article says to: one that grows by doubling can hold up
+            // to twice what it keeps. For a file, its records are counted first, a line at a time.
+            var records = count
+            if let path {
+                records = 0
+                var first = true
+                try forEachLine(of: path) { line in
+                    if formatName == "csv" {
+                        if first { first = false; return }
+                        if !line.allSatisfy({ $0 == 0x0D || $0 == 0x0A }) { records += 1 }
+                    } else if line.first == 0x32 && line.dropFirst().first == 0x20 { records += 1 }
+                }
+            }
+            if unreserved { records = 0 }
+            if keepSets { sets.reserveCapacity(records) } else { ps.reserveCapacity(records) }
+            try forEachPiece { text in
+                let file = try ElementSets.read(text, as: readAs)
+                refused += file.refusals.count
+                if keepSets { sets += file.elementSets } else { ps += try file.elementSets.map { try Propagator($0) } }
+            }
+            made = keepSets ? sets.count : ps.count
+            if keepSets { kept.append(sets) } else { kept.append(ps) }
+            let stride = keepSets ? MemoryLayout<ElementSet>.stride : MemoryLayout<Propagator>.stride
+            print("element sets read: \(made), refused: \(refused)")
+            print(String(format: "the array alone: %.1f MB (%d × %d bytes)", Double(made * stride) / 1_048_576, made, stride))
+        case "check-pieces":
+            // read in pieces, the input gives the element sets and refusals the whole gives, in order, to the value
+            let all = try ElementSets.read(whole(), as: readAs)
+            var sets: [ElementSet] = [], refused = 0
+            try forEachPiece { text in let file = try ElementSets.read(text, as: readAs); sets += file.elementSets; refused += file.refusals.count }
+            guard sets == all.elementSets, refused == all.refusals.count else {
+                fail("read in pieces, the input does not give what it gives whole (\(sets.count) sets against \(all.elementSets.count), \(refused) refusals against \(all.refusals.count))")
+            }
+            print("read in pieces, the input gives what it gives whole: \(sets.count) element sets, \(refused) refusals, the same values in the same order")
+            exit(0)
+        default: break
+        }
+    } catch {
+        fail("\(error)")
+    }
+    print(String(format: "the most memory held: %.1f MB", peakMemory()))
+    if let now = footprint() { print(String(format: "the footprint at the end, everything still held: %.1f MB", now)) }
+    if kept.count < 0 || made < 0 { print("") }   // what was made is held to here
+    exit(0)
+}
+
 let input: String
 let format: Format
 if let path {
@@ -76,7 +249,7 @@ if let path {
     input = String(decoding: data, as: UTF8.self)
     format = named
 } else {
-    input = constellation(10_000)
+    input = constellation(count)
     format = .csv
 }
 
@@ -99,12 +272,79 @@ func say(_ what: String, _ seconds: Double, states: Int? = nil) {
     print(line)
 }
 
+/// `work` on every propagator, spread over every core in as many contiguous slices, the results in the propagators'
+/// order: what a program can do itself with GPKit's Sendable types.
+func spread<T: Sendable>(_ propagators: [Propagator], _ work: @escaping @Sendable (Propagator) -> T) async -> [T] {
+    let cores = max(1, ProcessInfo.processInfo.activeProcessorCount)
+    let size = (propagators.count + cores - 1) / cores
+    return await withTaskGroup(of: (Int, [T]).self) { group in
+        for start in stride(from: 0, to: propagators.count, by: max(1, size)) {
+            let slice = Array(propagators[start..<min(start + size, propagators.count)])
+            group.addTask { (start, slice.map(work)) }
+        }
+        var parts: [(Int, [T])] = []
+        for await part in group { parts.append(part) }
+        return parts.sorted { $0.0 < $1.0 }.flatMap(\.1)
+    }
+}
+
+/// The most memory the process has held, in MB (the resident set's peak).
+func peakMemory() -> Double {
+    var usage = rusage()
+    #if canImport(Glibc)
+    // glibc imports RUSAGE_SELF as an enum where getrusage takes its integer
+    let who = __rusage_who_t(truncatingIfNeeded: RUSAGE_SELF.rawValue)
+    #else
+    let who = RUSAGE_SELF
+    #endif
+    guard getrusage(who, &usage) == 0 else { return .nan }
+    #if canImport(Darwin)
+    return Double(usage.ru_maxrss) / 1_048_576   // bytes on Darwin
+    #else
+    return Double(usage.ru_maxrss) / 1024        // kilobytes on Linux
+    #endif
+}
+
+func each(_ seconds: Double, _ count: Int, _ noun: String) -> String {
+    String(format: "%.4f s, %.1f µs a %@", seconds, seconds / Double(count) * 1e6, noun)
+}
+
 do {
     let file = try ElementSets.read(input, as: format)
     let sets = file.elementSets
     let propagators = try sets.map { try Propagator($0) }
     let instant = try Epoch(ccsds: path == nil ? "2026-11-01T06:00:00" : sets[0].epoch.description).advanced(by: 0)
     print("\(path == nil ? "made-up element sets" : "element sets read"): \(sets.count) (\(file.refusals.count) refused)")
+
+    if streaming {
+        let day = 1440
+        print(String(format: "the most memory held with the propagators made: %.0f MB", peakMemory()))
+        // the stream gives what one propagator at a time gives, on three instants of every set, before anything is timed
+        try await Propagator.streamStates(of: propagators, from: instant, every: 60, count: 3, budget: 1) { block in
+            for p in 0..<block.satellites {
+                let time = try instant.advanced(by: Double(block.firstStep) * 60)
+                let single = Result { () throws(PropagationFailure) -> StateVector in try propagators[p].state(at: time) }
+                guard block[0, p] == single else { fail("the stream does not give what one propagator gives") }
+            }
+        }
+        print("the stream's results are one at a time's, to the bit: checked")
+        let budget = budgetMiB.map { $0 * 1_048_576 } ?? Propagator.defaultStreamBudget
+        let length = Propagator.streamBlockLength(satellites: propagators.count, budget: budget)
+        print("budget \(budget / 1_048_576) MiB: \(length) instants a block, "
+            + String(format: "%.1f MB a block", Double(length * propagators.count * Propagator.bytesPerStreamedState) / 1_048_576))
+        var sink = 0.0, blocks = 0
+        let seconds = await median {
+            await Propagator.streamStates(of: propagators, from: instant, every: 60, count: day, budget: budget) { block in
+                blocks += 1
+                for s in 0..<block.steps { for p in 0..<block.satellites { if case .success(let v) = block[s, p] { sink += v.position.x } } }
+            }
+        }
+        say("a day at one-minute steps, streamed", seconds, states: propagators.count * day)
+        print(String(format: "the most memory held after streaming: %.0f MB", peakMemory()))
+        if getloadavg(&load, 3) == 3 { print(String(format: "load at the end: %.2f %.2f %.2f", load[0], load[1], load[2])) }
+        if sink.isNaN || blocks < 0 { print("") }
+        exit(0)
+    }
 
     // the batch gives what one at a time gives, before anything is timed
     let one = propagators.map { p in Result { () throws(PropagationFailure) -> StateVector in try p.state(at: instant) } }
@@ -146,6 +386,42 @@ do {
             for case .success(let s) in states { sink += s.position.x }
         }
     }, states: propagators.count * day)
+    if workloads {
+        let place = Observer(latitude: 40.0, longitude: -75.0, height: 10)
+        let ps = propagators
+        // the spread results are the one-at-a-time ones, to the bit, before anything is timed
+        let at = instant
+        let lookOrNil: @Sendable (Propagator) -> Look? = { p in try? p.look(from: place, at: at) }
+        let positionOrNil: @Sendable (Propagator) -> GeodeticPosition? = { p in try? p.position(at: at) }
+        let passesOf: @Sendable (Propagator) -> Passes = { p in p.passes(over: place, from: at, for: .seconds(86_400)) }
+        guard await spread(ps, lookOrNil) == ps.map(lookOrNil) else { fail("the spread looks are not one at a time's") }
+        guard await spread(ps, positionOrNil) == ps.map(positionOrNil) else { fail("the spread map positions are not one at a time's") }
+        let serialPasses = ps.map(passesOf)
+        guard await spread(ps, passesOf) == serialPasses else { fail("the spread passes are not one at a time's") }
+        let passCount = serialPasses.reduce(0) { $0 + $1.count }
+        print("workloads from one place (40 N, 75 W, 10 m), \(ProcessInfo.processInfo.activeProcessorCount) cores for the spread ones; "
+            + "the spread results are one at a time's, to the bit: checked")
+        print(String(format: "  looks at one instant, one at a time: %@", each(await median { for p in ps { if let l = lookOrNil(p) { sink += l.range } } }, ps.count, "set")))
+        print(String(format: "  looks at one instant, spread: %@", each(await median { for case let l? in await spread(ps, lookOrNil) { sink += l.range } }, ps.count, "set")))
+        print(String(format: "  map positions at one instant, one at a time: %@", each(await median { for p in ps { if let g = positionOrNil(p) { sink += g.latitude } } }, ps.count, "set")))
+        print(String(format: "  map positions at one instant, spread: %@", each(await median { for case let g? in await spread(ps, positionOrNil) { sink += g.latitude } }, ps.count, "set")))
+        print("  the next day's passes: \(passCount) passes above the horizon over the place, \(String(format: "%.1f", Double(passCount) / Double(ps.count))) a set")
+        print(String(format: "  the next day's passes, one at a time: %@", each(await median { for p in ps { sink += Double(passesOf(p).count) } }, ps.count, "set")))
+        print(String(format: "  the next day's passes, spread: %@", each(await median { for passes in await spread(ps, passesOf) { sink += Double(passes.count) } }, ps.count, "set")))
+        // the screen compares every pair, so its time grows as the square of the count: it is timed once at half of
+        // --screen-count and once at all of it (1,000 by default), not at the full count
+        for n in [screenCount / 2, screenCount] where n >= 2 && n <= ps.count {
+            let some = Array(ps.prefix(n))
+            let start = clock.now
+            let screen = CloseApproach.screen(some, from: instant, for: 3600)
+            let elapsed = clock.now - start
+            sink += Double(screen.candidates.count)
+            print(String(format: "  close-approach screen of the first %d sets, an hour at 60 s steps within 10 km, timed once: %.2f s; ", n,
+                         Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1e18)
+                + "\(screen.pairsScreened) pairs screened, \(screen.pairsPassedOver) passed over by height, \(screen.candidates.count) candidates")
+        }
+    }
+    print(String(format: "the most memory held: %.0f MB", peakMemory()))
     if getloadavg(&load, 3) == 3 { print(String(format: "load at the end: %.2f %.2f %.2f", load[0], load[1], load[2])) }
     if sink.isNaN { print("") }   // the sums are used, so no loop is optimized away
 } catch {

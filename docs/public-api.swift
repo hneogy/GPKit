@@ -290,6 +290,18 @@ public struct RotatorPoint : Sendable, Hashable {
 extension Propagator {
   public func rotatorTrack(for pass: Pass, from observer: Observer, every step: Double = 1, limits: RotatorLimits = .standard) -> [RotatorPoint]
 }
+extension Propagator {
+  public static let defaultStreamBudget: Int
+  public static var bytesPerStreamedState: Int { get }
+  public static func streamBlockLength(satellites: Int, budget: Int = defaultStreamBudget) -> Int
+  public static func streamStates(of propagators: [Propagator], from start: Epoch, every step: Double, count: Int, budget: Int = defaultStreamBudget, chunk: Int = 512, isolation: isolated (any _Concurrency::Actor)? = #isolation, _ body: (StateBlock) async throws -> Void) async rethrows
+}
+public struct StateBlock : Sendable {
+  public let firstStep: Int
+  public let steps: Int
+  public let satellites: Int
+  public subscript(step: Int, satellite: Int) -> Result<StateVector, PropagationFailure> { get }
+}
 public enum Sun {
   public static let darkBelow: Double
   public static let shadowRadius: Double

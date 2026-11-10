@@ -4,6 +4,66 @@ Every change to GPKit's public interface is said here, in the release that makes
 the interface, and CI stops a change to it that this file does not say (`tools/public-api.sh --check`). Within 1.x
 nothing public is removed or changed in a way that breaks code written against an earlier 1.x release.
 
+## 1.4.0 (2026-11-10)
+
+Added to the public interface; nothing is removed or changed (`docs/public-api.swift`, `docs/public-api-sources.swift`):
+
+- `Propagator.streamStates(of:from:every:count:budget:chunk:isolation:_:)` hands a run of many satellites' states
+  to a closure, one block of instants at a time and in time order, instead of keeping the run.
+  - Each state is the batch's and `state(at:)`'s, to the bit.
+  - A block holds as many instants as fit in `budget` bytes (`Propagator.defaultStreamBudget`, 8 MiB), and never
+    fewer than one. While a block is made, its parts are held beside it.
+  - A thrown error stops the stream. The closure runs in the caller's isolation.
+  - Also added: `StateBlock`, `Propagator.streamBlockLength(satellites:budget:)` and
+    `Propagator.bytesPerStreamedState`.
+  - The documented promise: with the default budget, streaming adds at most 24 MB on top of the propagators (up to
+    149,796 satellites, the most of whom one instant fits in 8 MiB). For memory-tight apps the documentation gives
+    `budget: 2 * 1_048_576` as an example: 5 MB added at 40,000 satellites, at 69 ns a state against 55.
+- Measured (`conformance/benchmark-stream-2026-11-10.txt`): a day at one-minute steps of 40,000 sets.
+  - Streamed: the process held 189 MB, the stream adding 15 MB over the propagators.
+  - The batch, which keeps the day: 3,386 MB.
+  - Both at 55 to 56 ns a state on the same Mac at the same load.
+
+Added to GPKitSources' public interface:
+
+- `ElementSetStore`, the element sets a program holds, by catalog number: the newest of each object and up to `keep`
+  sets of it (4 by default), newest first. `merge` takes a file or sets and reports what it did with each: added,
+  replaced, unchanged, older (kept in the history while it has room), conflicting (another set at a held epoch; the
+  held one is kept), uncatalogued (not held) and refused. `current`, `history`, `catalogNumbers` and `stale(at:olderThan:)`
+  read it. `save()` writes every set as an OMM in CelesTrak's JSON form, each number in its own digits, and
+  `init(saved:keep:)` reads it back to the same values.
+- `FolderSource`, element sets from files already held, with no request: a file's format is its extension's (`.csv`,
+  `.json`, `.xml`, `.kvn`, `.tle`, `.txt`); hidden files and other extensions are skipped and named, and a file GPKit
+  refuses whole is named with the reason. `load(into:)` merges the folder into a store.
+- `Ledger.nextAsk(_:at:)`, when the rules next let an address be asked: nil when it may be asked now, else the end of
+  the latest quiet time that holds it, the address's own or its host's.
+
+All of it is tested against recorded fixtures only (`Tests/GPKitSourcesTests/Resources/fixtures`, made up from the
+Space Station's 1998 set); no test makes a request, and seven planted faults each fail the tests.
+
+Outside the public interface:
+
+- A DocC article, "Working with a whole catalogue": read the input in pieces and keep only the propagators (87 to
+  89 MB at the peak at 40,000 made-up sets, against 174 MB holding everything), with the array made at its full size,
+  and stream a run of states. Its code is compiled and run in a test, and `tools/check-article-code.sh` (in CI) checks
+  that the article prints the code the test runs. Its figures, about 3 KB a set (real capture of 11,141 sets) with
+  about 2 KB for made-up sets as a lower bound, are in `conformance/memory-split-2026-11-10.txt`.
+- The benchmark tool (`tools/benchmark`) at constellation scale: `--count N`; `--workloads` (looks, map positions and a
+  day's passes over one place for every set, one at a time and spread over the cores, and the close-approach screen,
+  each checked against one at a time to the bit before it is timed); `--stream` and `--budget` (the streamed run and
+  the most memory held); and `--memory` (what a catalogue holds, stage by stage, each in its own process, a file read
+  in pieces with `pieces`, and `check-pieces` to prove the pieces give what the whole gives). Records:
+  `conformance/benchmark-2026-11-10.txt` (10,000 to 40,000 sets: the batch at 29 to 38 ns a state; a day's passes
+  of 10,000 sets in 1.4 s spread over the cores), `benchmark-stream-2026-11-10.txt` and `memory-split-2026-11-10.txt`.
+- A note on GPKit on Android (`docs/design/android-feasibility.md`): what CI shows (every test passing in an x86_64
+  emulator with swift.org's Android SDK) and what is untested (arm64 phones, size, 16 KB pages, a Kotlin interface).
+- `Propagator.EpochReading.vallado`'s documentation said set 23333 agrees with `tcppver.out` "to 7e-9 km". It now
+  says what `ValladoEpochTests` measures and names the test: at most 4.9e-9 km and 4.9e-10 km/s over its 15 rows,
+  against 4.1e-6 km at the exact epoch. The changelog's 1.3.0 entry already said 4.9e-9 km.
+- The README's installation line asks for `from: "1.4.0"`.
+
+There was no 1.3.1: the documentation fix above waited for this release rather than going out on its own.
+
 ## 1.3.0 (2026-11-10)
 
 Added to the public interface; nothing is removed or changed:
