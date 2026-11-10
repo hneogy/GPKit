@@ -4,7 +4,7 @@ Every change to GPKit's public interface is said here, in the release that makes
 the interface, and CI stops a change to it that this file does not say (`tools/public-api.sh --check`). Within 1.x
 nothing public is removed or changed in a way that breaks code written against an earlier 1.x release.
 
-## 1.2.0 (not yet released: the date is set on the owner's word)
+## 1.2.0 (2026-11-10)
 
 Nothing in the public interface is added, removed or changed; `docs/public-api.swift` is as in 1.1.0.
 
