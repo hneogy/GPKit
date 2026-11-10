@@ -2,6 +2,14 @@
 // from CSV and propagated one at a time and in GPKit's batch, at one instant and over a day at one-minute steps.
 //
 //   swift run -c release --package-path tools/benchmark benchmark [--file PATH --format FORMAT] [--runs N]
+//                                                                 [--count N] [--workloads]
+//
+// --count N makes N made-up sets instead of 10,000. --workloads adds what a program does with a constellation once
+// it is propagated, at that scale: looks and map positions from one place at one instant, the next day's passes of
+// every set over that place, and the close-approach screen over an hour, each one at a time and spread over every
+// core (GPKit is Sendable, so a program can do this itself), the spread results checked against the one-at-a-time
+// ones to the bit before they are timed; and the most memory the process held. The screen compares every pair, so
+// it is timed once, on the first --screen-count sets (1,000 by default) and on half of them.
 //
 // Each figure is the median of N runs (5 by default) after one run to warm up. The batch's results are checked
 // against the one-at-a-time results, to the bit, before anything is timed. With --file the element sets are read
@@ -42,7 +50,13 @@ var arguments = Array(CommandLine.arguments.dropFirst())
 let path = option("--file")
 let formatName = option("--format")
 let runs = option("--runs").flatMap(Int.init) ?? 5
-guard arguments.isEmpty, runs > 0 else { fail("usage: benchmark [--file PATH --format csv|json|xml|kvn|tle] [--runs N]") }
+let count = option("--count").flatMap(Int.init) ?? 10_000
+let screenCount = option("--screen-count").flatMap(Int.init) ?? 1000
+let workloads = arguments.contains("--workloads")
+arguments.removeAll { $0 == "--workloads" }
+guard arguments.isEmpty, runs > 0, count > 0 else {
+    fail("usage: benchmark [--file PATH --format csv|json|xml|kvn|tle] [--runs N] [--count N] [--workloads [--screen-count N]]")
+}
 
 func sysctl(_ name: String) -> String? {
     #if canImport(Darwin)
@@ -76,7 +90,7 @@ if let path {
     input = String(decoding: data, as: UTF8.self)
     format = named
 } else {
-    input = constellation(10_000)
+    input = constellation(count)
     format = .csv
 }
 
@@ -97,6 +111,37 @@ func say(_ what: String, _ seconds: Double, states: Int? = nil) {
     var line = String(format: "%@: %.4f s", what, seconds)
     if let states { line += String(format: ", %.0f ns a state, %.2f million states a second", seconds / Double(states) * 1e9, Double(states) / seconds / 1e6) }
     print(line)
+}
+
+/// `work` on every propagator, spread over every core in as many contiguous slices, the results in the propagators'
+/// order: what a program can do itself with GPKit's Sendable types.
+func spread<T: Sendable>(_ propagators: [Propagator], _ work: @escaping @Sendable (Propagator) -> T) async -> [T] {
+    let cores = max(1, ProcessInfo.processInfo.activeProcessorCount)
+    let size = (propagators.count + cores - 1) / cores
+    return await withTaskGroup(of: (Int, [T]).self) { group in
+        for start in stride(from: 0, to: propagators.count, by: max(1, size)) {
+            let slice = Array(propagators[start..<min(start + size, propagators.count)])
+            group.addTask { (start, slice.map(work)) }
+        }
+        var parts: [(Int, [T])] = []
+        for await part in group { parts.append(part) }
+        return parts.sorted { $0.0 < $1.0 }.flatMap(\.1)
+    }
+}
+
+/// The most memory the process has held, in MB (the resident set's peak).
+func peakMemory() -> Double {
+    var usage = rusage()
+    guard getrusage(RUSAGE_SELF, &usage) == 0 else { return .nan }
+    #if canImport(Darwin)
+    return Double(usage.ru_maxrss) / 1_048_576   // bytes on Darwin
+    #else
+    return Double(usage.ru_maxrss) / 1024        // kilobytes on Linux
+    #endif
+}
+
+func each(_ seconds: Double, _ count: Int, _ noun: String) -> String {
+    String(format: "%.4f s, %.1f µs a %@", seconds, seconds / Double(count) * 1e6, noun)
 }
 
 do {
@@ -146,6 +191,42 @@ do {
             for case .success(let s) in states { sink += s.position.x }
         }
     }, states: propagators.count * day)
+    if workloads {
+        let place = Observer(latitude: 40.0, longitude: -75.0, height: 10)
+        let ps = propagators
+        // the spread results are the one-at-a-time ones, to the bit, before anything is timed
+        let at = instant
+        let lookOrNil: @Sendable (Propagator) -> Look? = { p in try? p.look(from: place, at: at) }
+        let positionOrNil: @Sendable (Propagator) -> GeodeticPosition? = { p in try? p.position(at: at) }
+        let passesOf: @Sendable (Propagator) -> Passes = { p in p.passes(over: place, from: at, for: .seconds(86_400)) }
+        guard await spread(ps, lookOrNil) == ps.map(lookOrNil) else { fail("the spread looks are not one at a time's") }
+        guard await spread(ps, positionOrNil) == ps.map(positionOrNil) else { fail("the spread map positions are not one at a time's") }
+        let serialPasses = ps.map(passesOf)
+        guard await spread(ps, passesOf) == serialPasses else { fail("the spread passes are not one at a time's") }
+        let passCount = serialPasses.reduce(0) { $0 + $1.count }
+        print("workloads from one place (40 N, 75 W, 10 m), \(ProcessInfo.processInfo.activeProcessorCount) cores for the spread ones; "
+            + "the spread results are one at a time's, to the bit: checked")
+        print(String(format: "  looks at one instant, one at a time: %@", each(await median { for p in ps { if let l = lookOrNil(p) { sink += l.range } } }, ps.count, "set")))
+        print(String(format: "  looks at one instant, spread: %@", each(await median { for case let l? in await spread(ps, lookOrNil) { sink += l.range } }, ps.count, "set")))
+        print(String(format: "  map positions at one instant, one at a time: %@", each(await median { for p in ps { if let g = positionOrNil(p) { sink += g.latitude } } }, ps.count, "set")))
+        print(String(format: "  map positions at one instant, spread: %@", each(await median { for case let g? in await spread(ps, positionOrNil) { sink += g.latitude } }, ps.count, "set")))
+        print("  the next day's passes: \(passCount) passes above the horizon over the place, \(String(format: "%.1f", Double(passCount) / Double(ps.count))) a set")
+        print(String(format: "  the next day's passes, one at a time: %@", each(await median { for p in ps { sink += Double(passesOf(p).count) } }, ps.count, "set")))
+        print(String(format: "  the next day's passes, spread: %@", each(await median { for passes in await spread(ps, passesOf) { sink += Double(passes.count) } }, ps.count, "set")))
+        // the screen compares every pair, so its time grows as the square of the count: it is timed once at half of
+        // --screen-count and once at all of it (1,000 by default), not at the full count
+        for n in [screenCount / 2, screenCount] where n >= 2 && n <= ps.count {
+            let some = Array(ps.prefix(n))
+            let start = clock.now
+            let screen = CloseApproach.screen(some, from: instant, for: 3600)
+            let elapsed = clock.now - start
+            sink += Double(screen.candidates.count)
+            print(String(format: "  close-approach screen of the first %d sets, an hour at 60 s steps within 10 km, timed once: %.2f s; ", n,
+                         Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1e18)
+                + "\(screen.pairsScreened) pairs screened, \(screen.pairsPassedOver) passed over by height, \(screen.candidates.count) candidates")
+        }
+    }
+    print(String(format: "the most memory held: %.0f MB", peakMemory()))
     if getloadavg(&load, 3) == 3 { print(String(format: "load at the end: %.2f %.2f %.2f", load[0], load[1], load[2])) }
     if sink.isNaN { print("") }   // the sums are used, so no loop is optimized away
 } catch {
