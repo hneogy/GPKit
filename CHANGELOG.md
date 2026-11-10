@@ -4,6 +4,15 @@ Every change to GPKit's public interface is said here, in the release that makes
 the interface, and CI stops a change to it that this file does not say (`tools/public-api.sh --check`). Within 1.x
 nothing public is removed or changed in a way that breaks code written against an earlier 1.x release.
 
+## 1.2.1 (2026-11-10)
+
+Nothing in the public interface is added, removed or changed; `docs/public-api.swift` is as in 1.2.0.
+
+- The gpconf adapter (`gpkit-gpconf vectors`) answers gpconf's `propagate` op: each step's position and velocity, or
+  Vallado's error code where SGP4 stops; a set GPKit will not propagate, one for SGP4-XP among them (refused as
+  `.notSGP4` in 1.x), is an error for the call. It reads a set with its checksums unchecked, as Vallado's reader does,
+  since gpconf holds his verification sets valid input for propagation; `parse` still verifies them.
+
 ## 1.2.0 (2026-11-10)
 
 Nothing in the public interface is added, removed or changed; `docs/public-api.swift` is as in 1.1.0.
