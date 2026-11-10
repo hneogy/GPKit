@@ -86,12 +86,36 @@ public struct Propagator: Sendable {
     public let gravity: Gravity
     let core: SGP4Core
 
+    /// How the element set's epoch becomes the count of days SGP4 starts from.
+    public enum EpochReading: Sendable, Hashable {
+        /// The epoch exactly as the set states it: the default, and what every other initialiser uses.
+        case exact
+        /// The epoch as David Vallado's C++ reader makes it from a TLE's epoch field: the field's day of the year
+        /// read as a `Double`, taken through a month, a day, an hour, a minute and a second (his `days2mdhms`), and
+        /// back to a Julian date and its fraction (his `jday`), whose sum less 2,433,281.5 is the count. It lands up to
+        /// about 20 microseconds from the exact epoch. A set that did not come from a TLE is first rounded as a TLE
+        /// writes its epoch, to a hundred-millionth of a day.
+        ///
+        /// For matching his published verification output, `tcppver.out`, to its last digits: with it, set 23333 of
+        /// `SGP4-VER.TLE` (eccentricity 0.97) agrees to 7e-9 km, where the exact epoch puts it 4e-6 km away. Times
+        /// given to `state(minutesFromEpoch:)` are minutes from this epoch, as his `tsince` is; `state(at:)` still
+        /// counts them from the set's stated epoch.
+        case vallado
+    }
+
     /// Initialises the propagation of an element set. Refuses one that is not for SGP4.
     ///
     /// The epoch is the element set's own, exactly. Vallado's reader takes a TLE's epoch through a calendar date
     /// and back and lands up to 20 microseconds away, so a position from here and one from that reader can differ
-    /// by what those microseconds are worth: nothing that shows for most orbits, millimetres for a few.
+    /// by what those microseconds are worth: nothing that shows for most orbits, millimetres for a few. To match his
+    /// reader instead, use `init(_:gravity:epochReading:)` with `.vallado`.
     public init(_ elementSet: ElementSet, gravity: Gravity = .wgs72) throws(PropagationFailure) {
+        try self.init(elementSet, gravity: gravity, epochReading: .exact)
+    }
+
+    /// Initialises the propagation of an element set with its epoch read as `epochReading` says. Refuses one that is
+    /// not for SGP4.
+    public init(_ elementSet: ElementSet, gravity: Gravity = .wgs72, epochReading: EpochReading) throws(PropagationFailure) {
         guard elementSet.isSGP4, elementSet.ephemerisType != 4 else {
             throw PropagationFailure(kind: .notSGP4, minutesFromEpoch: nil)
         }
@@ -103,7 +127,10 @@ public struct Propagator: Sendable {
         case .wgs84: model = .wgs84
         case .wgs72old: model = .wgs72old
         }
-        core = SGP4Core(elementSet, gravity: model)
+        switch epochReading {
+        case .exact: core = SGP4Core(elementSet, gravity: model)
+        case .vallado: core = SGP4Core(elementSet, gravity: model, epoch: elementSet.epoch.valladoDaysSince1950)
+        }
     }
 
     /// The state a number of minutes from the element set's epoch, before it or after.

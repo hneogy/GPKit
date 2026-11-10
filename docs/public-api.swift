@@ -233,7 +233,12 @@ public struct Propagator : Sendable {
   }
   public let elementSet: ElementSet
   public let gravity: Propagator.Gravity
+  public enum EpochReading : Sendable, Hashable {
+    case exact
+    case vallado
+  }
   public init(_ elementSet: ElementSet, gravity: Propagator.Gravity = .wgs72) throws(PropagationFailure)
+  public init(_ elementSet: ElementSet, gravity: Propagator.Gravity = .wgs72, epochReading: Propagator.EpochReading) throws(PropagationFailure)
   public func state(minutesFromEpoch minutes: Double) throws(PropagationFailure) -> StateVector
   public func state(at time: Epoch) throws(PropagationFailure) -> StateVector
 }
