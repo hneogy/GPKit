@@ -219,7 +219,7 @@ the recovered state and the consistency of its covariance, using normalised resi
 - a module and message architecture, and closed-loop GN&C examples;
 - Monte Carlo dispersion runs.
 
-This is Basilisk's territory.
+This covers the same ground as Basilisk.
 
 **API sketch:** a component graph:
 
@@ -241,14 +241,14 @@ free to use [recall].
 **Proof, "simconf":** Basilisk scenarios re-expressed. The bars are on attitude error histories and Monte Carlo
 statistics, the latter with stated confidence.
 
-**Effort, solo [estimate]:** 2 to 4 years to anything a Basilisk user would switch for. Realistically this layer
+**Effort, solo [estimate]:** 2 to 4 years to anything covering the ground Basilisk covers. Realistically this layer
 needs a collaborator or funding.
 
 **Gate to start:**
 - gpkit-od released;
 - **and** a collaborator or sponsor named;
-- **and** a user who needs simulation in a language Basilisk serves poorly. Basilisk is C/C++ with Python, so the
-  wedge would be WASM, .NET or the JVM.
+- **and** a user who needs simulation in a language Basilisk does not offer. Basilisk is C/C++ with Python, so the
+  languages would be WASM, .NET or the JVM.
 
 ## 3. The bindings and their parity
 
@@ -300,38 +300,36 @@ package.
 - **Before any of this runs:** the owner reads each provider's terms of use, and the job's fetch rules are written
   down as CelesTrak's were for gpconf.
 
-## 5. The competition
+## 5. Other libraries, and how GPKit relates to them
 
-Read today [read]: licence, stars and latest release from GitHub. GPKit's figures are its own. The column on
-conformance says only what gpconf has **published**. The harnesses for python-sgp4's peers exist in the corpus, but
-most have no published result. Until they do, no claim is made about them.
+Read today [read]: licence, stars and latest release, from GitHub. Each library is described by what it covers.
+No shortcoming of another library is stated here unless it has been reported upstream, with the link. The
+corpus has harnesses for several of these libraries, and their results are gpconf's to publish, not this note's.
 
-| Library | Language | Licence | Stars | Latest release | What it does well | Where GPKit could win | Where GPKit loses today |
-|---|---|---|---|---|---|---|---|
-| python-sgp4 | Python + C++ (Vallado's own) | MIT | 483 | no GitHub release (PyPI) | it **is** Vallado's code; the reference everyone compares with; SatrecArray batch | OMM-first reading with refusals; one API in five languages; data age; passes | maturity, trust, Skyfield's ecosystem on top; GPKit has no Python package published |
-| satellite.js | JS/TS | MIT | 1,098 | 7.1.0 (2026-07-23) | the web's default; small | gpconf's published row (corpus 0.4.0: 2 pass, 1 within tolerance, 8 fail); OMM formats; WASM speed | adoption; GPKit's playground module is not an npm package |
-| SGP.NET | C# | MIT | 48 | v1.6.0 (2026-09-23) | reads all five OMM/TLE formats | gpconf parity; batch | it exists for .NET today and GPKit does not |
-| sgp4 (crate) | Rust | MIT/Apache | 120 | 2.4.0 (2026-02-23) | fast, small, well-designed | readers and refusals, passes, OMM XML/KVN/CSV; bindings | it is the Rust SGP4 people already use |
-| akhenakh/sgp4 | Go | Apache-2.0 | 6 | v1.0.4 (2026-11-10) | Go with OMM | breadth | Go is not in this plan's bindings |
-| satkit | Rust + Python | Apache-2.0 | 97 | v0.24.0 (2026-09-26) | frames, JPL ephemerides, numerical propagation already | GP reading correctness; .NET/JVM/WASM | it is ahead on gpkit-astro's scope today |
-| brahe | Rust + Python | MIT | 105 | v1.8.1 (2026-10-31) | astrodynamics with good docs, OMM reading, EOP | conformance proof published per release | ahead on astro; a harness exists in the corpus, no published result |
-| Orekit | Java | Apache-2.0 | 307 (GitHub mirror) | 13.1.9 (2026-10-03) | the industry reference: frames, OD, events | languages beyond the JVM; small and auditable | everything in gpkit-astro and gpkit-od, by years |
-| Basilisk | C/C++ + Python | ISC | 419 | v2.12.2 (2026-11-01) | GN&C simulation, Monte Carlo | WASM/.NET/JVM reach only | everything in gpkit-sim |
-| GMAT | C++ | Apache-2.0 | 146 | R2026a (2026-05-06) | mission design, NASA's own | a library, not an application | not a competitor so much as an oracle |
-| nyx | Rust | AGPL-3.0 | 510 | 2.6.0 (2026-09-12) | Rust astrodynamics and OD | a permissive licence (MIT) for embedding | ahead in Rust on astro and OD |
-| **GPKit** | Swift | MIT | 0 | v1.3.0 (2026-11-10) | gpconf 0.8.0: 17 of 18 cases pass exactly, the 18th runs no parser; Vallado's output matched; batch and streaming | | no users yet, one language |
+| Library | Language | Licence | Stars | Latest release | What it covers | How the GPKit family relates to it |
+|---|---|---|---|---|---|---|
+| python-sgp4 | Python + C++ (Vallado's own) | MIT | 483 | no GitHub release (PyPI) | Vallado's code itself, the reference SGP4; batch through SatrecArray; OMM | covers the same ground in Python; GPKit compares with it as a second implementation |
+| satellite.js | JS/TS | MIT | 1,098 | 7.1.0 (2026-07-23) | SGP4 for the web | covers the same ground in JS/WASM |
+| SGP.NET | C# | MIT | 48 | v1.6.0 (2026-09-23) | SGP4 for .NET, reading all five TLE/OMM formats | covers the same ground in C# |
+| sgp4 (crate) | Rust | MIT/Apache | 120 | 2.4.0 (2026-02-23) | a fast, small SGP4 for Rust | covers the same ground in Rust |
+| akhenakh/sgp4 | Go | Apache-2.0 | 6 | v1.0.4 (2026-11-10) | SGP4 and OMM for Go | Go is not among this plan's bindings |
+| satkit | Rust + Python | Apache-2.0 | 97 | v0.24.0 (2026-09-26) | frames, JPL ephemerides, numerical propagation | covers the same ground as gpkit-core and gpkit-astro, and is ahead on astro today |
+| brahe | Rust + Python | MIT | 105 | v1.8.1 (2026-10-31) | astrodynamics with good documentation, OMM reading, EOP | covers the same ground as gpkit-core and gpkit-astro, and is ahead on astro today |
+| Orekit | Java | Apache-2.0 | 307 (GitHub mirror) | 13.1.9 (2026-10-03) | the industry reference: frames, propagation, OD, events | interoperates as a reference oracle for astroconf and odconf; covers far more ground than gpkit-astro and gpkit-od will for years |
+| Basilisk | C/C++ + Python | ISC | 419 | v2.12.2 (2026-11-01) | GN&C simulation, Monte Carlo | interoperates as simconf's reference; gpkit-sim would cover the same ground in other languages |
+| GMAT | C++ | Apache-2.0 | 146 | R2026a (2026-05-06) | mission design, NASA's own | interoperates as a reference oracle for astroconf |
+| nyx | Rust | AGPL-3.0 | 510 | 2.6.0 (2026-09-12) | Rust astrodynamics and OD | covers the same ground in Rust, and is ahead on astro and OD |
+| **GPKit** | Swift | MIT | 0 | v1.3.0 (2026-11-10) | GP reading and SGP4 with passes; gpconf 0.8.0: 17 of 18 cases pass exactly, the 18th runs no parser; Vallado's output matched; batch and streaming | |
 
-**Where GPKit can honestly win:**
-- **Correctness made public:** the only family that publishes its conformance result with every release, from a
-  corpus anyone can run.
+**What the GPKit family would add:**
+- **Correctness made public:** a conformance result published with every release, from a corpus anyone can run.
 - **Multi-language parity:** the same answers and refusals in every language, tested.
-- **OMM-first:** all four OMM encodings, six- and nine-digit catalog numbers, and refusal with reasons, not silent
-  defaults.
-- **Batch speed with bounded memory:** about 30 to 40 ns a state, measured on one Mac. That is only a claim until the
-  benchmark below runs on the incumbents' own fast paths.
+- **OMM-first:** all four OMM encodings, six- and nine-digit catalog numbers, and refusal with reasons.
+- **Batch propagation with bounded memory:** about 30 to 40 ns a state, measured on one Mac. That is GPKit's own
+  figure only, until the benchmark below runs each library on its own best path.
 
-**Where it loses:** adoption (zero stars today), trust that takes years, and astro, OD and sim scope that satkit,
-brahe, nyx and Orekit already have.
+**Where GPKit stands today:** no adoption yet (zero stars), trust that takes years, one language, and the astro, OD
+and simulation ground that satkit, brahe, nyx and Orekit already cover.
 
 ## 6. A fair public benchmark
 
@@ -400,14 +398,15 @@ These are the rules the gpconf work already keeps (the corpus's outreach and pub
 
 - **One finding, one reproduction, one number** in anything filed. No tables, no inventories, no "our tool says".
   The evidence stays in the corpus.
-- **Their design is theirs.** A behaviour that is a design consequence is recorded and not filed again (the
-  satellite.js/tle.js ruling).
+- **Their design is theirs.** A behaviour that is a design consequence of another library is recorded in the corpus
+  and not filed again.
 - **No nudging.** Replies are the owner's, in the owner's own voice. AI involvement is said plainly if asked, and
   never claimed as by-hand work.
-- **Credit and contribution first:** fixes upstream (as Gpredict #428), cited sources, and thanks. GPKit's NOTICE
+- **Credit and contribution first:** fixes upstream (for example Gpredict's "Read the full mean motion field from TLE
+  line 2", https://github.com/csete/gpredict/pull/428, merged 2026-10-08), cited sources, and thanks. GPKit's NOTICE
   names what it ports.
 - **Benchmarks shown to them before publication** (section 6), with their corrections taken.
-- **Competition by being useful,** not by headline comparisons. A comparison page states its method and is updated
+- **Being useful, not headline comparisons.** A comparison page states its method and is updated
   when a maintainer fixes something.
 
 ## 10. The phases, 0 to 8
@@ -425,7 +424,7 @@ Phases 1 to 4 split the core and its bindings as proposed here, SGP4 first. The 
 | 5 | astroconf: the scenario corpus against Orekit and GMAT | Phase 4, and about 250 stars or 10 dependents | 20 scenarios where Orekit and GMAT agree |
 | 6 | `gpkit-astro`: time, frames with EOP, numerical propagation, events, maneuvers | Phase 5 | astroconf held in every binding |
 | 7 | odconf, then `gpkit-od` | Phase 6, and about 500 stars or a named user with tracking data | odconf held |
-| 8 | `gpkit-sim`, Basilisk territory | Phase 7, and a collaborator or sponsor | simconf held |
+| 8 | `gpkit-sim`, covering the same ground as Basilisk | Phase 7, and a collaborator or sponsor | simconf held |
 
 ## Questions for the owner
 

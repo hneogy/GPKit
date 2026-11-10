@@ -8,7 +8,7 @@ merged yet, so each row names its branch.
 | Document | Branch | What it holds |
 |---|---|---|
 | `ROADMAP.md` | this branch (`docs-future`) | 2.0's items with status, the releases (1.4.0 and 2.0.0), the owner's rulings, and the pointer to GPKit everywhere |
-| `docs/design/gpkit-everywhere.md` | this branch | the family beyond 2.0: a Rust core with bindings, Swift held to it by gpconf; layers core, astro, OD and sim; data without fetching from CelesTrak or Space-Track; licences; the competition; the benchmark method; package names; CI cost; relations with maintainers; Phases 0 to 8 |
+| `docs/design/gpkit-everywhere.md` | this branch | the family beyond 2.0: a Rust core with bindings, Swift held to it by gpconf; layers core, astro, OD and sim; data without fetching from CelesTrak or Space-Track; licences; how it relates to other libraries; the benchmark method; package names; CI cost; relations with maintainers; Phases 0 to 8 |
 | `docs/design/release-2.0-plan.md` | `v2-plans` | 1.4.0 now, 2.0.0 with gpconf 0.9.0; the merge order trialled; the breaking-change list (one: `PropagationFailure.Kind.sgp4XP`) |
 | `docs/design/data-age-api-2.0.md` | `v2-plans` | the data-age API's shape: options A, B and C. B is the one in 2.0's scope: an open `OrbitClass`, a `Measurement`, a `Codable` `DataAgeTable` with provenance, and a typed `Estimate` |
 | `docs/design/sources-2.0.md` | `v2-sources` | `ElementSetStore`, `FolderSource` and `Ledger.nextAsk`, and what is left out (Space-Track) |
