@@ -19,11 +19,22 @@ let package = Package(
             exclude: ["Date.swift", "GPKit.docc"],
             swiftSettings: [.unsafeFlags(["-Osize"])]
         ),
+        .target(
+            name: "PlaygroundAnswers",
+            dependencies: ["GPKit"],
+            swiftSettings: [.unsafeFlags(["-Osize"])]
+        ),
+        // the module the page loads: build it alone, --product GPKitPlayground, for WebAssembly
         .executableTarget(
             name: "GPKitPlayground",
-            dependencies: ["GPKit"],
+            dependencies: ["PlaygroundAnswers"],
             swiftSettings: [.unsafeFlags(["-Osize"])],
             linkerSettings: [.unsafeFlags(["-Xclang-linker", "-mexec-model=reactor", "-Xlinker", "--strip-all"], .when(platforms: [.wasi]))]
+        ),
+        // the same answers worked out natively, for CI to hold the module's equal to: --product playground-reference
+        .executableTarget(
+            name: "playground-reference",
+            dependencies: ["PlaygroundAnswers"]
         ),
     ]
 )
