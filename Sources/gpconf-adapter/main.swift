@@ -9,6 +9,12 @@
 //   gpkit-gpconf write            one record on standard input; the TLE's lines on standard output; a non-zero exit
 //                                 when GPKit refuses to write it
 //
+//   --epoch exact|vallado         before the command, the epoch propagate runs from: exact, the default and GPKit's
+//                                 recorded result, or vallado, Propagator.EpochReading.vallado, the epoch as Vallado's
+//                                 C++ reader makes it from a TLE; parse declares it in gpconf's constants declaration,
+//                                 {"_adapter": {"propagation": {"gravity", "opsmode", "epoch"}}}, so a run in either
+//                                 reading says which it was. Give it to parse and vectors alike.
+//
 // The adapter decides nothing. A record is what GPKit read, a refusal carries GPKit's reason, and a refusal of the
 // whole file ends the run with a non-zero exit and that reason on standard error.
 
@@ -55,7 +61,19 @@ func fail(_ message: String, code: Int32 = 1) -> Never {
     exit(code)
 }
 
-let arguments = CommandLine.arguments.dropFirst()
+var arguments = CommandLine.arguments.dropFirst()
+/// The epoch the propagate op runs from: `.exact` unless `--epoch vallado` comes before the command.
+var epochReading = Propagator.EpochReading.exact
+if arguments.first == "--epoch" {
+    switch arguments.dropFirst().first {
+    case "exact": epochReading = .exact
+    case "vallado": epochReading = .vallado
+    default: fail("usage: --epoch exact|vallado, before the command", code: 2)
+    }
+    arguments = arguments.dropFirst(2)
+}
+/// The reading as the declaration names it.
+let epochName = epochReading == .vallado ? "vallado" : "exact"
 let input = FileHandle.standardInput.readDataToEndOfFile()
 
 switch arguments.first {
@@ -69,7 +87,9 @@ case "parse":
     } catch {
         fail("GPKit refused the file: \(error)")
     }
-    var items = ["{\"_adapter\":{\"refusals\":true}}"]
+    // one _adapter entry for both declarations, since a second replaces the first: the refusals, and the propagate
+    // op's constants, WGS-72 and opsmode 'i', with the epoch it runs from
+    var items = ["{\"_adapter\":{\"refusals\":true,\"propagation\":{\"gravity\":\"wgs72\",\"opsmode\":\"i\",\"epoch\":\"\(epochName)\"}}}"]
     for entry in file.entries {
         switch entry {
         case .refusal(let refusal):
@@ -152,7 +172,7 @@ case "vectors":
             guard file.elementSets.count == 1 else {
                 throw file.refusals.first ?? Refusal(.malformedFile, "\(file.elementSets.count) element sets, where one was sent")
             }
-            let propagator = try Propagator(file.elementSets[0])
+            let propagator = try Propagator(file.elementSets[0], epochReading: epochReading)
             let codes: [PropagationFailure.Kind: Int] = [.eccentricity: 1, .meanMotion: 2, .perturbedEccentricity: 3,
                                                          .semiLatusRectum: 4, .decayed: 6]
             var steps: [String] = []
@@ -204,5 +224,5 @@ case "write":
     }
 
 default:
-    fail("usage: gpkit-gpconf parse <format> | vectors | write", code: 2)
+    fail("usage: gpkit-gpconf [--epoch exact|vallado] parse <format> | vectors | write", code: 2)
 }

@@ -199,6 +199,50 @@ public struct Epoch: Sendable, Hashable, Comparable, CustomStringConvertible {
         Double(unixDay + 7_306) + secondOfDay / 86_400.0
     }
 
+    /// Days from 1950 January 0.0 as David Vallado's C++ reader makes them from a TLE's epoch field
+    /// (`Propagator.EpochReading.vallado`): the field, YYDDD.DDDDDDDD, as a TLE writes this epoch; its day of the year
+    /// read as a `Double`, as his `sscanf` reads it; his `days2mdhms` and `jday` on it, step for step; and his
+    /// `(jdsatepoch + jdsatepochF) - 2433281.5`.
+    var valladoDaysSince1950: Double {
+        // the field as a TLE writes it: the day of the year and its hundred-millionths, a half going up
+        var year = self.year, dayOfYear = self.dayOfYear
+        var fraction = Int((microsecondOfDay + 432) / 864)
+        if fraction >= 100_000_000 {
+            fraction -= 100_000_000
+            dayOfYear += 1
+            if dayOfYear > Epoch.days(in: year) { dayOfYear = 1; year += 1 }
+        }
+        let days = Double("\(dayOfYear).\(padded(fraction, width: 8))")!   // correctly rounded, as strtod is
+
+        // days2mdhms_SGP4
+        var lmonth = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+        let dayofyr = Int(days.rounded(.down))
+        if year % 4 == 0 { lmonth[2] = 29 }
+        var i = 1, inttemp = 0
+        while dayofyr > inttemp + lmonth[i] && i < 12 {
+            inttemp += lmonth[i]
+            i += 1
+        }
+        let mon = i, day = dayofyr - inttemp
+        var temp = (days - Double(dayofyr)) * 24.0
+        let hr = Int(temp.rounded(.down))
+        temp = (temp - Double(hr)) * 60.0
+        let minute = Int(temp.rounded(.down))
+        let sec = (temp - Double(minute)) * 60.0
+
+        // jday_SGP4
+        let y = Double(year)
+        var jd = 367.0 * y - (Double(7) * (y + (Double(mon + 9) / 12.0).rounded(.down)) * 0.25).rounded(.down)
+            + (Double(275 * mon) / 9.0).rounded(.down) + Double(day) + 1_721_013.5
+        var jdFrac = (sec + Double(minute) * 60.0 + Double(hr) * 3600.0) / 86_400.0
+        if abs(jdFrac) > 1.0 {
+            let dtt = jdFrac.rounded(.down)
+            jd += dtt
+            jdFrac -= dtt
+        }
+        return (jd + jdFrac) - 2_433_281.5
+    }
+
     /// The Julian date, UTC.
     var julianDate: Double {
         daysSince1950 + 2_433_281.5
