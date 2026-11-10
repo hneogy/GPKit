@@ -15,10 +15,12 @@ import WASILibc
 /// The class of orbit an element set describes, by ESA's orbit classes: what the error to expect at an age depends on
 /// most, so the data-age measurement is kept by class.
 ///
-/// The classes and their ranges are those of the ESA Space Debris Office's Annual Space Environment Report (the table
-/// "Orbit class definitions"; ESA/ESOC, Darmstadt), each the report's abbreviation as its raw value. They are given
-/// there by perigee and apogee height (h_p, h_a, km), semi-major axis (a, km), eccentricity (e) and inclination
-/// (i, degrees):
+/// The classes and their ranges are ESA's: ESA Space Debris Office, *ESA's Annual Space Environment Report*,
+/// GEN-DB-LOG-00288-OPS-SD, Issue 10.0, 1 May 2026, section 1.1 "Definitions", Table 1.2 "Ranges defining each
+/// orbital class", page 15 of 151 (https://www.sdo.esoc.esa.int/publications/Space_Environment_Report_I10R0_20260501.pdf).
+/// Each case's raw value is the report's abbreviation. The report gives the ranges by perigee and apogee height (h_p,
+/// h_a, km), semi-major axis (a, km), eccentricity (e) and inclination (i, degrees), and says its definitions belong
+/// to its issue and can change between issues:
 ///
 /// | class | range |
 /// |---|---|
@@ -26,20 +28,22 @@ import WASILibc
 /// | IGO | a 37,948 to 46,380, e 0 to 0.25, i 25 to 180 |
 /// | EGO | a 37,948 to 46,380, e 0 to 0.25, i 0 to 25 |
 /// | NSO | i 50 to 70, h_p and h_a 18,100 to 24,300 |
-/// | GTO | i 0 to 90, h_p 0 to 2,000, h_a 31,570 to 40,000 |
+/// | GTO | i 0 to 90, h_p 0 to 2,000, h_a 31,570 to 40,002 |
 /// | MEO | h_p and h_a 2,000 to 31,570 |
-/// | GHO | h_p 31,570 to 40,000, h_a above 40,000 |
+/// | GHO | h_p 31,570 to 40,002, h_a above 40,002 |
 /// | LEO | h_p and h_a 0 to 2,000 |
-/// | HEO | h_p 0 to 31,570, h_a above 40,000 |
-/// | MGO | h_p 2,000 to 31,570, h_a 31,570 to 40,000 |
+/// | HAO | h_p and h_a above 40,002 |
+/// | MGO | h_p 2,000 to 31,570, h_a 31,570 to 40,002 |
+/// | HEO | h_p 0 to 31,570, h_a above 40,002 |
 /// | LMO | h_p 0 to 2,000, h_a 2,000 to 31,570 |
 /// | UFO | none of the above |
 ///
-/// GPKit tests them in that order, the first that holds, each range including both its ends, so a geostationary orbit
-/// is GEO and not also EGO. The report's ESO (escape orbits) does not arise: an element set's orbit is closed. The
-/// semi-major axis is Kepler's from the mean motion, with WGS-72's gravitational parameter (398,600.8 km³/s²), and
-/// heights are above WGS-72's equatorial radius (6,378.135 km); a set below the surface at perigee is still LEO or
-/// another class by its numbers, never refused, and a mean motion that is not positive is UFO.
+/// GPKit tests them in the table's order, the first that holds, each range written [x, y] in the report including
+/// both its ends, so a geostationary orbit is GEO and not also EGO. The report's ESO (escape orbits) does not arise:
+/// an element set's orbit is closed. The semi-major axis is Kepler's from the mean motion, with WGS-72's gravitational
+/// parameter (398,600.8 km³/s²), and heights are above WGS-72's equatorial radius (6,378.135 km); the report names
+/// no radius. Every perigee range starts at 0, so a set whose perigee is below that radius (one about to re-enter) is
+/// UFO, as is a mean motion that is not positive.
 ///
 /// The class is only as exact as that: the mean motion a set carries is SGP4's (Kozai's) mean, not an osculating
 /// value, and Kepler's law on it puts the semi-major axis a few kilometres from the osculating one in low Earth, so a
@@ -53,8 +57,9 @@ public enum OrbitRegime: String, Sendable, Hashable, CaseIterable {
     case mediumEarth = "MEO"
     case geoSuperGeoCrossing = "GHO"
     case lowEarth = "LEO"
-    case highlyEccentric = "HEO"
+    case highAltitude = "HAO"
     case meoGeoCrossing = "MGO"
+    case highlyEccentric = "HEO"
     case leoMeoCrossing = "LMO"
     case undefined = "UFO"
 
@@ -75,13 +80,14 @@ public enum OrbitRegime: String, Sendable, Hashable, CaseIterable {
         else if within(a, 37_948, 46_380) && within(e, 0, 0.25) && within(i, 25, 180) { self = .inclinedGeosynchronous }
         else if within(a, 37_948, 46_380) && within(e, 0, 0.25) && within(i, 0, 25) { self = .extendedGeostationary }
         else if within(i, 50, 70) && within(hp, 18_100, 24_300) && within(ha, 18_100, 24_300) { self = .navigationSatellites }
-        else if within(i, 0, 90) && hp <= 2_000 && within(ha, 31_570, 40_000) { self = .geostationaryTransfer }
+        else if within(i, 0, 90) && within(hp, 0, 2_000) && within(ha, 31_570, 40_002) { self = .geostationaryTransfer }
         else if within(hp, 2_000, 31_570) && within(ha, 2_000, 31_570) { self = .mediumEarth }
-        else if within(hp, 31_570, 40_000) && ha > 40_000 { self = .geoSuperGeoCrossing }
-        else if hp <= 2_000 && ha <= 2_000 { self = .lowEarth }
-        else if hp <= 31_570 && ha > 40_000 { self = .highlyEccentric }
-        else if within(hp, 2_000, 31_570) && within(ha, 31_570, 40_000) { self = .meoGeoCrossing }
-        else if hp <= 2_000 && within(ha, 2_000, 31_570) { self = .leoMeoCrossing }
+        else if within(hp, 31_570, 40_002) && ha > 40_002 { self = .geoSuperGeoCrossing }
+        else if within(hp, 0, 2_000) && within(ha, 0, 2_000) { self = .lowEarth }
+        else if hp > 40_002 && ha > 40_002 { self = .highAltitude }
+        else if within(hp, 2_000, 31_570) && within(ha, 31_570, 40_002) { self = .meoGeoCrossing }
+        else if within(hp, 0, 31_570) && ha > 40_002 { self = .highlyEccentric }
+        else if within(hp, 0, 2_000) && within(ha, 2_000, 31_570) { self = .leoMeoCrossing }
         else { self = .undefined }
     }
 }

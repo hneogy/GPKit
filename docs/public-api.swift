@@ -42,8 +42,9 @@ public enum OrbitRegime : String, Sendable, Hashable, CaseIterable {
   case mediumEarth
   case geoSuperGeoCrossing
   case lowEarth
-  case highlyEccentric
+  case highAltitude
   case meoGeoCrossing
+  case highlyEccentric
   case leoMeoCrossing
   case undefined
   public init(meanMotion: Double, eccentricity: Double, inclination: Double)

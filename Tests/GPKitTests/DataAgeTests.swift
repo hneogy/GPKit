@@ -21,7 +21,7 @@ import Testing
             (2.26, 0.73, 27, .geostationaryTransfer, "a transfer orbit's upper stage"),
             (2.006, 0.72, 63.4, .geostationaryTransfer, "a Molniya orbit, by ESA's numbers"),
             (0.25, 0.8, 30, .highlyEccentric, "a long HEO"),
-            (0.5, 0.2, 10, .undefined, "beyond 40,000 km all the way round"),
+            (0.5, 0.2, 10, .highAltitude, "beyond 40,002 km all the way round"),
             (0.7765, 0.15, 10, .geoSuperGeoCrossing, "from GEO's height to above it"),
             (1.6, 0.25, 10, .meoGeoCrossing, "from MEO to GEO's height"),
             (8.0, 0.3, 40, .leoMeoCrossing, "from LEO to MEO"),
@@ -46,7 +46,7 @@ import Testing
         #expect(circular(20_200, 49.999) == .mediumEarth)
         #expect(circular(31_569) == .mediumEarth)            // a = 37,947.1 km, below EGO's
         #expect(circular(31_570.01) == .extendedGeostationary)   // a = 37,948 km and more: EGO, tested before MEO
-        #expect(circular(50_000) == .undefined)             // circular beyond 40,000 km: none of the classes
+        #expect(circular(50_000) == .highAltitude)          // circular beyond 40,002 km: HAO
         // from the mean motion, with WGS-72's mu and radius: circular 1,999 and 2,001 km up (a radius of 6,371 km, say,
         // would put both above 2,000)
         #expect(OrbitRegime(meanMotion: 11.322952506624489, eccentricity: 0, inclination: 0) == .lowEarth)
@@ -58,21 +58,28 @@ import Testing
         }
         #expect(orbit(250, 35_786, 90) == .geostationaryTransfer)
         #expect(orbit(250, 35_786, 90.01) == .undefined)             // GTO's inclinations end at 90, and no other class holds it
-        #expect(orbit(-20, 35_786, 27) == .geostationaryTransfer)    // a perigee below the equatorial radius
-        #expect(orbit(250, 40_000, 27) == .geostationaryTransfer)
-        #expect(orbit(250, 40_001, 27) == .highlyEccentric)
+        #expect(orbit(-20, 35_786, 27) == .undefined)    // a perigee below the equatorial radius: every h_p range starts at 0
+        #expect(orbit(0, 35_786, 27) == .geostationaryTransfer)
+        #expect(orbit(250, 40_002, 27) == .geostationaryTransfer)
+        #expect(orbit(250, 40_002.01, 27) == .highlyEccentric)
         #expect(orbit(31_570, 70_000, 27) == .geoSuperGeoCrossing)    // 31,570 is in both GHO and HEO; GHO is tested first
         #expect(orbit(31_569, 70_000, 27) == .highlyEccentric)
         #expect(orbit(31_570, 40_001, 27) == .inclinedGeosynchronous) // a = 42,164 km, e 0.1: IGO, before both
         #expect(orbit(31_571, 50_000, 27) == .geoSuperGeoCrossing)
+        #expect(orbit(40_002, 50_000, 27) == .geoSuperGeoCrossing)
+        #expect(orbit(40_002.01, 50_000, 27) == .highAltitude)
+        #expect(orbit(2_001, 40_002, 27) == .meoGeoCrossing)
+        #expect(orbit(2_001, 40_002.01, 27) == .highlyEccentric)
         #expect(orbit(2_001, 35_000, 27) == .meoGeoCrossing)
         #expect(orbit(1_999, 35_000, 27) == .geostationaryTransfer)
         #expect(orbit(1_999, 20_000, 27) == .leoMeoCrossing)
-        #expect(orbit(-20, 1_000, 97) == .lowEarth)
+        #expect(orbit(-20, 1_000, 97) == .undefined)
+        #expect(orbit(0, 1_000, 97) == .lowEarth)
+        #expect(orbit(-0.01, 20_000, 27) == .undefined)
         #expect(OrbitRegime(meanMotion: -15.5, eccentricity: 0, inclination: 51.6) == .undefined)
         #expect(OrbitRegime(meanMotion: 0, eccentricity: 0, inclination: 51.6) == .undefined)
         #expect(OrbitRegime.allCases.map(\.rawValue)
-                == ["GEO", "IGO", "EGO", "NSO", "GTO", "MEO", "GHO", "LEO", "HEO", "MGO", "LMO", "UFO"])
+                == ["GEO", "IGO", "EGO", "NSO", "GTO", "MEO", "GHO", "LEO", "HAO", "MGO", "HEO", "LMO", "UFO"])
     }
 
     @Test func ageIsDaysSinceTheEpoch() throws {
