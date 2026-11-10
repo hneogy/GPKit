@@ -132,7 +132,13 @@ func spread<T: Sendable>(_ propagators: [Propagator], _ work: @escaping @Sendabl
 /// The most memory the process has held, in MB (the resident set's peak).
 func peakMemory() -> Double {
     var usage = rusage()
-    guard getrusage(RUSAGE_SELF, &usage) == 0 else { return .nan }
+    #if canImport(Glibc)
+    // glibc imports RUSAGE_SELF as an enum where getrusage takes its integer
+    let who = __rusage_who_t(truncatingIfNeeded: RUSAGE_SELF.rawValue)
+    #else
+    let who = RUSAGE_SELF
+    #endif
+    guard getrusage(who, &usage) == 0 else { return .nan }
     #if canImport(Darwin)
     return Double(usage.ru_maxrss) / 1_048_576   // bytes on Darwin
     #else
