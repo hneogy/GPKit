@@ -31,4 +31,6 @@ jobs:
         if: always()
         with:
           name: repro
-          path: out/*.wasm
+          path: |
+            out/*.wasm
+            out/*.map

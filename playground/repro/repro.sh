@@ -1,6 +1,6 @@
 #!/bin/sh
-# Third diagnostic: what sits at memory 0x111c20 (wasm-ld's map), and whether the environment alone moves it.
-#   A here; E here with one more environment variable; M here under a minimal environment; M2 the same again.
+# Fourth diagnostic: what wasm-ld puts at 0x111c20 (the map), and whether file times or SOURCE_DATE_EPOCH move it.
+#   A here; T1 every file's time set to 2026-01-01; T1b the same again; T2 set to 2026-06-01; S SOURCE_DATE_EPOCH=0.
 set -eu
 SDK=swift-6.4.2-RELEASE_wasm
 build() {  # build NAME [env prefix...]
@@ -12,12 +12,13 @@ build() {  # build NAME [env prefix...]
 }
 mkdir -p out
 build A env
-build E env GPKIT_REPRO_PADDING=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-build M env -i PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin HOME=/root
-build M2 env -i PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin HOME=/root
+echo "the map from swift5_tests on:"
+n=$(/usr/bin/grep -n " swift5_tests$" out/A.map | head -1 | cut -d: -f1); sed -n "$((n-2)),$((n+40))p" out/A.map | cut -c1-260
+find . -path ./out -prune -o -exec touch -h -d 2026-01-01T00:00:00Z {} + ; build T1 env
+find . -path ./out -prune -o -exec touch -h -d 2026-01-01T00:00:00Z {} + ; build T1b env
+find . -path ./out -prune -o -exec touch -h -d 2026-06-01T00:00:00Z {} + ; build T2 env
+build S env SOURCE_DATE_EPOCH=0
 sha256sum out/*.wasm
-echo "the map around 0x111c20:"
-awk 'NR==1{print} /^ *[0-9a-f]+ / { a=strtonum("0x"$1); if (a >= 0x111a00 && a <= 0x111e00) print }' out/A.map | head -40
-/usr/bin/grep -n -i "111c" out/A.map | head -20
-for x in E M M2; do echo "== A and $x"; python3 playground/repro/find.py out/A.wasm "out/$x.wasm" playground/.build | head -3; done
-echo "== M and M2"; python3 playground/repro/find.py out/M.wasm out/M2.wasm playground/.build | head -3
+for x in T1 T1b T2 S; do echo "== A and $x"; python3 playground/repro/find.py out/A.wasm "out/$x.wasm" playground/.build | head -3; done
+echo "== T1 and T1b"; python3 playground/repro/find.py out/T1.wasm out/T1b.wasm playground/.build | head -3
+echo "== T1 and T2"; python3 playground/repro/find.py out/T1.wasm out/T2.wasm playground/.build | head -3
