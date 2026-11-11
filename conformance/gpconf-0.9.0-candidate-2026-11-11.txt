@@ -100,3 +100,11 @@ Reading it:
   judged here in the vallado epoch, which the adapter declares to gpconf ({"epoch": "vallado"}). The exact epoch
   stays GPKit's default, and the line-for-line comparison with tcppver.out is
   conformance/vallado-tcppver-2026-11-11.txt.
+
+Run again after the adapter's change (daf6a0e: request numbers read as the digits sent, not through NSNumber's
+16 significant digits), same corpus, same provider files, both epochs:
+- vallado: report SHA-256 33ec6e7f37571cab9178ed02092d3b5e6bab6cbfa0dfd7ee8f35db9aba1dc8c8
+- exact:   report SHA-256 233cd100b29d3c45c048ce96cd5939946080f695c217f7e2d600766e1ffb72fb
+Each report equals the one above in every status and every figure; only generated_at and the adapter's path differ.
+The times this corpus sends lose nothing at gpconf's printed digits, so no result moved where gpconf reports it.
+A time of 17 significant digits now reaches the propagator as sent (1440.0000000000002 is no longer read as 1440).
