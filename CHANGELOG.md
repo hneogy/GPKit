@@ -66,7 +66,7 @@ the measurement waits for gpconf 0.9.0's re-measure fetch, with medium-Earth and
 - Vallado's `tcppver.out`, line for line: `TcppverTests` makes every printed line again, from GPKit with
   `Propagator.EpochReading.vallado` and from Vallado's C++ as the package compiles it, and compares each number at
   the file's digits, where `GPKIT_SGP4_VER` names a directory holding both of its files, `SGP4-VER.TLE` and `tcppver.out` (GPKit
-  ships neither).
+  ships `SGP4-VER.TLE` as a test resource, not `tcppver.out`).
   - GPKit prints what the C++ prints in every column of every line.
   - Against the file: 630 of 666 lines alike in every number, every element alike; where both differ from the file,
     the C++ itself does not reproduce it here (`conformance/vallado-tcppver-2026-11-11.txt`).
