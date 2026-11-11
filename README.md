@@ -149,9 +149,13 @@ epoch, GPKit's default, the result is the same but for `sgp4-ver-propagation`, w
 23333, by ⟦4.11e-6⟧ km: his verification output was made from his reader's epoch, which rounds it, so that case is
 judged in his reading. The run's summary is in [`conformance/`](conformance/).
 
+The judged run propagates from the epoch as Vallado's C++ reader makes it: `--epoch vallado` before each command
+makes the adapter use `Propagator.EpochReading.vallado`, which is how his `tcppver.out` was made, and declares
+`"epoch": "vallado"` in gpconf's constants declaration. Give it to `--cmd` and `--vectors-cmd` alike.
+
 ```bash
 swift build
-gpconf run --cmd "'$PWD/.build/debug/gpkit-gpconf' parse {fmt}" --vectors-cmd "'$PWD/.build/debug/gpkit-gpconf' vectors" --write-cmd "'$PWD/.build/debug/gpkit-gpconf' write" --json gpconf-report.json
+gpconf run --cmd "'$PWD/.build/debug/gpkit-gpconf' --epoch vallado parse {fmt}" --vectors-cmd "'$PWD/.build/debug/gpkit-gpconf' --epoch vallado vectors" --write-cmd "'$PWD/.build/debug/gpkit-gpconf' write" --json gpconf-report.json
 ```
 
 ```bash
@@ -162,14 +166,12 @@ python3 tools/check_gpconf.py gpconf-report.json --gate
 never fetches: it runs the ⟦five⟧ cases that need no provider file, and `tools/check_gpconf.py` without `--gate` is
 its bar. The full run is made before a release, from a copy of the corpus that holds its files.
 
-GPKit propagates from the exact epoch by default, and the first run above does too. For the run that is judged,
-`--epoch vallado` before each command makes the adapter propagate from the epoch as Vallado's C++ reader makes it
-(`Propagator.EpochReading.vallado`), which is how his `tcppver.out` was made, and declares
-`"epoch": "vallado"` in gpconf's constants declaration; without it the declaration says `"epoch": "exact"`. Give it
-to `--cmd` and `--vectors-cmd` alike. `tools/check_adapter_epoch.py` checks both readings, and CI runs it.
+GPKit itself propagates from the exact epoch by default. Without `--epoch`, the adapter does too, and declares
+`"epoch": "exact"`; that run is the second one recorded, and `sgp4-ver-propagation` fails in it as said above.
+`tools/check_adapter_epoch.py` checks both readings, and CI runs it.
 
 ```bash
-gpconf run --cmd "'$PWD/.build/debug/gpkit-gpconf' --epoch vallado parse {fmt}" --vectors-cmd "'$PWD/.build/debug/gpkit-gpconf' --epoch vallado vectors" --write-cmd "'$PWD/.build/debug/gpkit-gpconf' write" --json gpconf-report-vallado.json
+gpconf run --cmd "'$PWD/.build/debug/gpkit-gpconf' parse {fmt}" --vectors-cmd "'$PWD/.build/debug/gpkit-gpconf' vectors" --write-cmd "'$PWD/.build/debug/gpkit-gpconf' write" --json gpconf-report-exact.json
 ```
 
 ## Propagating

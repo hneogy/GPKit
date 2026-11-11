@@ -76,6 +76,15 @@ func plainText(_ value: Any?) -> String? {
     return nil
 }
 
+/// A whole number from a request's digits: `25544`, and also `25544.0` or `1e5`, which JSON allows for the same
+/// integer and Foundation's `NSNumber` read as one in 1.x. nil for a fractional number, such as `25544.5`, or one
+/// past 2^53, beyond which a double no longer holds every integer.
+func wholeNumber(_ text: String) -> Int? {
+    if let integer = Int(text) { return integer }
+    guard let value = Double(text), value.isFinite, value == value.rounded(), abs(value) <= 9_007_199_254_740_992 else { return nil }
+    return Int(value)
+}
+
 func emit(_ text: String) {
     FileHandle.standardOutput.write(Data(text.utf8))
 }
@@ -164,10 +173,19 @@ case "vectors":
         case "alpha5_decode":
             emit("{\"result\":\(try Alpha5.decode(text))}")
         case "alpha5_encode":
-            guard let number = Int(text) else { throw Refusal(.cannotEncode, "\"\(text)\" is not a whole number") }
+            guard let number = wholeNumber(text) else { throw Refusal(.cannotEncode, "\"\(text)\" is not a whole number") }
             emit("{\"result\":\(jsonString(try Alpha5.encode(number)))}")
         case "two_digit_year":
-            guard text.utf8.count == 2, let year = Int(text), year >= 0 else { throw Refusal(.notANumber, "\"\(text)\" is not a two-digit year") }
+            // two digits as written ("05", "57"), or a whole number of two digits in another of JSON's forms (57.0,
+            // 5.7e1); a fraction is refused, and so is a one-digit number, which says nothing of a leading zero
+            let year: Int
+            if text.utf8.count == 2, let digits = Int(text), digits >= 0 {
+                year = digits
+            } else if let whole = wholeNumber(text), (10...99).contains(whole) {
+                year = whole
+            } else {
+                throw Refusal(.notANumber, "\"\(text)\" is not a two-digit year")
+            }
             emit("{\"result\":\(TLE.fullYear(twoDigit: year))}")
         case "parse_epoch":
             var epoch = try Epoch(ccsds: text)
@@ -225,23 +243,26 @@ case "write":
     func string(_ key: String) -> String? {
         plainText(record[key]).flatMap { $0.isEmpty ? nil : $0 }
     }
-    func integer(_ key: String) -> Int? {
-        string(key).flatMap { Int($0) }
-    }
     do {
+        // absent is nil; present and not a whole number is refused, never read as absent
+        func integer(_ key: String) throws(Refusal) -> Int? {
+            guard let text = string(key) else { return nil }
+            guard let value = wholeNumber(text) else { throw Refusal(.notANumber, "\(key) \"\(text)\" is not a whole number", field: key, text: text) }
+            return value
+        }
         func decimal(_ key: String) throws(Refusal) -> ExactDecimal {
             guard let text = string(key) else { return .zero }
             guard let value = ExactDecimal(text) else { throw Refusal(.notANumber, "\(key) \"\(text)\" is not a number", field: key, text: text) }
             return value
         }
         let set = ElementSet(
-            catalogNumber: integer("norad_cat_id"), objectName: string("object_name"), objectID: string("object_id"),
+            catalogNumber: try integer("norad_cat_id"), objectName: string("object_name"), objectID: string("object_id"),
             classification: string("classification_type"), epoch: try Epoch(ccsds: string("epoch") ?? ""),
             meanMotion: try decimal("mean_motion"), eccentricity: try decimal("eccentricity"), inclination: try decimal("inclination"),
             rightAscension: try decimal("ra_of_asc_node"), argumentOfPericenter: try decimal("arg_of_pericenter"),
             meanAnomaly: try decimal("mean_anomaly"), bstar: try decimal("bstar"), meanMotionDot: try decimal("mean_motion_dot"),
-            meanMotionDDot: try decimal("mean_motion_ddot"), ephemerisType: integer("ephemeris_type"),
-            elementSetNumber: integer("element_set_no"), revolutionAtEpoch: integer("rev_at_epoch"))
+            meanMotionDDot: try decimal("mean_motion_ddot"), ephemerisType: try integer("ephemeris_type"),
+            elementSetNumber: try integer("element_set_no"), revolutionAtEpoch: try integer("rev_at_epoch"))
         emit(try TLE.write(set).text + "\n")
     } catch {
         fail("GPKit refused to write the record: \(error)")

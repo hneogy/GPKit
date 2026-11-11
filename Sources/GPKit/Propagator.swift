@@ -59,7 +59,7 @@ public struct PropagationFailure: Error, Sendable, Hashable, CustomStringConvert
         let what: String
         switch kind {
         case .notSGP4: what = "the element set is not for SGP4"
-        case .sgp4XP: what = "the element set is for SGP4-XP (ephemeris type 4), which this library does not propagate"
+        case .sgp4XP: what = "the element set is for SGP4-XP (ephemeris type 4, or MEAN_ELEMENT_THEORY SGP4-XP), which this library does not propagate"
         case .eccentricity: what = "the mean eccentricity is 1 or more, or below -0.001"
         case .meanMotion: what = "the mean motion is zero or less"
         case .perturbedEccentricity: what = "the perturbed eccentricity is outside 0 to 1"

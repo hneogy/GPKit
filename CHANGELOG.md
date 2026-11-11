@@ -47,8 +47,10 @@ the measurement waits for gpconf 0.9.0's re-measure fetch, with medium-Earth and
   `edges` and a `Provenance` (where the sets came from, their epochs, their count by class, GPKit's version and the
   method's name, `DataAge.method`).
   - `init(_:edges:provenance:)` builds one from a measurement, with `DataAgeTable.defaultEdges` (0, 1, 2, 3, 5, 7,
-    10, 14, 21 and 30 days) unless given others; `init?(rows:edges:provenance:)` from a published table's parts, and the decoder reads one back, refusing a damaged table (edges that do not increase, a row off
-    the edges or given twice, percentiles out of order).
+    10, 14, 21 and 30 days) unless given others; `init?(rows:edges:provenance:)` from a published table's parts, and the decoder reads one back, refusing a damaged table (edges that do not increase or start
+    below 0, a row off the edges or given twice, percentiles out of order). The encoder refuses, with an
+    `EncodingError`, what the decoder would: percentiles holding a negative figure, a provenance whose latest epoch is
+    before its earliest.
   - `estimate(for:at:)` gives a `DataAge.Estimate`: `.row`, or why there is none (`.unclassified`, `.olderThanTable`,
     `.noRowForAge`, `.notAfterEpoch`). Nothing is extrapolated.
   - `Provenance.init(source:earliestEpoch:latestEpoch:sets:gpkitVersion:method:)` from its parts, and
@@ -83,7 +85,10 @@ the measurement waits for gpconf 0.9.0's re-measure fetch, with medium-Earth and
 - The gpconf adapter reads every number of a request as the digits the runner wrote. 1.x read them through
   Foundation's `NSNumber`, whose text has 16 significant digits, so a time such as `1440.0000000000002` minutes
   reached the propagator as `1440`, one double away (about 1e-11 km on gpconf's calls, far inside its bar, no verdict
-  changed). A propagate answer for a time of 17 significant digits can differ from 1.x's in the last place.
+  changed). A propagate answer for a time of 17 significant digits can differ from 1.x's in the last place. A whole
+  number written with a fraction or an exponent (`25544.0`, `1e5`) is still read as that integer, as 1.x read it,
+  and a fractional one where an integer is expected (`25544.5`) is refused, in a written record never taken for an
+  absent field. `tools/check_adapter_numbers.py` checks both, and CI runs it.
 
 ### Known platform difference
 

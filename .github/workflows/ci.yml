@@ -70,6 +70,10 @@ jobs:
       - name: The adapter's epoch readings
         run: python tools/check_adapter_epoch.py "$PWD/.build/debug/gpkit-gpconf"
 
+      # the adapter reads a request's numbers as the digits sent; whole numbers in any form, fractions refused
+      - name: The adapter's numbers
+        run: python tools/check_adapter_numbers.py "$PWD/.build/debug/gpkit-gpconf"
+
   # Linux, on the official Swift image at a pinned release: the same steps as on macOS.
   linux:
     name: build, test, gpconf (ubuntu-latest, Swift 6.4.2)
@@ -148,6 +152,9 @@ jobs:
 
       - name: The adapter's epoch readings
         run: python3 tools/check_adapter_epoch.py "$PWD/.build/debug/gpkit-gpconf"
+
+      - name: The adapter's numbers
+        run: python3 tools/check_adapter_numbers.py "$PWD/.build/debug/gpkit-gpconf"
 
       # the catalogue-scale article's code is the code its test runs
       - name: The article's code

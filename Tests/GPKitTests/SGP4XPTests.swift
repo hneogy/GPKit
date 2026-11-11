@@ -89,6 +89,7 @@ import Testing
         let failure = PropagationFailure(kind: .sgp4XP, minutesFromEpoch: nil)
         #expect(failure.description.contains("SGP4-XP"))
         #expect(failure.description.contains("ephemeris type 4"))
+        #expect(failure.description.contains("MEAN_ELEMENT_THEORY SGP4-XP"))
     }
 
     @Test func writingKeepsTheTypeAsRead() throws {
