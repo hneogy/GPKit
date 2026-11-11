@@ -42,8 +42,32 @@ func jsonString(_ text: String) -> String {
     return out + "\""
 }
 
-/// A JSON value as text: a string as it is, a number in digits. Foundation hands numbers back as different types
-/// on macOS and on Linux, so each is tried.
+/// A request with every bare JSON number turned into a string of its own digits, so that a number reaches GPKit as
+/// the runner wrote it. Read as a number, Foundation keeps a time such as 194.20286720000001 as a double and gives it
+/// back to 16 significant digits, one double away from what was sent.
+func numbersAsText(_ data: Data) -> Data {
+    var out = Data(capacity: data.count + 64)
+    var inString = false, escaped = false, inNumber = false
+    for byte in data {
+        if inString {
+            out.append(byte)
+            if escaped { escaped = false } else if byte == UInt8(ascii: "\\") { escaped = true } else if byte == UInt8(ascii: "\"") { inString = false }
+            continue
+        }
+        let numeric = (byte >= UInt8(ascii: "0") && byte <= UInt8(ascii: "9")) || byte == UInt8(ascii: "-")
+            || (inNumber && (byte == UInt8(ascii: "+") || byte == UInt8(ascii: ".") || byte == UInt8(ascii: "e") || byte == UInt8(ascii: "E")))
+        if numeric && !inNumber { out.append(UInt8(ascii: "\"")); inNumber = true }
+        if !numeric && inNumber { out.append(UInt8(ascii: "\"")); inNumber = false }
+        if byte == UInt8(ascii: "\"") { inString = true }
+        out.append(byte)
+    }
+    if inNumber { out.append(UInt8(ascii: "\"")) }
+    return out
+}
+
+/// A JSON value as text: a string as it is, a number in digits. The requests are read through numbersAsText, so a
+/// number arrives as a string; the rest is for a value that does not, and Foundation hands numbers back as different
+/// types on macOS and on Linux, so each is tried.
 func plainText(_ value: Any?) -> String? {
     if let string = value as? String { return string }
     if let integer = value as? Int { return String(integer) }
@@ -130,7 +154,7 @@ case "parse":
     emit("[" + items.joined(separator: ",") + "]\n")
 
 case "vectors":
-    guard let request = (try? JSONSerialization.jsonObject(with: input)) as? [String: Any], let op = request["op"] as? String else {
+    guard let request = (try? JSONSerialization.jsonObject(with: numbersAsText(input))) as? [String: Any], let op = request["op"] as? String else {
         emit("{\"error\":\"the request is not {op, input}\"}")
         exit(1)
     }
@@ -197,7 +221,7 @@ case "vectors":
     }
 
 case "write":
-    guard let record = (try? JSONSerialization.jsonObject(with: input)) as? [String: Any] else { fail("the record is not a JSON object", code: 2) }
+    guard let record = (try? JSONSerialization.jsonObject(with: numbersAsText(input))) as? [String: Any] else { fail("the record is not a JSON object", code: 2) }
     func string(_ key: String) -> String? {
         plainText(record[key]).flatMap { $0.isEmpty ? nil : $0 }
     }
