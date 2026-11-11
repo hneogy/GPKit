@@ -6,6 +6,19 @@ nothing public is removed or changed in a way that breaks code written against a
 
 ## Unreleased
 
+Changed in the public interface; this breaks code written against 1.x, so it waits for 2.0:
+
+- `PropagationFailure.Kind.sgp4XP`: an element set for SGP4-XP, whose ephemeris type is 4 or whose
+  `MEAN_ELEMENT_THEORY` is `SGP4-XP`, is refused by `Propagator.init` with this kind of its own, from a TLE and from
+  every OMM format alike; 1.x refuses it as `.notSGP4`, which now means a theory other than SGP4 or SGP4-XP. A
+  `switch` that lists every kind of `PropagationFailure.Kind` without a `default` no longer compiles until it handles
+  `.sgp4XP`. The set is still read as written, and the TLE writer keeps its type. Tested in every format, with the
+  type-0 twins propagating alike (`SGP4XPTests`).
+- The gpconf adapter (`gpkit-gpconf vectors`) answers gpconf's `propagate` op, each step's position and velocity or
+  Vallado's error code; gpconf's `ephemeris-type-4-refused` and `propagation-tle-omm-twins` cases pass with it. It
+  reads a set with its checksums unchecked, as Vallado's reader does, since gpconf holds his verification sets valid
+  input for propagation; `parse` still verifies them.
+
 Added to the public interface; nothing is removed or changed:
 
 - `DataAge`, groundwork for the data-age estimate (roadmap 2.0-c): `DataAge.samples(_:maximumAge:)` propagates each

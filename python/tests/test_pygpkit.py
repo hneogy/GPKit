@@ -148,5 +148,15 @@ class TheInterface(unittest.TestCase):
         self.assertIsNotNone(caught.exception.minutes_from_epoch)
 
 
+    def test_an_sgp4_xp_set_is_refused_with_its_own_kind(self):
+        line1 = "1 20453U 90008B   26263.56914166  .00350177  49935-4  75989-3 4  999"
+        line1 += str(sum(int(c) if c.isdigit() else (1 if c == "-" else 0) for c in line1) % 10)
+        line2 = "2 20453  35.5934 307.3932 0022512 310.3690  49.5094 15.96788691956793"
+        (s,) = pygpkit.read((line1 + "\r\n" + line2 + "\r\n").encode(), format="tle").element_sets
+        with self.assertRaises(pygpkit.PropagationFailure) as caught:
+            pygpkit.Propagator(s)
+        self.assertEqual(caught.exception.kind, "sgp4XP")
+
+
 if __name__ == "__main__":
     unittest.main()
