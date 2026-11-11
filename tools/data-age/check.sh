@@ -11,4 +11,5 @@ test "$(sed -n 2p "$dir/out/samples.csv" | cut -d, -f1-5)" = "25544,LEO,1998-11-
     || { echo "samples.csv is not the one pair expected:" >&2; cat "$dir/out/samples.csv" >&2; exit 1; }
 test "$(wc -l < "$dir/out/samples.csv" | tr -d ' ')" = 2 || { echo "more than one pair" >&2; exit 1; }
 test "$(cut -d, -f1-4 "$dir/out/table.csv" | sed -n 2p)" = "LEO,0.0,1.0,1" || { echo "table.csv is not one row" >&2; cat "$dir/out/table.csv" >&2; exit 1; }
-echo "the data-age tool: one pair, one day old, one row"
+grep -q '"orbitClass" : "LEO"' "$dir/out/table.json" || { echo "table.json does not hold the row" >&2; cat "$dir/out/table.json" >&2; exit 1; }
+echo "the data-age tool: one pair, one day old, one row, and its table as JSON"

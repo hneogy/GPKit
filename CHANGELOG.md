@@ -4,7 +4,7 @@ Every change to GPKit's public interface is said here, in the release that makes
 the interface, and CI stops a change to it that this file does not say (`tools/public-api.sh --check`). Within 1.x
 nothing public is removed or changed in a way that breaks code written against an earlier 1.x release.
 
-## Unreleased
+## 2.0.0 (unreleased)
 
 Changed in the public interface; this breaks code written against 1.x, so it waits for 2.0:
 
