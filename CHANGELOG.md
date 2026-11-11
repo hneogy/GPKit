@@ -6,34 +6,74 @@ nothing public is removed or changed in a way that breaks code written against a
 
 ## 2.0.0 (unreleased)
 
-Changed in the public interface; this breaks code written against 1.x, so it waits for 2.0:
+GPKit 2.0. One change breaks code written against 1.x: an SGP4-XP element set is refused with a kind of its own.
+Everything else is added. How to move a 1.x program: the article "Migrating to GPKit 2.0"
+(`Sources/GPKit/GPKit.docc/Articles/Migrating.md`), whose code is compiled in a test.
+
+### Breaking changes
 
 - `PropagationFailure.Kind.sgp4XP`: an element set for SGP4-XP, whose ephemeris type is 4 or whose
   `MEAN_ELEMENT_THEORY` is `SGP4-XP`, is refused by `Propagator.init` with this kind of its own, from a TLE and from
-  every OMM format alike; 1.x refuses it as `.notSGP4`, which now means a theory other than SGP4 or SGP4-XP. A
-  `switch` that lists every kind of `PropagationFailure.Kind` without a `default` no longer compiles until it handles
-  `.sgp4XP`. The set is still read as written, and the TLE writer keeps its type. Tested in every format, with the
-  type-0 twins propagating alike (`SGP4XPTests`).
-- The gpconf adapter (`gpkit-gpconf vectors`) answers gpconf's `propagate` op, each step's position and velocity or
-  Vallado's error code; gpconf's `ephemeris-type-4-refused` and `propagation-tle-omm-twins` cases pass with it. It
-  reads a set with its checksums unchecked, as Vallado's reader does, since gpconf holds his verification sets valid
-  input for propagation; `parse` still verifies them.
+  every OMM format alike. 1.x refuses it as `.notSGP4`, which now means a theory other than SGP4 or SGP4-XP.
+  - A `switch` that lists every kind of `PropagationFailure.Kind` without a `default` no longer compiles until it
+    handles `.sgp4XP`.
+  - Code that tests for `.notSGP4` to catch every set SGP4 is not for must test for `.sgp4XP` too.
+  - The set is still read as written, and the TLE writer keeps its type. Tested in every format, with the type-0
+    twins propagating alike (`SGP4XPTests`).
+  - This is the only break SwiftPM's API digester finds against 1.4.0 (`tools/public-api.sh --check`).
 
-Added to the public interface; nothing is removed or changed:
+### Added to the public interface
 
-- `DataAge`, groundwork for the data-age estimate (roadmap 2.0-c): `DataAge.samples(_:maximumAge:)` propagates each
-  older set of a satellite to the epoch of each newer set of it and gives the position error there, whole and as
-  radial, transverse (called in-track) and cross-track parts, a set given twice counted once and sets of one
-  satellite sharing an epoch but differing left out; `DataAge.table(_:edges:)` sums samples up as percentiles (median, 68th,
-  95th, maximum, by nearest rank) by regime and span of age; `DataAge.estimate(for:at:from:)` reads a set's row from
-  such a table, extrapolating nothing. GPKit ships no table: the measurement waits for gpconf 0.9.0's re-measure
-  fetch, with medium-Earth and geosynchronous sets (the owner's ruling, 2026-11-07).
-- `OrbitRegime` and `ElementSet.regime`: the orbit's class among ESA's orbit classes (the ESA Space Debris Office's
-  Annual Space Environment Report, Issue 10.0, 1 May 2026, Table 1.2, page 15: GEO, IGO, EGO, NSO, GTO, MEO, GHO,
-  LEO, HAO, MGO, HEO, LMO or UFO), from the mean motion, eccentricity and inclination, the ranges stated in the documentation;
-  `ElementSet.age(at:)`, in days.
-- `tools/data-age`, a package of its own: `gpkit-data-age OUT-DIR FILE...` measures over element-set files already
-  held, makes no request, and writes the samples and the table to OUT-DIR.
+The data-age estimate's API, in its 2.0 shape (option B of `docs/design/data-age-api-2.0.md`). GPKit ships no table:
+the measurement waits for gpconf 0.9.0's re-measure fetch, with medium-Earth and geosynchronous sets.
+
+- `OrbitClass`, the class of an orbit among ESA's orbit classes (ESA Space Debris Office, Annual Space Environment
+  Report, Issue 10.0, 1 May 2026, Table 1.2, page 15), from the mean motion, eccentricity and inclination, the ranges
+  stated in the documentation.
+  - A struct on ESA's abbreviation (`rawValue`: "GEO", "LEO", ...), with a constant per class (`.geostationary`,
+    `.lowEarth`, ..., `.undefined` for UFO) and `esaClasses` in the report's order. A class ESA adds later is a new
+    constant and breaks nothing; a `switch` over classes needs a `default`.
+  - `Codable` as its abbreviation, and usable as a dictionary key that encodes as one.
+- `ElementSet.orbitClass`, and `ElementSet.age(at:)`, in days.
+- `DataAge.measure(_:maximumAge:)` propagates each older set of a satellite to the epoch of each newer set of it and
+  gives a `DataAge.Measurement`:
+  - `samples`, each the position error there, whole and as radial, transverse (called in-track) and cross-track
+    parts (`DataAge.Sample`);
+  - `failures`, the pairs not measured, by `PropagationFailure.Kind`, and `failureCount`;
+  - `sets`, the sets measured by class, and `epochs`, the earliest and latest of them.
+  A set given twice counts once, and sets of one satellite that share an epoch and differ are left out.
+- `DataAgeTable`, `Codable`: `rows` (`DataAge.Row`: a class, a span of age and the errors' `DataAge.Percentiles`),
+  `edges` and a `Provenance` (where the sets came from, their epochs, their count by class, GPKit's version and the
+  method's name, `DataAge.method`).
+  - `init(_:edges:provenance:)` builds one from a measurement, `init?(rows:edges:provenance:)` from a published
+    table's parts, and the decoder reads one back, refusing a damaged table (edges that do not increase, a row off
+    the edges or given twice, percentiles out of order).
+  - `estimate(for:at:)` gives a `DataAge.Estimate`: `.row`, or why there is none (`.unclassified`, `.olderThanTable`,
+    `.noRowForAge`, `.notAfterEpoch`). Nothing is extrapolated.
+- `DataAge.Percentiles(count:median:p68:p95:maximum:)`, nil unless the figures are in order, beside the nearest-rank
+  `init?(_:)`; `DataAge.gpkitVersion`.
+
+### Outside the public interface
+
+- `tools/data-age`, a package of its own: `gpkit-data-age OUT-DIR FILE... [--source TEXT]` measures over element-set
+  files already held, makes no request, and writes the samples and the table, as CSV and as a `DataAgeTable` in JSON.
+- Vallado's `tcppver.out`, line for line: `TcppverTests` makes every printed line again, from GPKit with
+  `Propagator.EpochReading.vallado` and from Vallado's C++ as the package compiles it, and compares each number at
+  the file's digits, where `GPKIT_SGP4_VER` names a directory holding the file (GPKit does not ship it).
+  - GPKit prints what the C++ prints in every column of every line.
+  - Against the file: 630 of 666 lines alike in every number, every element alike; where both differ from the file,
+    the C++ itself does not reproduce it here (`conformance/vallado-tcppver-2026-11-11.txt`).
+  - The test oracle exposes Vallado's `rv2coe`, `invjday` and the reader's epoch for it.
+- The gpconf adapter reads a set for its `propagate` op with its checksums unchecked, as Vallado's reader does;
+  `parse` still verifies them. An SGP4-XP set is an error for the call, now as `.sgp4XP`.
+- gpconf's propagation tier: the current corpus run in full, offline, in both epoch readings
+  (`conformance/gpconf-0.9.0-candidate-2026-11-11.txt`). `tools/check_gpconf.py` lets its three propagation cases
+  meet the bar within gpconf's tolerance, as gpconf grades them, and every other case still only as a plain pass.
+- `tools/public-api.sh --check` holds a release to the latest tag of its own major version. For a new major's first
+  release it compares with the previous major and fails on any break its changelog's "Breaking changes" does not
+  name; this section names the one break it finds.
+- The 2.0 roadmap (`ROADMAP.md`) and the design notes (`docs/design/`): the release plan, the data-age API's options
+  and GPKit everywhere.
 
 ## 1.4.0 (2026-11-10)
 

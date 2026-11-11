@@ -16,6 +16,7 @@ your radio.
 ### Essentials
 
 - <doc:Concepts>
+- <doc:Migrating>
 
 ### Reading
 
@@ -30,6 +31,12 @@ your radio.
 - ``Epoch``
 - <doc:CatalogueScale>
 - ``StateBlock``
+
+### Data age
+
+- ``OrbitClass``
+- ``DataAge``
+- ``DataAgeTable``
 
 ### Passes and Doppler
 

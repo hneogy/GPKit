@@ -10,12 +10,22 @@ detail can quote provider values, and this output is kept.
 Offline, the cases that run from files shipped with the corpus must pass and no case may fail; the cases that need
 provider files report not-fetched, which is expected there. With --gate every case must pass, except the one that
 checks data and runs no parser (it reports not-exercised for every library), and none may be skipped or left unfetched.
+
+The propagation cases (gpconf 0.9.0's tier) are graded against reference numbers within gpconf's bar, 2e-7 km and
+km/s: within it is "pass-tolerance", and plain "pass" means the reference's numbers to the bit, which a propagator
+gives only where its arithmetic is the reference's (gpconf's design: a parser copying tcppver.out passes exactly).
+For those three, pass-tolerance meets the bar; everywhere else only pass does.
 """
 import json
 import sys
 
 OFFLINE = ["alpha5-encoding-vectors", "alpha5-tle-derived", "kvn-syntax-variants", "tle-writer-alpha5", "corrupt-input"]
 NO_PARSER = ["satcat-70000-cutoff"]
+PROPAGATION = ["sgp4-ver-propagation", "propagation-tle-omm-twins", "ephemeris-type-4-refused"]
+
+
+def passed(case, s):
+    return s == "pass" or (case in PROPAGATION and s == "pass-tolerance")
 
 
 def main(path, gate):
@@ -35,7 +45,7 @@ def main(path, gate):
     problems = [f"{c} is {s}" for c, s in status.items() if s == "fail"]
     problems += [f"{c} is {status.get(c, 'absent')}, not pass" for c in OFFLINE if status.get(c) != "pass"]
     if gate:
-        problems += [f"{c} is {s}, not pass" for c, s in status.items() if c not in NO_PARSER and c not in OFFLINE and s != "pass"]
+        problems += [f"{c} is {s}, not pass" for c, s in status.items() if c not in NO_PARSER and c not in OFFLINE and not passed(c, s)]
         problems += [f"{c} is {status.get(c, 'absent')}, not not-exercised" for c in NO_PARSER if status.get(c) != "not-exercised"]
     if problems:
         print("NOT MET: " + "; ".join(dict.fromkeys(problems)))
