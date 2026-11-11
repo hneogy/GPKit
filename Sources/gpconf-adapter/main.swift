@@ -76,10 +76,35 @@ func plainText(_ value: Any?) -> String? {
     return nil
 }
 
-/// A whole number from a request's digits: `25544`, and also `25544.0` or `1e5`, which JSON allows for the same
-/// integer and Foundation's `NSNumber` read as one in 1.x. nil for a fractional number, such as `25544.5`, or one
-/// past 2^53, beyond which a double no longer holds every integer.
+/// Whether text is a number in decimal digits alone: an optional `-`, digits, then optionally `.` and digits, then
+/// optionally `e` or `E`, a sign and digits. A JSON number has this form, and so must an integer sent as a JSON
+/// string. Swift's own readers are looser (`Int` takes `+5`; `Double` takes `0x63C8`, `nan`), so they run only on
+/// text that passed this: no `0x`, `0o` or `0b`, no leading `+`, no `_`, no space before or after.
+func isDecimalNumber(_ text: String) -> Bool {
+    var bytes = Array(text.utf8)[...]
+    func digits() -> Bool {
+        let start = bytes.startIndex
+        while let b = bytes.first, b >= UInt8(ascii: "0"), b <= UInt8(ascii: "9") { bytes = bytes.dropFirst() }
+        return bytes.startIndex > start
+    }
+    if bytes.first == UInt8(ascii: "-") { bytes = bytes.dropFirst() }
+    guard digits() else { return false }
+    if bytes.first == UInt8(ascii: ".") { bytes = bytes.dropFirst(); guard digits() else { return false } }
+    if bytes.first == UInt8(ascii: "e") || bytes.first == UInt8(ascii: "E") {
+        bytes = bytes.dropFirst()
+        if bytes.first == UInt8(ascii: "+") || bytes.first == UInt8(ascii: "-") { bytes = bytes.dropFirst() }
+        guard digits() else { return false }
+    }
+    return bytes.isEmpty
+}
+
+/// A whole number from a request's digits, whether sent as a JSON number or a JSON string: `25544`, and also
+/// `25544.0` or `1e5`, which JSON allows for the same integer and Foundation's `NSNumber` read as one in 1.x. A `-`
+/// is read, and the field's own range check then applies. nil for text not in decimal digits (`isDecimalNumber`),
+/// for a fractional number such as `25544.5`, and for one past 2^53, beyond which a double no longer holds every
+/// integer.
 func wholeNumber(_ text: String) -> Int? {
+    guard isDecimalNumber(text) else { return nil }
     if let integer = Int(text) { return integer }
     guard let value = Double(text), value.isFinite, value == value.rounded(), abs(value) <= 9_007_199_254_740_992 else { return nil }
     return Int(value)
@@ -179,7 +204,7 @@ case "vectors":
             // two digits as written ("05", "57"), or a whole number of two digits in another of JSON's forms (57.0,
             // 5.7e1); a fraction is refused, and so is a one-digit number, which says nothing of a leading zero
             let year: Int
-            if text.utf8.count == 2, let digits = Int(text), digits >= 0 {
+            if text.utf8.count == 2, text.utf8.allSatisfy({ $0 >= UInt8(ascii: "0") && $0 <= UInt8(ascii: "9") }), let digits = Int(text) {
                 year = digits
             } else if let whole = wholeNumber(text), (10...99).contains(whole) {
                 year = whole

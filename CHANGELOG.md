@@ -88,7 +88,10 @@ the measurement waits for gpconf 0.9.0's re-measure fetch, with medium-Earth and
   changed). A propagate answer for a time of 17 significant digits can differ from 1.x's in the last place. A whole
   number written with a fraction or an exponent (`25544.0`, `1e5`) is still read as that integer, as 1.x read it,
   and a fractional one where an integer is expected (`25544.5`) is refused, in a written record never taken for an
-  absent field. `tools/check_adapter_numbers.py` checks both, and CI runs it.
+  absent field. An integer sent as a JSON string is read only in decimal digits, plain or integral decimal
+  (`"25544"`, `"25544.0"`): hexadecimal, octal or binary (`0x`, `0o`, `0b`), a leading `+`, an underscore and a space
+  or tab before or after are refused with an error, and a `-` is read and then held to the field's range.
+  `tools/check_adapter_numbers.py` checks each form, and CI runs it.
 
 ### Known platform difference
 

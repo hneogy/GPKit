@@ -90,6 +90,40 @@ def main(adapter):
           " norad_cat_id, ephemeris_type, element_set_no and rev_at_epoch")
 
 
+    # integers sent as JSON strings: plain decimal digits, or integral decimal text, as numbers are; every other form
+    # refused with an error; a "-" read, and then refused by the field's own range check, not as text
+    for text in ['"100000"', '"100000.0"', '"1e5"']:
+        code, answer = vectors(adapter, "alpha5_encode", text)
+        if code != 0 or answer.get("result") != "A0000":
+            fail("alpha5_encode %s gave %r, not A0000" % (text, answer))
+    for number in ['"5"', '"5.0"', '"0005"']:
+        done = call(adapter, ["write"], RECORD % (number, "0", "475", "41366"))
+        if done.returncode != 0 or done.stdout != base.stdout:
+            fail("norad_cat_id %s did not write as 5: %r" % (number, done.stdout + done.stderr))
+    forms = {"hex": "0x%s", "octal": "0o%s", "binary": "0b%s", "plus": "+%s", "underscore": "%s_0",
+             "space before": " %s", "space after": "%s ", "tab before": "\\t%s"}
+    for form, shape in forms.items():
+        for op, value in [("alpha5_encode", "100000"), ("two_digit_year", "57")]:
+            text = '"%s"' % (shape % value)
+            code, answer = vectors(adapter, op, text)
+            if code == 0 or "error" not in answer:
+                fail("%s %s (%s) was not refused: %r" % (op, text, form, answer))
+        for field in range(4):
+            fields = ["5", "0", "475", "41366"]
+            fields[field] = '"%s"' % (shape % ("1" if field < 2 else fields[field]))
+            done = call(adapter, ["write"], RECORD % tuple(fields))
+            if done.returncode == 0 or b"is not a whole number" not in done.stderr:
+                fail("write %r (%s) was not refused as not a whole number: %r" % (fields, form, done.stdout + done.stderr))
+    print("met: integers as text: digits and integral decimals read; hex, octal, binary, a leading +, underscores and"
+          " surrounding whitespace refused in alpha5_encode, two_digit_year and every integer field of write")
+    code, answer = vectors(adapter, "alpha5_encode", '"-5"')
+    if code == 0 or "is not a whole number" in answer.get("error", ""):
+        fail('alpha5_encode "-5" was not read and then refused by its range: %r' % answer)
+    done = call(adapter, ["write"], RECORD % ('"-5"', "0", "475", "41366"))
+    if done.returncode == 0 or b"is not a whole number" in done.stderr:
+        fail('write norad_cat_id "-5" was not read and then refused by its range: %r' % (done.stdout + done.stderr))
+    print('met: "-5" is read as -5 and refused by the range check, in alpha5_encode and in write')
+
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print(__doc__)
