@@ -6,7 +6,8 @@ Move a program written against GPKit 1.x to 2.0: one change breaks code, and the
 
 GPKit 2.0 changes one thing a 1.x program can depend on: an element set for SGP4-XP is refused with a kind of its
 own, ``PropagationFailure/Kind-swift.enum/sgp4XP``. Everything else in 2.0 is new, so code that does not look at
-the kind of a ``PropagationFailure`` builds and runs as before.
+the kind of a ``PropagationFailure`` builds as before, and runs as before except that an SGP4-XP set's
+`description` now names SGP4-XP. Code that compares that text, or tests a snapshot of it, sees the change.
 
 ### SGP4-XP sets have their own kind
 
@@ -48,12 +49,16 @@ func explain(_ failure: PropagationFailure) -> String {
   that age, read from a measured table. GPKit ships no table yet; ``DataAge/measure(_:maximumAge:)`` makes the
   measurement from sets you hold. ``OrbitClass`` is a struct, not an enum, so a `switch` over classes needs a
   `default`: ESA's list of classes grows, and a class added later breaks nothing.
+- Two members are added to ``ElementSet``: `orbitClass` and `age(at:)`. If an extension of your own declares
+  either, rename yours, or a call to it becomes ambiguous.
 
 ### The gpconf adapter
 
 If you drive `gpkit-gpconf` yourself: it now reads a request's numbers as the digits sent, so a whole number written
 as `25544.0` or `1e5` still reads as that integer, and a fractional one where an integer is expected, such as
-`25544.5`, is refused.
+`25544.5`, is refused. Integers sent as JSON text follow the same rule: digits, or an integral number such as
+`"25544.0"` or `"1e5"`, are read, and any other form, such as `"0x…"`, `"+5"` or `" 5"`, is refused. The adapter
+is not a product of the package; it is built from a checkout of GPKit.
 
 ### Checking a program
 
