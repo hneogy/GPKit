@@ -2,8 +2,9 @@
 
 [![CI](https://github.com/hneogy/GPKit/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/hneogy/GPKit/actions/workflows/ci.yml)
 
-GPKit reads GP data — OMM and TLE, including six-digit catalog numbers. Against gpconf 0.8.0 it passes 17 of the 18
-cases, and none fails; the eighteenth checks data and runs no parser.
+GPKit reads GP data — OMM and TLE, including six-digit catalog numbers. Against gpconf ⟦0.9.0⟧ it passes ⟦20 of the
+21⟧ cases, and none fails, with Vallado's verification case run in his epoch reading (below); the ⟦twenty-first⟧
+checks data and runs no parser.
 
 ```swift
 let iss = try ElementSets.read(csv, as: .csv).elementSets[0]
@@ -32,7 +33,7 @@ reference and Skyfield.
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/hneogy/GPKit.git", from: "1.4.0"),
+    .package(url: "https://github.com/hneogy/GPKit.git", from: "2.0.0"),
 ],
 targets: [
     .target(name: "YourTarget", dependencies: ["GPKit"]),
@@ -141,9 +142,12 @@ element set number or revolution number as 0.
 [gpconf](https://github.com/hneogy/gp-omm-conformance) is a conformance corpus for GP data, built from what providers
 serve. GPKit's adapter for its runner is in this package (`Sources/gpconf-adapter`), and CI runs it on every push.
 
-With gpconf 0.8.0, on 2026-11-05: **17 of 18 cases pass, each on every item exactly, and none fails or is
-skipped.** The eighteenth, `satcat-70000-cutoff`, checks data and runs no parser; it reports not exercised for every
-library. The run's summary is in [`conformance/`](conformance/).
+With gpconf ⟦0.9.0⟧, on ⟦date⟧, with the adapter's `--epoch vallado`: **⟦17⟧ cases pass on every item exactly, the
+⟦three⟧ propagation cases pass within gpconf's tolerance, and none fails or is skipped.** The ⟦twenty-first⟧,
+`satcat-70000-cutoff`, checks data and runs no parser; it reports not exercised for every library. With the exact
+epoch, GPKit's default, the result is the same but for `sgp4-ver-propagation`, which fails on one of Vallado's sets,
+23333, by ⟦4.11e-6⟧ km: his verification output was made from his reader's epoch, which rounds it, so that case is
+judged in his reading. The run's summary is in [`conformance/`](conformance/).
 
 ```bash
 swift build
@@ -154,12 +158,12 @@ gpconf run --cmd "'$PWD/.build/debug/gpkit-gpconf' parse {fmt}" --vectors-cmd "'
 python3 tools/check_gpconf.py gpconf-report.json --gate
 ```
 
-Thirteen of the cases read provider files, which the corpus fetches once to your machine and does not ship. CI
-never fetches: it runs the five cases that need no provider file, and `tools/check_gpconf.py` without `--gate` is
+⟦Thirteen⟧ of the cases read provider files, which the corpus fetches once to your machine and does not ship. CI
+never fetches: it runs the ⟦five⟧ cases that need no provider file, and `tools/check_gpconf.py` without `--gate` is
 its bar. The full run is made before a release, from a copy of the corpus that holds its files.
 
-GPKit's recorded result propagates from the exact epoch. For a second run beside it, `--epoch vallado` before each
-command makes the adapter propagate from the epoch as Vallado's C++ reader makes it
+GPKit propagates from the exact epoch by default, and the first run above does too. For the run that is judged,
+`--epoch vallado` before each command makes the adapter propagate from the epoch as Vallado's C++ reader makes it
 (`Propagator.EpochReading.vallado`), which is how his `tcppver.out` was made, and declares
 `"epoch": "vallado"` in gpconf's constants declaration; without it the declaration says `"epoch": "exact"`. Give it
 to `--cmd` and `--vectors-cmd` alike. `tools/check_adapter_epoch.py` checks both readings, and CI runs it.
