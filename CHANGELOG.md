@@ -1,8 +1,9 @@
 # Changelog
 
 Every change to GPKit's public interface is said here, in the release that makes it. `docs/public-api.swift` states
-the interface, and CI stops a change to it that this file does not say (`tools/public-api.sh --check`). Within 1.x
-nothing public is removed or changed in a way that breaks code written against an earlier 1.x release.
+the interface, and CI stops a change to it that this file does not say (`tools/public-api.sh --check`). Within a
+major version nothing public is removed or changed in a way that breaks code written against an earlier release of
+it; a break waits for the next major version, whose entry names each one under "Breaking changes".
 
 ## 2.0.0 (unreleased)
 
@@ -45,11 +46,14 @@ the measurement waits for gpconf 0.9.0's re-measure fetch, with medium-Earth and
 - `DataAgeTable`, `Codable`: `rows` (`DataAge.Row`: a class, a span of age and the errors' `DataAge.Percentiles`),
   `edges` and a `Provenance` (where the sets came from, their epochs, their count by class, GPKit's version and the
   method's name, `DataAge.method`).
-  - `init(_:edges:provenance:)` builds one from a measurement, `init?(rows:edges:provenance:)` from a published
-    table's parts, and the decoder reads one back, refusing a damaged table (edges that do not increase, a row off
+  - `init(_:edges:provenance:)` builds one from a measurement, with `DataAgeTable.defaultEdges` (0, 1, 2, 3, 5, 7,
+    10, 14, 21 and 30 days) unless given others; `init?(rows:edges:provenance:)` from a published table's parts, and the decoder reads one back, refusing a damaged table (edges that do not increase, a row off
     the edges or given twice, percentiles out of order).
   - `estimate(for:at:)` gives a `DataAge.Estimate`: `.row`, or why there is none (`.unclassified`, `.olderThanTable`,
     `.noRowForAge`, `.notAfterEpoch`). Nothing is extrapolated.
+  - `Provenance.init(source:earliestEpoch:latestEpoch:sets:gpkitVersion:method:)` from its parts, and
+    `Provenance.init?(source:measurement:)` from a measurement (nil when the measurement has no epochs);
+    `DataAge.Row.init(orbitClass:fromAge:toAge:positionError:)`.
 - `DataAge.Percentiles(count:median:p68:p95:maximum:)`, nil unless the figures are in order, beside the nearest-rank
   `init?(_:)`; `DataAge.gpkitVersion`.
 
@@ -59,7 +63,8 @@ the measurement waits for gpconf 0.9.0's re-measure fetch, with medium-Earth and
   files already held, makes no request, and writes the samples and the table, as CSV and as a `DataAgeTable` in JSON.
 - Vallado's `tcppver.out`, line for line: `TcppverTests` makes every printed line again, from GPKit with
   `Propagator.EpochReading.vallado` and from Vallado's C++ as the package compiles it, and compares each number at
-  the file's digits, where `GPKIT_SGP4_VER` names a directory holding the file (GPKit does not ship it).
+  the file's digits, where `GPKIT_SGP4_VER` names a directory holding both of its files, `SGP4-VER.TLE` and `tcppver.out` (GPKit
+  ships neither).
   - GPKit prints what the C++ prints in every column of every line.
   - Against the file: 630 of 666 lines alike in every number, every element alike; where both differ from the file,
     the C++ itself does not reproduce it here (`conformance/vallado-tcppver-2026-11-11.txt`).

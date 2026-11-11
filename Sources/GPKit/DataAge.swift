@@ -477,10 +477,12 @@ public struct DataAgeTable: Sendable, Hashable, Codable {
     public init?(rows: [DataAge.Row], edges: [Double], provenance: Provenance) {
         guard Self.edgesValid(edges) else { return nil }
         let spans = Set(zip(edges, edges.dropFirst()).map { [$0, $1] })
-        var seen = Set<[String]>()
+        // keyed on the numbers, not their text, so that -0.0 and 0.0 are one span as they are to the edges
+        struct Key: Hashable { let orbitClass: OrbitClass, fromAge: Double, toAge: Double }
+        var seen = Set<Key>()
         for row in rows {
             guard spans.contains([row.fromAge, row.toAge]),
-                  seen.insert([row.orbitClass.rawValue, "\(row.fromAge)", "\(row.toAge)"]).inserted else { return nil }
+                  seen.insert(Key(orbitClass: row.orbitClass, fromAge: row.fromAge, toAge: row.toAge)).inserted else { return nil }
         }
         self.rows = rows
         self.edges = edges

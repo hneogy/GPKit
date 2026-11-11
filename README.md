@@ -351,11 +351,14 @@ and `TutorialTests` compiles and runs the tutorials' code.
 
 ## Stability
 
-Code written against GPKit 1.0 keeps compiling through every 1.x release: within 1.x nothing public is removed or
-changed in a way that breaks it. New interface comes as additions, and what would break 1.x code waits for 2.0.
-Every change to the public interface is said in [`CHANGELOG.md`](CHANGELOG.md). CI holds both:
-`tools/public-api.sh --check` stops a change to the interface that `docs/public-api.swift` and the changelog do not
-state, and one that SwiftPM's API digester finds breaking against the latest 1.x release.
+Code written against GPKit 2.0 keeps compiling through every 2.x release: within a major version nothing public
+is removed or changed in a way that breaks it. New interface comes as additions, and what would break it waits for
+the next major version. 2.0 has one break against 1.x; the changelog names it, and the article "Migrating to GPKit
+2.0" says how to move. Every change to the public interface is said in [`CHANGELOG.md`](CHANGELOG.md). CI holds
+both: `tools/public-api.sh --check` stops a change to the interface that `docs/public-api.swift` and the changelog
+do not state, and one that SwiftPM's API digester finds breaking against the latest release of the same major
+version; a new major's first release is compared with the previous major, and every break it finds must be named
+under the changelog's "Breaking changes".
 
 ## Licence
 
