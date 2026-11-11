@@ -335,7 +335,8 @@ import Testing
         #expect(row.orbitClass == future)
     }
 
-    @Test func theVersionATableRecordsIsTheChangelogs() throws {
+    @Test(.enabled(if: theSourceTreeIsHere, "reads CHANGELOG.md, which is not on the device"))
+    func theVersionATableRecordsIsTheChangelogs() throws {
         // the first release heading of CHANGELOG.md, dated or not, is the version a table built here records
         let changelog = try String(contentsOf: URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
             .deletingLastPathComponent().appendingPathComponent("CHANGELOG.md"), encoding: .utf8)
