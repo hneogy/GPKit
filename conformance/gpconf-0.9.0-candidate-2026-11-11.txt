@@ -1,0 +1,102 @@
+GPKit against gpconf's coming 0.9.0 corpus: the full run, offline, before gpconf 0.9.0 is released.
+Run on 2026-11-11 (UTC), 02:08:49Z (vallado) and 02:09:10Z (exact), macOS 27.2.1 arm64, Apple Swift version 6.4.2, debug build on branch release-2.0.0
+at 713900d. The corpus graded is gpconf's development tree of 2026-11-11, which holds 0.9.0's cases (the propagation
+tier among them) and whose version constants still read 0.8.0, so the report says "gpconf 0.8.0, corpus 0.8.0". It
+is not a released gpconf: the run is to be made again on gpconf 0.9.0 as released, and that run is the result.
+The network was closed to the run (every proxy variable set to a port nothing listens on). The provider files are
+the maintainer's fetch of 2026-09-21, the same 128 files as conformance/gpconf-0.8.0-2026-11-05.txt (fingerprint
+below, equal to that record's). Vallado's SGP4-VER.TLE and tcppver.out were found with the corpus's bytes beside
+it; gpconf ships neither, and neither is in GPKit.
+Statuses and counts only; the full reports are not kept here, since an item's detail can quote provider values.
+
+How it was run (GPKIT this checkout, CORPUS a checkout of gpconf's tree, DATA a folder holding fixtures/<case>/raw/):
+
+  swift build
+  cd CORPUS && python3 -m gpconf run --root . --data DATA --no-fetch-hint -v \
+    --cmd "'$GPKIT/.build/debug/gpkit-gpconf' --epoch vallado parse {fmt}" \
+    --vectors-cmd "'$GPKIT/.build/debug/gpkit-gpconf' --epoch vallado vectors" \
+    --write-cmd "'$GPKIT/.build/debug/gpkit-gpconf' --epoch vallado write" \
+    --json report.json
+  python3 $GPKIT/tools/check_gpconf.py report.json --gate
+
+and again without --epoch vallado (the exact epoch, the adapter's default).
+
+== the vallado epoch (gpkit-gpconf --epoch vallado)
+gpconf 0.8.0, corpus 0.8.0
+  epoch-year-19xx                          pass             info 9, pass 34
+  baseline-iss-five-formats                pass             info 9, pass 27
+  six-digit-omm-saramago                   pass             info 10, pass 28
+  tle-omits-six-digit-objects              pass             info 3, pass 6
+  analyst-objects                          pass             info 14, pass 66
+  nine-digit-supgp-launch-nominals         pass             info 6, pass 26
+  supgp-celestrak-classification-c         pass             info 6, pass 24
+  bstar-and-derivative-forms               pass             info 8, pass 24
+  satcat-70000-cutoff                      not-exercised    info 6, not-exercised 1
+  csv-json-omitted-mandatory-fields        pass             pass 26
+  mean-motion-derivative-convention        pass             pass 7
+  tle-vs-omm-precision-loss                pass             pass 7
+  omm-xml-schema                           pass             info 8, pass 16
+  alpha5-encoding-vectors                  pass             pass 5
+  alpha5-tle-derived                       pass             info 16, pass 24
+  kvn-syntax-variants                      pass             info 7, pass 34
+  tle-writer-alpha5                        pass             info 2, pass 6
+  corrupt-input                            pass             info 12, pass 39
+  sgp4-ver-propagation                     pass-tolerance   info 1, pass 1, pass-tolerance 1
+  propagation-tle-omm-twins                pass-tolerance   info 1, pass 1, pass-tolerance 2
+  ephemeris-type-4-refused                 pass-tolerance   info 1, pass 1, pass-tolerance 1
+  cases 21, pass 17, pass-tolerance 3, fail 0, skip 0, not-fetched 0, not-available 0, not-exercised 1
+  gate, this month's launches, tle: 256 of 256 loaded, 0 refused, 0 misidentified, 0 dropped
+  gate, this month's launches, csv: 256 of 256 loaded, 0 refused, 0 misidentified, 0 dropped
+  report SHA-256: b24b36f3e8db06a8708806ae60bc1ef85bcb5cb188483808db4339999e0553aa
+
+== the exact epoch (gpkit-gpconf)
+gpconf 0.8.0, corpus 0.8.0
+  epoch-year-19xx                          pass             info 9, pass 34
+  baseline-iss-five-formats                pass             info 9, pass 27
+  six-digit-omm-saramago                   pass             info 10, pass 28
+  tle-omits-six-digit-objects              pass             info 3, pass 6
+  analyst-objects                          pass             info 14, pass 66
+  nine-digit-supgp-launch-nominals         pass             info 6, pass 26
+  supgp-celestrak-classification-c         pass             info 6, pass 24
+  bstar-and-derivative-forms               pass             info 8, pass 24
+  satcat-70000-cutoff                      not-exercised    info 6, not-exercised 1
+  csv-json-omitted-mandatory-fields        pass             pass 26
+  mean-motion-derivative-convention        pass             pass 7
+  tle-vs-omm-precision-loss                pass             pass 7
+  omm-xml-schema                           pass             info 8, pass 16
+  alpha5-encoding-vectors                  pass             pass 5
+  alpha5-tle-derived                       pass             info 16, pass 24
+  kvn-syntax-variants                      pass             info 7, pass 34
+  tle-writer-alpha5                        pass             info 2, pass 6
+  corrupt-input                            pass             info 12, pass 39
+  sgp4-ver-propagation                     fail             fail 1, info 1, pass 1
+  propagation-tle-omm-twins                pass-tolerance   info 1, pass 1, pass-tolerance 2
+  ephemeris-type-4-refused                 pass-tolerance   info 1, pass 1, pass-tolerance 1
+  cases 21, pass 17, pass-tolerance 2, fail 1, skip 0, not-fetched 0, not-available 0, not-exercised 1
+  gate, this month's launches, tle: 256 of 256 loaded, 0 refused, 0 misidentified, 0 dropped
+  gate, this month's launches, csv: 256 of 256 loaded, 0 refused, 0 misidentified, 0 dropped
+  report SHA-256: 65395683f9ee830834fb51cde532c43e9a654c0abcae3bbd4ebdf6e39568370a
+
+provider files: 128, fingerprint dd088d563aa52b90d2e0e5cb39417e476e0cceaf290778948cd955c2c0dd1e0d
+  (SHA-256 over the sorted paths fixtures/*/raw/*, each line "path NUL sha256-of-file LF")
+
+The propagation tier, item by item (largest differences; the bar is 2e-7 km and km/s per component):
+  sgp4-ver-propagation, vallado: positions within the bar, 1.17e-7 km and 5e-10 km/s at the most over 666 steps;
+    the 7 runs that end in an SGP4 error each end at their step with their code.
+  sgp4-ver-propagation, exact: positions fail on set 23333 alone (eccentricity 0.97), 4.11e-6 km at its epoch,
+    where the exact epoch is 19 microseconds from the one Vallado's reader makes; the error codes pass.
+  propagation-tle-omm-twins: each of the 7 sets from its TLE and from its OMM CSV within the bar of the corpus's
+    reference vectors (9.71e-10 km with vallado, 1.13e-9 km exact), and the TLE's and the OMM's answers equal, 0 km
+    and 0 km/s apart over 42 steps.
+  ephemeris-type-4-refused: the SGP4-XP set refused from TLE, CSV, JSON, XML and KVN, and its type-0 twins within
+    the bar (6.64e-11 km).
+
+Reading it:
+- With the vallado epoch every case passes but the data check, which runs no parser; the propagation tier passes
+  within its tolerance, which is how gpconf grades a propagator (a plain pass there means the reference's numbers
+  to the bit). tools/check_gpconf.py --gate: met.
+- With the exact epoch, the default, the same but sgp4-ver-propagation, which fails on one set by 4.11e-6 km.
+- The case grades Vallado's own verification output, and that output carries the epoch his reader makes, so it is
+  judged here in the vallado epoch, which the adapter declares to gpconf ({"epoch": "vallado"}). The exact epoch
+  stays GPKit's default, and the line-for-line comparison with tcppver.out is
+  conformance/vallado-tcppver-2026-11-11.txt.
