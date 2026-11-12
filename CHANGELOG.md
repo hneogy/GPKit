@@ -98,8 +98,9 @@ the measurement waits for gpconf 0.9.0's re-measure fetch, with medium-Earth and
 GPKit's results are the same to the bit for one platform and one build, not across them. Where SGP4 takes the sine
 and cosine of one angle, the compiler may compute both in one call (on Apple platforms, `__sincos_stret`) or as two;
 the source does not choose. Measured on an Apple M5 under macOS 27.2: the fused sine differs from `sin` in the last
-place for about 1 argument in 1,400, and 1.4.0's release build fuses all 24 such pairs in SGP4. Another compiler, a
-debug build or another platform's math library can therefore move a propagated position in its last digits with no
+place for about 1 argument in 1,440 (1,387 of 2,000,000 random arguments in ±20 rad, the cosines all alike), and
+1.4.0's release build fuses all 24 such pairs in SGP4. Another compiler, a debug build or another platform's math
+library can therefore move a propagated position in its last digits with no
 change to GPKit; how far is not measured across platforms. Every comparison GPKit is held to is far coarser
 (gpconf's bar is 2e-7 km and 2e-7 km/s), and GPKit does not force identical bits. Tools that compare GPKit's printed
 numbers as text should also know that Swift prints a `Double` with an exponent above 2^53, not from 1e16.
