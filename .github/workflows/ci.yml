@@ -74,6 +74,10 @@ jobs:
       - name: The adapter's numbers
         run: python tools/check_adapter_numbers.py "$PWD/.build/debug/gpkit-gpconf"
 
+      # the release build's propagate outputs against this platform's record, to the bit (tools/bit-record)
+      - name: The bit record
+        run: sh tools/bit-record/check.sh
+
   # Linux, on the official Swift image at a pinned release: the same steps as on macOS.
   linux:
     name: build, test, gpconf (ubuntu-latest, Swift 6.4.2)
