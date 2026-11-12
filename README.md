@@ -32,6 +32,7 @@ reference and Skyfield.
 ## Installing
 
 ```swift
+platforms: [.macOS(.v13), .iOS(.v16)],
 dependencies: [
     .package(url: "https://github.com/hneogy/GPKit.git", from: "2.0.0"),
 ],
@@ -39,6 +40,10 @@ targets: [
     .target(name: "YourTarget", dependencies: ["GPKit"]),
 ]
 ```
+
+A package that runs on Apple's systems needs a `platforms` line at least as new as GPKit's: macOS 13, iOS 16, tvOS
+16, watchOS 9, visionOS 1. Without it SwiftPM assumes older systems and stops with "requires minimum platform
+version 13.0". `swift package init` writes no such line, so add it. Linux, Windows and Android need none.
 
 In Xcode: File, Add Package Dependencies, and the same URL. Versions follow semantic versioning.
 
