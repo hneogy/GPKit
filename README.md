@@ -168,8 +168,10 @@ python3 tools/check_gpconf.py gpconf-report.json --gate
 ```
 
 ⟦Thirteen⟧ of the cases read provider files, which the corpus fetches once to your machine and does not ship. CI
-never fetches: it runs the ⟦five⟧ cases that need no provider file, and `tools/check_gpconf.py` without `--gate` is
-its bar. The full run is made before a release, from a copy of the corpus that holds its files.
+never fetches, and `tools/check_gpconf.py` without `--gate` is its bar: of the ⟦eight⟧ cases that need no provider
+file, the ⟦five⟧ that parse files shipped with the corpus must pass, and no case may fail. The three propagation cases
+are held only to not failing there. The full run is made before a release, from a copy of the corpus that holds its
+files.
 
 GPKit itself propagates from the exact epoch by default. Without `--epoch`, the adapter does too, and declares
 `"epoch": "exact"`; that run is the second one recorded, and `sgp4-ver-propagation` fails in it as said above.
