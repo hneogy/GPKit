@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/hneogy/GPKit/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/hneogy/GPKit/actions/workflows/ci.yml)
 
-GPKit reads GP data — OMM and TLE, including six-digit catalog numbers. Against gpconf ⟦0.9.0⟧ it passes ⟦20 of the
+GPKit reads GP data — OMM and TLE, including six-digit catalog numbers. Against gpconf 0.9.0 it passes ⟦20 of the
 21⟧ cases, and none fails, with Vallado's verification case run in his epoch reading (below); the ⟦twenty-first⟧
 checks data and runs no parser.
 
@@ -147,7 +147,7 @@ element set number or revolution number as 0.
 [gpconf](https://github.com/hneogy/gp-omm-conformance) is a conformance corpus for GP data, built from what providers
 serve. GPKit's adapter for its runner is in this package (`Sources/gpconf-adapter`), and CI runs it on every push.
 
-With gpconf ⟦0.9.0⟧, on ⟦date⟧, with the adapter's `--epoch vallado`: **⟦17⟧ cases pass on every item exactly, the
+With gpconf 0.9.0, on ⟦date⟧, with the adapter's `--epoch vallado`: **⟦17⟧ cases pass on every item exactly, the
 ⟦three⟧ propagation cases pass within gpconf's tolerance, and none fails or is skipped.** The ⟦twenty-first⟧,
 `satcat-70000-cutoff`, checks data and runs no parser; it reports not exercised for every library. With the exact
 epoch, GPKit's default, the result is the same but for `sgp4-ver-propagation`, which fails on one of Vallado's sets,
