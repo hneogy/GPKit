@@ -55,6 +55,8 @@ here is the one python-sgp4 distributes, unmodified:
 
 python-sgp4 is released under the MIT licence, Copyright (c) 2012-2016 Brandon Rhodes. The file is used by the tests
 and is no part of the library.
+The file's own terms are not stated by its publishers: it is the AIAA 2006-6753 verification set as python-sgp4
+redistributes it, used only by the tests and not part of the library.
 
 
 3. The element sets and the reference of the pass comparison

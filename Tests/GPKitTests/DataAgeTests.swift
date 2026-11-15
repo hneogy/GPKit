@@ -310,10 +310,31 @@ import Testing
         let table = try madeTable()
         #expect(DataAgeTable(rows: table.rows + [table.rows[0]], edges: table.edges, provenance: table.provenance) == nil)
         #expect(DataAgeTable(rows: table.rows, edges: table.edges, provenance: table.provenance) == table)
+        // and given twice with its first edge written -0.0, which is the same span as 0
+        let first = try #require(table.rows.first { $0.fromAge == 0 })
+        let negativeZero = DataAge.Row(orbitClass: first.orbitClass, fromAge: -0.0, toAge: first.toAge, positionError: first.positionError)
+        #expect(DataAgeTable(rows: table.rows + [negativeZero], edges: table.edges, provenance: table.provenance) == nil)
         // edges that are not valid, the rows fitting them all the same
-        for edges: [Double] in [[0, 1, 7, 10, 10], [0, 1, 7, 10, 5], [0, 1, 7, 10, .infinity]] {
+        // and a first edge below 0, every row still fitting a span: no age of a set is negative
+        for edges: [Double] in [[0, 1, 7, 10, 10], [0, 1, 7, 10, 5], [0, 1, 7, 10, .infinity], [-1, 0, 1, 7, 10]] {
             #expect(DataAgeTable(rows: table.rows, edges: edges, provenance: table.provenance) == nil, "edges \(edges)")
         }
+    }
+
+    @Test func whatTheDecoderWouldRefuseIsNotWritten() throws {
+        // percentiles of negative values, which init?(_:) takes: the decoder refuses negative figures, so the encoder
+        // does too (of [-3, -2, -1] the median is -2)
+        let negative = try #require(DataAge.Percentiles([-3, -2, -1]))
+        #expect(negative.median < 0)
+        #expect(throws: EncodingError.self) { try JSONLikeCoder.encode(negative) }
+        #expect((try? JSONLikeCoder.encode(try #require(DataAge.Percentiles([1, 2, 3])))) != nil)
+        // a provenance whose latest epoch is before its earliest, built from its parts
+        let table = try madeTable()
+        let p = table.provenance
+        let backwards = DataAgeTable.Provenance(source: p.source, earliestEpoch: p.latestEpoch, latestEpoch: p.earliestEpoch,
+                                                sets: p.sets, gpkitVersion: p.gpkitVersion, method: p.method)
+        #expect(p.earliestEpoch < p.latestEpoch)
+        #expect(throws: EncodingError.self) { try JSONLikeCoder.encode(backwards) }
     }
 
     @Test func percentilesFromTheirFigures() throws {

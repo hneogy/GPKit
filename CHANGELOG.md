@@ -1,10 +1,11 @@
 # Changelog
 
 Every change to GPKit's public interface is said here, in the release that makes it. `docs/public-api.swift` states
-the interface, and CI stops a change to it that this file does not say (`tools/public-api.sh --check`). Within 1.x
-nothing public is removed or changed in a way that breaks code written against an earlier 1.x release.
+the interface, and CI stops a change to it that this file does not say (`tools/public-api.sh --check`). Within a
+major version nothing public is removed or changed in a way that breaks code written against an earlier release of
+it; a break waits for the next major version, whose entry names each one under "Breaking changes".
 
-## 2.0.0 (unreleased)
+## 2.0.0 (⟦release date⟧)
 
 GPKit 2.0. One change breaks code written against 1.x: an SGP4-XP element set is refused with a kind of its own.
 Everything else is added. How to move a 1.x program: the article "Migrating to GPKit 2.0"
@@ -45,11 +46,16 @@ the measurement waits for gpconf 0.9.0's re-measure fetch, with medium-Earth and
 - `DataAgeTable`, `Codable`: `rows` (`DataAge.Row`: a class, a span of age and the errors' `DataAge.Percentiles`),
   `edges` and a `Provenance` (where the sets came from, their epochs, their count by class, GPKit's version and the
   method's name, `DataAge.method`).
-  - `init(_:edges:provenance:)` builds one from a measurement, `init?(rows:edges:provenance:)` from a published
-    table's parts, and the decoder reads one back, refusing a damaged table (edges that do not increase, a row off
-    the edges or given twice, percentiles out of order).
+  - `init(_:edges:provenance:)` builds one from a measurement, with `DataAgeTable.defaultEdges` (0, 1, 2, 3, 5, 7,
+    10, 14, 21 and 30 days) unless given others; `init?(rows:edges:provenance:)` from a published table's parts, and the decoder reads one back, refusing a damaged table (edges that do not increase or start
+    below 0, a row off the edges or given twice, percentiles out of order). The encoder refuses, with an
+    `EncodingError`, what the decoder would: percentiles holding a negative figure, a provenance whose latest epoch is
+    before its earliest.
   - `estimate(for:at:)` gives a `DataAge.Estimate`: `.row`, or why there is none (`.unclassified`, `.olderThanTable`,
     `.noRowForAge`, `.notAfterEpoch`). Nothing is extrapolated.
+  - `Provenance.init(source:earliestEpoch:latestEpoch:sets:gpkitVersion:method:)` from its parts, and
+    `Provenance.init?(source:measurement:)` from a measurement (nil when the measurement has no epochs);
+    `DataAge.Row.init(orbitClass:fromAge:toAge:positionError:)`.
 - `DataAge.Percentiles(count:median:p68:p95:maximum:)`, nil unless the figures are in order, beside the nearest-rank
   `init?(_:)`; `DataAge.gpkitVersion`.
 
@@ -59,15 +65,17 @@ the measurement waits for gpconf 0.9.0's re-measure fetch, with medium-Earth and
   files already held, makes no request, and writes the samples and the table, as CSV and as a `DataAgeTable` in JSON.
 - Vallado's `tcppver.out`, line for line: `TcppverTests` makes every printed line again, from GPKit with
   `Propagator.EpochReading.vallado` and from Vallado's C++ as the package compiles it, and compares each number at
-  the file's digits, where `GPKIT_SGP4_VER` names a directory holding the file (GPKit does not ship it).
+  the file's digits, where `GPKIT_SGP4_VER` names a directory holding both of its files, `SGP4-VER.TLE` and `tcppver.out` (GPKit
+  ships `SGP4-VER.TLE` as a test resource, not `tcppver.out`).
   - GPKit prints what the C++ prints in every column of every line.
   - Against the file: 630 of 666 lines alike in every number, every element alike; where both differ from the file,
     the C++ itself does not reproduce it here (`conformance/vallado-tcppver-2026-11-11.txt`).
   - The test oracle exposes Vallado's `rv2coe`, `invjday` and the reader's epoch for it.
 - The gpconf adapter reads a set for its `propagate` op with its checksums unchecked, as Vallado's reader does;
   `parse` still verifies them. An SGP4-XP set is an error for the call, now as `.sgp4XP`.
-- gpconf's propagation tier: the current corpus run in full, offline, in both epoch readings
-  (`conformance/gpconf-0.9.0-candidate-2026-11-11.txt`). `tools/check_gpconf.py` lets its three propagation cases
+- gpconf 0.9.0 as released, from PyPI, in both epoch readings (`conformance/gpconf-0.9.0-⟦date⟧.txt`): ⟦the counts⟧;
+  CI runs gpconf 0.9.0 in place of 0.8.0. Before its release, the current corpus run in full, offline, in both epoch
+  readings (`conformance/gpconf-0.9.0-candidate-2026-11-11.txt`). `tools/check_gpconf.py` lets its three propagation cases
   meet the bar within gpconf's tolerance, as gpconf grades them, and every other case still only as a plain pass.
 - `tools/public-api.sh --check` holds a release to the latest tag of its own major version. For a new major's first
   release it compares with the previous major and fails on any break its changelog's "Breaking changes" does not
@@ -77,15 +85,22 @@ the measurement waits for gpconf 0.9.0's re-measure fetch, with medium-Earth and
 - The gpconf adapter reads every number of a request as the digits the runner wrote. 1.x read them through
   Foundation's `NSNumber`, whose text has 16 significant digits, so a time such as `1440.0000000000002` minutes
   reached the propagator as `1440`, one double away (about 1e-11 km on gpconf's calls, far inside its bar, no verdict
-  changed). A propagate answer for a time of 17 significant digits can differ from 1.x's in the last place.
+  changed). A propagate answer for a time of 17 significant digits can differ from 1.x's in the last place. A whole
+  number written with a fraction or an exponent (`25544.0`, `1e5`) is still read as that integer, as 1.x read it,
+  and a fractional one where an integer is expected (`25544.5`) is refused, in a written record never taken for an
+  absent field. An integer sent as a JSON string is read only in decimal digits, plain or integral decimal
+  (`"25544"`, `"25544.0"`): hexadecimal, octal or binary (`0x`, `0o`, `0b`), a leading `+`, an underscore and a space
+  or tab before or after are refused with an error, and a `-` is read and then held to the field's range.
+  `tools/check_adapter_numbers.py` checks each form, and CI runs it.
 
 ### Known platform difference
 
 GPKit's results are the same to the bit for one platform and one build, not across them. Where SGP4 takes the sine
 and cosine of one angle, the compiler may compute both in one call (on Apple platforms, `__sincos_stret`) or as two;
 the source does not choose. Measured on an Apple M5 under macOS 27.2: the fused sine differs from `sin` in the last
-place for about 1 argument in 1,400, and 1.4.0's release build fuses all 24 such pairs in SGP4. Another compiler, a
-debug build or another platform's math library can therefore move a propagated position in its last digits with no
+place for about 1 argument in 1,440 (1,387 of 2,000,000 random arguments in ±20 rad, the cosines all alike), and
+1.4.0's release build fuses all 24 such pairs in SGP4. Another compiler, a debug build or another platform's math
+library can therefore move a propagated position in its last digits with no
 change to GPKit; how far is not measured across platforms. Every comparison GPKit is held to is far coarser
 (gpconf's bar is 2e-7 km and 2e-7 km/s), and GPKit does not force identical bits. Tools that compare GPKit's printed
 numbers as text should also know that Swift prints a `Double` with an exponent above 2^53, not from 1e16.

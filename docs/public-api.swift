@@ -91,8 +91,8 @@ public enum DataAge {
     public let maximum: Double
     public init?(_ values: [Double])
     public init?(count: Int, median: Double, p68: Double, p95: Double, maximum: Double)
-    public init(from decoder: any Decoder) throws
     public func encode(to encoder: any Encoder) throws
+    public init(from decoder: any Decoder) throws
   }
   public struct Row : Sendable, Hashable, Codable {
     public let orbitClass: OrbitClass

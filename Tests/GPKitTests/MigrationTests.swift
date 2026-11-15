@@ -7,13 +7,13 @@ import GPKit
 
     // as the article prints it
     /// What to say when an element set cannot be propagated, with every kind of failure handled. In 1.x an SGP4-XP set
-    /// (ephemeris type 4) came as `.notSGP4`; in 2.0 it comes as `.sgp4XP`, and this switch needs the case.
+    /// (ephemeris type 4, or MEAN_ELEMENT_THEORY SGP4-XP) came as `.notSGP4`; in 2.0 it comes as `.sgp4XP`, and this switch needs the case.
     func explain(_ failure: PropagationFailure) -> String {
         switch failure.kind {
         case .notSGP4:
             return "This element set is for a theory other than SGP4."
         case .sgp4XP:
-            return "This element set is for SGP4-XP (ephemeris type 4), which GPKit does not propagate."
+            return "This element set is for SGP4-XP (ephemeris type 4, or MEAN_ELEMENT_THEORY SGP4-XP), which GPKit does not propagate."
         case .eccentricity, .meanMotion, .perturbedEccentricity, .semiLatusRectum:
             return "This element set's orbit cannot be propagated."
         case .decayed:

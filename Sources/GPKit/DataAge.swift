@@ -307,6 +307,21 @@ public enum DataAge {
 
         enum CodingKeys: String, CodingKey { case count, median, p68, p95, maximum }
 
+        /// Written only if the decoder would read it back: percentiles made from values that hold a negative one
+        /// are refused with an `EncodingError`, since a published table's figures are distances.
+        public func encode(to encoder: any Encoder) throws {
+            guard Percentiles(count: count, median: median, p68: p68, p95: p95, maximum: maximum) != nil else {
+                throw EncodingError.invalidValue(self, .init(codingPath: encoder.codingPath, debugDescription:
+                    "percentiles need a count of at least 1 and finite figures, 0 ≤ median ≤ p68 ≤ p95 ≤ maximum"))
+            }
+            var c = encoder.container(keyedBy: CodingKeys.self)
+            try c.encode(count, forKey: .count)
+            try c.encode(median, forKey: .median)
+            try c.encode(p68, forKey: .p68)
+            try c.encode(p95, forKey: .p95)
+            try c.encode(maximum, forKey: .maximum)
+        }
+
         public init(from decoder: any Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
             guard let made = Percentiles(count: try c.decode(Int.self, forKey: .count),
@@ -341,7 +356,8 @@ public enum DataAge {
     public enum Estimate: Sendable, Hashable {
         /// The row the set's class and age fall in.
         case row(Row)
-        /// The table has no row for the set's class: `undefined` (ESA's UFO), or a class it measured nothing of.
+        /// The table has no row for the set's class: a class it measured nothing of. Sets of the class `undefined`
+        /// (ESA's UFO) get rows like any other class when the measurement has samples of them.
         case unclassified(OrbitClass)
         /// The set's age, in days, is past the table's last edge. Nothing is extrapolated.
         case olderThanTable(age: Double)
@@ -427,8 +443,13 @@ public struct DataAgeTable: Sendable, Hashable, Codable {
             }
         }
 
-        /// The epochs are written as text, `Epoch`'s description, every digit of the fraction kept.
+        /// The epochs are written as text, `Epoch`'s description, every digit of the fraction kept. A provenance whose
+        /// latest epoch is before its earliest is refused with an `EncodingError`, as the decoder refuses it.
         public func encode(to encoder: any Encoder) throws {
+            guard earliestEpoch <= latestEpoch else {
+                throw EncodingError.invalidValue(self, .init(codingPath: encoder.codingPath + [CodingKeys.latestEpoch],
+                    debugDescription: "the latest epoch is before the earliest"))
+            }
             var c = encoder.container(keyedBy: CodingKeys.self)
             try c.encode(source, forKey: .source)
             try c.encode(earliestEpoch.description, forKey: .earliestEpoch)
@@ -451,10 +472,10 @@ public struct DataAgeTable: Sendable, Hashable, Codable {
     public let provenance: Provenance
 
     /// A table from a measurement: its samples by class and by span between consecutive `edges` (days, at least two,
-    /// each finite and greater than the one before, or the call stops). A sample older than the last edge is in no
+    /// each finite, the first not negative and each greater than the one before, or the call stops). A sample older than the last edge is in no
     /// row, and an error that is not finite is left out of its row.
     public init(_ measurement: DataAge.Measurement, edges: [Double] = DataAgeTable.defaultEdges, provenance: Provenance) {
-        precondition(Self.edgesValid(edges), "the edges are at least two, finite, each greater than the one before")
+        precondition(Self.edgesValid(edges), "the edges are at least two, finite, the first not negative, each greater than the one before")
         let present = Set(measurement.samples.map(\.orbitClass))
         let order = OrbitClass.esaClasses + present.subtracting(OrbitClass.esaClasses).sorted { $0.rawValue < $1.rawValue }
         var rows: [DataAge.Row] = []
@@ -472,15 +493,17 @@ public struct DataAgeTable: Sendable, Hashable, Codable {
         self.provenance = provenance
     }
 
-    /// A table from its parts, as published. nil unless the edges are valid (at least two, finite, increasing), each
-    /// row's span is two consecutive edges, and no class and span has two rows.
+    /// A table from its parts, as published. nil unless the edges are valid (at least two, finite, the first not
+    /// negative, increasing), each row's span is two consecutive edges, and no class and span has two rows.
     public init?(rows: [DataAge.Row], edges: [Double], provenance: Provenance) {
         guard Self.edgesValid(edges) else { return nil }
         let spans = Set(zip(edges, edges.dropFirst()).map { [$0, $1] })
-        var seen = Set<[String]>()
+        // keyed on the numbers, not their text, so that -0.0 and 0.0 are one span as they are to the edges
+        struct Key: Hashable { let orbitClass: OrbitClass, fromAge: Double, toAge: Double }
+        var seen = Set<Key>()
         for row in rows {
             guard spans.contains([row.fromAge, row.toAge]),
-                  seen.insert([row.orbitClass.rawValue, "\(row.fromAge)", "\(row.toAge)"]).inserted else { return nil }
+                  seen.insert(Key(orbitClass: row.orbitClass, fromAge: row.fromAge, toAge: row.toAge)).inserted else { return nil }
         }
         self.rows = rows
         self.edges = edges
@@ -488,7 +511,7 @@ public struct DataAgeTable: Sendable, Hashable, Codable {
     }
 
     static func edgesValid(_ edges: [Double]) -> Bool {
-        edges.count >= 2 && edges.allSatisfy(\.isFinite) && zip(edges, edges.dropFirst()).allSatisfy { $0 < $1 }
+        edges.count >= 2 && edges[0] >= 0 && edges.allSatisfy(\.isFinite) && zip(edges, edges.dropFirst()).allSatisfy { $0 < $1 }
     }
 
     enum CodingKeys: String, CodingKey { case rows, edges, provenance }
