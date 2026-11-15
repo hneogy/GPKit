@@ -42,14 +42,72 @@ func jsonString(_ text: String) -> String {
     return out + "\""
 }
 
-/// A JSON value as text: a string as it is, a number in digits. Foundation hands numbers back as different types
-/// on macOS and on Linux, so each is tried.
+/// A request with every bare JSON number turned into a string of its own digits, so that a number reaches GPKit as
+/// the runner wrote it. Read as a number, Foundation keeps a time such as 194.20286720000001 as a double and gives it
+/// back to 16 significant digits, one double away from what was sent.
+func numbersAsText(_ data: Data) -> Data {
+    var out = Data(capacity: data.count + 64)
+    var inString = false, escaped = false, inNumber = false
+    for byte in data {
+        if inString {
+            out.append(byte)
+            if escaped { escaped = false } else if byte == UInt8(ascii: "\\") { escaped = true } else if byte == UInt8(ascii: "\"") { inString = false }
+            continue
+        }
+        let numeric = (byte >= UInt8(ascii: "0") && byte <= UInt8(ascii: "9")) || byte == UInt8(ascii: "-")
+            || (inNumber && (byte == UInt8(ascii: "+") || byte == UInt8(ascii: ".") || byte == UInt8(ascii: "e") || byte == UInt8(ascii: "E")))
+        if numeric && !inNumber { out.append(UInt8(ascii: "\"")); inNumber = true }
+        if !numeric && inNumber { out.append(UInt8(ascii: "\"")); inNumber = false }
+        if byte == UInt8(ascii: "\"") { inString = true }
+        out.append(byte)
+    }
+    if inNumber { out.append(UInt8(ascii: "\"")) }
+    return out
+}
+
+/// A JSON value as text: a string as it is, a number in digits. The requests are read through numbersAsText, so a
+/// number arrives as a string; the rest is for a value that does not, and Foundation hands numbers back as different
+/// types on macOS and on Linux, so each is tried.
 func plainText(_ value: Any?) -> String? {
     if let string = value as? String { return string }
     if let integer = value as? Int { return String(integer) }
     if let number = value as? NSNumber { return number.stringValue }
     if let double = value as? Double { return "\(double)" }
     return nil
+}
+
+/// Whether text is a number in decimal digits alone: an optional `-`, digits, then optionally `.` and digits, then
+/// optionally `e` or `E`, a sign and digits. A JSON number has this form, and so must an integer sent as a JSON
+/// string. Swift's own readers are looser (`Int` takes `+5`; `Double` takes `0x63C8`, `nan`), so they run only on
+/// text that passed this: no `0x`, `0o` or `0b`, no leading `+`, no `_`, no space before or after.
+func isDecimalNumber(_ text: String) -> Bool {
+    var bytes = Array(text.utf8)[...]
+    func digits() -> Bool {
+        let start = bytes.startIndex
+        while let b = bytes.first, b >= UInt8(ascii: "0"), b <= UInt8(ascii: "9") { bytes = bytes.dropFirst() }
+        return bytes.startIndex > start
+    }
+    if bytes.first == UInt8(ascii: "-") { bytes = bytes.dropFirst() }
+    guard digits() else { return false }
+    if bytes.first == UInt8(ascii: ".") { bytes = bytes.dropFirst(); guard digits() else { return false } }
+    if bytes.first == UInt8(ascii: "e") || bytes.first == UInt8(ascii: "E") {
+        bytes = bytes.dropFirst()
+        if bytes.first == UInt8(ascii: "+") || bytes.first == UInt8(ascii: "-") { bytes = bytes.dropFirst() }
+        guard digits() else { return false }
+    }
+    return bytes.isEmpty
+}
+
+/// A whole number from a request's digits, whether sent as a JSON number or a JSON string: `25544`, and also
+/// `25544.0` or `1e5`, which JSON allows for the same integer and Foundation's `NSNumber` read as one in 1.x. A `-`
+/// is read, and the field's own range check then applies. nil for text not in decimal digits (`isDecimalNumber`),
+/// for a fractional number such as `25544.5`, and for one past 2^53, beyond which a double no longer holds every
+/// integer.
+func wholeNumber(_ text: String) -> Int? {
+    guard isDecimalNumber(text) else { return nil }
+    if let integer = Int(text) { return integer }
+    guard let value = Double(text), value.isFinite, value == value.rounded(), abs(value) <= 9_007_199_254_740_992 else { return nil }
+    return Int(value)
 }
 
 func emit(_ text: String) {
@@ -130,7 +188,7 @@ case "parse":
     emit("[" + items.joined(separator: ",") + "]\n")
 
 case "vectors":
-    guard let request = (try? JSONSerialization.jsonObject(with: input)) as? [String: Any], let op = request["op"] as? String else {
+    guard let request = (try? JSONSerialization.jsonObject(with: numbersAsText(input))) as? [String: Any], let op = request["op"] as? String else {
         emit("{\"error\":\"the request is not {op, input}\"}")
         exit(1)
     }
@@ -140,10 +198,19 @@ case "vectors":
         case "alpha5_decode":
             emit("{\"result\":\(try Alpha5.decode(text))}")
         case "alpha5_encode":
-            guard let number = Int(text) else { throw Refusal(.cannotEncode, "\"\(text)\" is not a whole number") }
+            guard let number = wholeNumber(text) else { throw Refusal(.cannotEncode, "\"\(text)\" is not a whole number") }
             emit("{\"result\":\(jsonString(try Alpha5.encode(number)))}")
         case "two_digit_year":
-            guard text.utf8.count == 2, let year = Int(text), year >= 0 else { throw Refusal(.notANumber, "\"\(text)\" is not a two-digit year") }
+            // two digits as written ("05", "57"), or a whole number of two digits in another of JSON's forms (57.0,
+            // 5.7e1); a fraction is refused, and so is a one-digit number, which says nothing of a leading zero
+            let year: Int
+            if text.utf8.count == 2, text.utf8.allSatisfy({ $0 >= UInt8(ascii: "0") && $0 <= UInt8(ascii: "9") }), let digits = Int(text) {
+                year = digits
+            } else if let whole = wholeNumber(text), (10...99).contains(whole) {
+                year = whole
+            } else {
+                throw Refusal(.notANumber, "\"\(text)\" is not a two-digit year")
+            }
             emit("{\"result\":\(TLE.fullYear(twoDigit: year))}")
         case "parse_epoch":
             var epoch = try Epoch(ccsds: text)
@@ -197,27 +264,30 @@ case "vectors":
     }
 
 case "write":
-    guard let record = (try? JSONSerialization.jsonObject(with: input)) as? [String: Any] else { fail("the record is not a JSON object", code: 2) }
+    guard let record = (try? JSONSerialization.jsonObject(with: numbersAsText(input))) as? [String: Any] else { fail("the record is not a JSON object", code: 2) }
     func string(_ key: String) -> String? {
         plainText(record[key]).flatMap { $0.isEmpty ? nil : $0 }
     }
-    func integer(_ key: String) -> Int? {
-        string(key).flatMap { Int($0) }
-    }
     do {
+        // absent is nil; present and not a whole number is refused, never read as absent
+        func integer(_ key: String) throws(Refusal) -> Int? {
+            guard let text = string(key) else { return nil }
+            guard let value = wholeNumber(text) else { throw Refusal(.notANumber, "\(key) \"\(text)\" is not a whole number", field: key, text: text) }
+            return value
+        }
         func decimal(_ key: String) throws(Refusal) -> ExactDecimal {
             guard let text = string(key) else { return .zero }
             guard let value = ExactDecimal(text) else { throw Refusal(.notANumber, "\(key) \"\(text)\" is not a number", field: key, text: text) }
             return value
         }
         let set = ElementSet(
-            catalogNumber: integer("norad_cat_id"), objectName: string("object_name"), objectID: string("object_id"),
+            catalogNumber: try integer("norad_cat_id"), objectName: string("object_name"), objectID: string("object_id"),
             classification: string("classification_type"), epoch: try Epoch(ccsds: string("epoch") ?? ""),
             meanMotion: try decimal("mean_motion"), eccentricity: try decimal("eccentricity"), inclination: try decimal("inclination"),
             rightAscension: try decimal("ra_of_asc_node"), argumentOfPericenter: try decimal("arg_of_pericenter"),
             meanAnomaly: try decimal("mean_anomaly"), bstar: try decimal("bstar"), meanMotionDot: try decimal("mean_motion_dot"),
-            meanMotionDDot: try decimal("mean_motion_ddot"), ephemerisType: integer("ephemeris_type"),
-            elementSetNumber: integer("element_set_no"), revolutionAtEpoch: integer("rev_at_epoch"))
+            meanMotionDDot: try decimal("mean_motion_ddot"), ephemerisType: try integer("ephemeris_type"),
+            elementSetNumber: try integer("element_set_no"), revolutionAtEpoch: try integer("rev_at_epoch"))
         emit(try TLE.write(set).text + "\n")
     } catch {
         fail("GPKit refused to write the record: \(error)")

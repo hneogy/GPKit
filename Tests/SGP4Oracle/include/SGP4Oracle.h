@@ -33,6 +33,20 @@ int sgp4oracle_sgp4(sgp4oracle *oracle, double tsince, double r[3], double v[3])
 /// 1 when the element set took the deep-space branch.
 int sgp4oracle_is_deep_space(const sgp4oracle *oracle);
 
+/// The epoch twoline2rv() made, as satrec holds it: a Julian date in two parts.
+void sgp4oracle_epoch(const sgp4oracle *oracle, double *jd, double *jdFraction);
+
+/// The gravitational parameter of the oracle's constants, km³/s².
+double sgp4oracle_mu(const sgp4oracle *oracle);
+
+/// rv2coe() on a position (km) and velocity (km/s): the elements tcppver.out prints, angles in radians.
+void sgp4oracle_rv2coe(const double r[3], const double v[3], double mu, double *p, double *a, double *ecc, double *incl,
+                       double *node, double *argp, double *nu, double *m);
+
+/// invjday() on a Julian date in two parts.
+void sgp4oracle_invjday(double jd, double jdFraction, int *year, int *month, int *day, int *hour, int *minute,
+                        double *second);
+
 void sgp4oracle_free(sgp4oracle *oracle);
 
 #ifdef __cplusplus

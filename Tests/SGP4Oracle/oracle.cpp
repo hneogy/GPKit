@@ -74,6 +74,27 @@ int sgp4oracle_is_deep_space(const sgp4oracle *oracle) {
     return oracle->satrec.method == 'd';
 }
 
+void sgp4oracle_epoch(const sgp4oracle *oracle, double *jd, double *jdFraction) {
+    *jd = oracle->satrec.jdsatepoch;
+    *jdFraction = oracle->satrec.jdsatepochF;
+}
+
+double sgp4oracle_mu(const sgp4oracle *oracle) {
+    return oracle->satrec.mus;
+}
+
+void sgp4oracle_rv2coe(const double r[3], const double v[3], double mu, double *p, double *a, double *ecc, double *incl,
+                       double *node, double *argp, double *nu, double *m) {
+    double rr[3] = {r[0], r[1], r[2]}, vv[3] = {v[0], v[1], v[2]};
+    double arglat, truelon, lonper;
+    SGP4Funcs::rv2coe_SGP4(rr, vv, mu, *p, *a, *ecc, *incl, *node, *argp, *nu, *m, arglat, truelon, lonper);
+}
+
+void sgp4oracle_invjday(double jd, double jdFraction, int *year, int *month, int *day, int *hour, int *minute,
+                        double *second) {
+    SGP4Funcs::invjday_SGP4(jd, jdFraction, *year, *month, *day, *hour, *minute, *second);
+}
+
 void sgp4oracle_free(sgp4oracle *oracle) {
     delete oracle;
 }

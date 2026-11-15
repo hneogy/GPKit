@@ -48,6 +48,8 @@ python3 -m venv /tmp/v && /tmp/v/bin/pip install --no-index dist/pygpkit-*.whl
 
 Both the reference and the library are release builds. On Apple's systems an optimised build calls
 `__sincos_stret` where a sine and a cosine of one angle meet, and its sine differs from `sin`'s in the last bit for
-about 3 arguments in 10,000; a debug build of GPKit can differ from a release build there, by about 10⁻¹² km.
+about 1 argument in 1,440: 1,387 of 2,000,000 random arguments in ±20 rad, measured on an Apple M5 under macOS
+27.2.1 on 2026-11-10, the cosines all alike (GPKit's changelog, 2.0.0, "Known platform difference"). A debug build
+of GPKit can differ from a release build there, by about 10⁻¹² km.
 
 Licence: MIT, as GPKit's; see GPKit's `LICENSE` and `NOTICE`.

@@ -1,0 +1,61 @@
+GPKit against Vallado's published verification output, tcppver.out, line for line.
+Run on 2026-11-11 (UTC), 01:59Z, macOS 27.2.1 arm64, Apple Swift version 6.4.2, debug build on branch release-2.0.0
+(the commit that adds this record and Tests/GPKitTests/TcppverTests.swift). Nothing was downloaded.
+
+The files (GPKit ships neither tcppver.out nor any copy of it; SGP4-VER.TLE is in Tests/GPKitTests/Resources):
+  SHA-256  SGP4-VER.TLE  d246d1d9d768ace445a38a965713fa9ba52d80fd8a41a0502ff83d7acffe2881  (110 lines)
+           tcppver.out   687bf28dbe52df86e8e60ab5cb4a08d1aa3dbcaf4e63b1f7ab95f044fbe3833b  (700 lines)
+  the pair python-sgp4 2.27 carries, which the test checks by these SHA-256s before it compares anything.
+
+How it was run:
+
+  GPKIT_SGP4_VER=<directory holding both files> swift test --filter TcppverTests
+
+What is compared: each line of tcppver.out made again twice, from GPKit (Propagator.EpochReading.vallado, WGS-72,
+opsmode 'i') and from Vallado's SGP4.cpp as this package compiles it (Tests/SGP4Oracle, unmodified), and each
+printed number compared with the file at the file's own digits ("printed alike": the value printed with the
+file's number of decimals is the file's text). A line is the time, the TEME position (km, 8 decimals) and velocity
+(km/s, 9 decimals); after a block's first line also the osculating elements (rv2coe, Vallado's function, of the
+state) and the calendar time (invjday of the reader's epoch plus the minutes, summed into one Julian date as the
+driver does). 666 lines: every printed line but one, set 33334's, whose run fails at its first step (GPKit and the
+C++ both: perturbed eccentricity, code 3) and for which the driver prints the set before's last line again.
+
+Results (the test's lines):
+
+tcppver.out, GPKit (.vallado): 666 lines, 630 printed alike in every number; state: 637 of 666 printed alike, 637 within half a printed unit; elements: 634 of 634 printed alike, 634 within half a printed unit; time: 627 of 634 printed alike, 627 within half a printed unit; largest state difference 1.17e-07 km and 5e-10 km/s
+tcppver.out, Vallado's C++ as compiled here: 666 lines, 630 printed alike in every number; state: 637 of 666 printed alike, 637 within half a printed unit; elements: 634 of 634 printed alike, 634 within half a printed unit; time: 627 of 634 printed alike, 627 within half a printed unit; largest state difference 1.17e-07 km and 5e-10 km/s
+  20413: 26 lines, 20 printed alike, state within half a unit on 26
+  23333: 15 lines, 14 printed alike, state within half a unit on 15
+  28057: 25 lines, 24 printed alike, state within half a unit on 24
+  28129: 13 lines, 12 printed alike, state within half a unit on 12
+  20413: 70 lines, 43 printed alike, state within half a unit on 43
+  33334 t = 0.00000000: GPKit and the C++ both stop at the first step (the perturbed eccentricity is outside 0 to 1, at 0.0 minutes from the epoch; C++ error 3); the line repeats the set before
+
+Every number off, GPKit's (the C++'s are the same numbers, which the test checks):
+  GPKit, state, off: 28057 t = 360.00000000 column 4: -3692.1286569449726 against -3692.12865695
+  GPKit, state, off: 28129 t = 720.00000000 column 2: 21858.238381485004 against 21858.23838148
+  GPKit, time, off: 20413 t = 2520.00000000 column 20: 0.0002682209014892578 against 0.000267
+  GPKit, time, off: 20413 t = 2640.00000000 column 20: 0.0002816319465637207 against 0.000281
+  GPKit, time, off: 20413 t = 2760.00000000 column 20: 0.0002548098564147949 against 0.000254
+  GPKit, time, off: 20413 t = 2880.00000000 column 20: 0.0002682209014892578 against 0.000267
+  GPKit, time, off: 20413 t = 3000.00000000 column 20: 0.0002816319465637207 against 0.000281
+  GPKit, time, off: 20413 t = 3120.00000000 column 20: 0.0002548098564147949 against 0.000254
+  GPKit, time, off: 23333 t = 720.00000000 column 18: 0.0 against 23
+  GPKit, time, off: 23333 t = 720.00000000 column 19: 0.0 against 59
+  GPKit, time, off: 23333 t = 720.00000000 column 20: 0.0 against 59.999155
+  ... and 76 numbers on 27 lines of set 20413's second block, t = 1,844,000 to 1,844,335 minutes (3.5 years
+  from its epoch), up to 1.17e-7 km, in the position columns only
+
+Reading it:
+- GPKit prints every number of every line as Vallado's C++ compiled here prints it: the same 630 lines alike in
+  every number, and the same numbers off, in every column group.
+- Where both differ from the file, the C++ itself does not reproduce the file on this machine. The state columns:
+  27 lines of set 20413's run 3.5 years out, where a difference in the last bits of the trigonometric functions grows
+  to 1.17e-7 km (within gpconf's bar of 2e-7), and two numbers that sit on a rounding edge (28057 and 28129, about
+  5e-11 km from half a printed unit). The time column: the driver's own date arithmetic, a Julian date of about
+  2.45 million days in one double, 1 microsecond off in 6 lines and, for 23333 at 720 minutes, 23:59:59.999155
+  printed where the sum here gives the next midnight. No column of it depends on GPKit's propagation.
+- The elements: all 634 lines printed alike.
+- So "line for line within its printed digits" holds for GPKit exactly as far as it holds for Vallado's own code on
+  this platform; the lines beyond it are the file's platform, which tcppver.out does not name [inferred: the
+  cause, from the C++ here giving the same numbers as GPKit; the platform the file was made on is not known].

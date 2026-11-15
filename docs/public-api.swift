@@ -33,6 +33,107 @@ public enum CloseApproach {
   public static let heightMargin: Double
   public static func screen(_ propagators: [Propagator], from start: Epoch, for seconds: Double, step: Double = 60, within: Double = 10) -> CloseApproach.Screen
 }
+public struct OrbitClass : RawRepresentable, Sendable, Hashable, Codable, CodingKeyRepresentable, CustomStringConvertible {
+  public let rawValue: String
+  public init(rawValue: String)
+  public static let geostationary: OrbitClass
+  public static let inclinedGeosynchronous: OrbitClass
+  public static let extendedGeostationary: OrbitClass
+  public static let navigationSatellite: OrbitClass
+  public static let geostationaryTransfer: OrbitClass
+  public static let mediumEarth: OrbitClass
+  public static let geoSuperGeoCrossing: OrbitClass
+  public static let lowEarth: OrbitClass
+  public static let highAltitude: OrbitClass
+  public static let meoGeoCrossing: OrbitClass
+  public static let highlyEccentric: OrbitClass
+  public static let leoMeoCrossing: OrbitClass
+  public static let undefined: OrbitClass
+  public static let esaClasses: [OrbitClass]
+  public var description: String { get }
+  public init(from decoder: any Decoder) throws
+  public func encode(to encoder: any Encoder) throws
+  public var codingKey: any CodingKey { get }
+  public init?<T>(codingKey: T) where T : CodingKey
+  public init(meanMotion: Double, eccentricity: Double, inclination: Double)
+}
+extension ElementSet {
+  public var orbitClass: OrbitClass { get }
+  public func age(at time: Epoch) -> Double
+}
+public enum DataAge {
+  public static let method: String
+  public static let gpkitVersion: String
+  public struct Sample : Sendable, Hashable {
+    public let catalogNumber: Int
+    public let orbitClass: OrbitClass
+    public let older: Epoch
+    public let newer: Epoch
+    public let age: Double
+    public let positionError: Double
+    public let radial: Double
+    public let inTrack: Double
+    public let crossTrack: Double
+  }
+  public struct Measurement : Sendable, Hashable {
+    public let samples: [DataAge.Sample]
+    public let failures: [PropagationFailure.Kind : Int]
+    public let sets: [OrbitClass : Int]
+    public let epochs: ClosedRange<Epoch>?
+    public var failureCount: Int { get }
+  }
+  public static func measure(_ sets: [ElementSet], maximumAge: Double = 30) -> DataAge.Measurement
+  public struct Percentiles : Sendable, Hashable, Codable {
+    public let count: Int
+    public let median: Double
+    public let p68: Double
+    public let p95: Double
+    public let maximum: Double
+    public init?(_ values: [Double])
+    public init?(count: Int, median: Double, p68: Double, p95: Double, maximum: Double)
+    public func encode(to encoder: any Encoder) throws
+    public init(from decoder: any Decoder) throws
+  }
+  public struct Row : Sendable, Hashable, Codable {
+    public let orbitClass: OrbitClass
+    public let fromAge: Double
+    public let toAge: Double
+    public let positionError: DataAge.Percentiles
+    public init(orbitClass: OrbitClass, fromAge: Double, toAge: Double, positionError: DataAge.Percentiles)
+    public func encode(to encoder: any Encoder) throws
+    public init(from decoder: any Decoder) throws
+  }
+  public enum Estimate : Sendable, Hashable {
+    case row(DataAge.Row)
+    case unclassified(OrbitClass)
+    case olderThanTable(age: Double)
+    case noRowForAge(age: Double)
+    case notAfterEpoch
+  }
+}
+public struct DataAgeTable : Sendable, Hashable, Codable {
+  public struct Provenance : Sendable, Hashable, Codable {
+    public let source: String
+    public let earliestEpoch: Epoch
+    public let latestEpoch: Epoch
+    public let sets: [OrbitClass : Int]
+    public let gpkitVersion: String
+    public let method: String
+    public init(source: String, earliestEpoch: Epoch, latestEpoch: Epoch, sets: [OrbitClass : Int], gpkitVersion: String, method: String)
+    public init?(source: String, measurement: DataAge.Measurement)
+    public init(from decoder: any Decoder) throws
+    public func encode(to encoder: any Encoder) throws
+  }
+  public static let defaultEdges: [Double]
+  public let rows: [DataAge.Row]
+  public let edges: [Double]
+  public let provenance: DataAgeTable.Provenance
+  public init(_ measurement: DataAge.Measurement, edges: [Double] = DataAgeTable.defaultEdges, provenance: DataAgeTable.Provenance)
+  public init?(rows: [DataAge.Row], edges: [Double], provenance: DataAgeTable.Provenance)
+  public init(from decoder: any Decoder) throws
+  public func encode(to encoder: any Encoder) throws
+  public func estimate(for set: ElementSet, at time: Epoch) -> DataAge.Estimate
+}
 // only where Foundation can be imported (Sources/GPKit/Date.swift)
 extension Epoch {
   public init(_ date: Foundation.Date) throws(Refusal)
@@ -214,6 +315,7 @@ public struct StateVector : Sendable, Hashable {
 public struct PropagationFailure : Error, Sendable, Hashable, CustomStringConvertible {
   public enum Kind : String, Sendable, Hashable, CaseIterable {
     case notSGP4
+    case sgp4XP
     case eccentricity
     case meanMotion
     case perturbedEccentricity

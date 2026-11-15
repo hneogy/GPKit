@@ -7,9 +7,9 @@
 #   - an interface differs from its file (the file was not written again with the change);
 #   - with BASE (a commit, as CI gives the one before a push or a pull request's base): either file changed since
 #     BASE and CHANGELOG.md did not;
-#   - within 1.x: GPKit's interface breaks code written against the latest 1.x tag (SwiftPM's API digester).
-#     GPKitSources is held to it too from the first tag that holds it (1.1.0); before that, its changes are allowed
-#     and said in CHANGELOG.md.
+#   - within a major version: GPKit's interface breaks code written against the latest tag of that major (SwiftPM's
+#     API digester); for a new major's first release, a break against the previous major that CHANGELOG.md's
+#     "Breaking changes" does not name. GPKitSources is held to it too from the first tag that holds it (1.1.0).
 set -eu
 check=no
 base=
@@ -102,26 +102,61 @@ if [ -n "$base" ]; then
     echo "since $base: $(echo "$changed" | command grep -qE '^docs/public-api(-sources)?\.swift$' && echo 'an interface changed, and CHANGELOG.md says so' || echo 'the interfaces did not change')"
 fi
 
-# 1.x stays source-compatible: nothing public is removed or changed in a way that breaks code written against 1.x
-latest=$(git tag --list 'v1.*' --sort=-v:refname | head -1)
-if [ -z "$latest" ]; then
-    echo "no v1.x tag is in this checkout (CI fetches tags with the history)" >&2
+# A major release stays source-compatible: nothing public is removed or changed in a way that breaks code written
+# against an earlier release of the same major version. The major is the one CHANGELOG.md's first release heading
+# states (`## 2.0.0 (...)`). Once a tag of that major exists, its latest is the base and nothing may break. Before
+# it (the first release of a new major, made once), the base is the previous major's latest tag, and each break the
+# digester finds must be named, as `Name`, in that first section's "Breaking changes" list; any other fails.
+major=$(sed -n 's/^## \([0-9][0-9]*\)\.[0-9][0-9]*\.[0-9][0-9]*.*/\1/p' CHANGELOG.md | head -1)
+if [ -z "$major" ]; then
+    echo "CHANGELOG.md has no release heading (## X.Y.Z)" >&2
     exit 1
 fi
-swift package diagnose-api-breaking-changes "$latest" --products GPKit > "$out/digester.log" 2>&1 || {
-    command grep -vE '^\[|^Building|^Build complete|^Compiling|^Planning|^Fetching|^Computing' "$out/digester.log" >&2
-    echo "the public interface breaks code written against $latest: within 1.x that waits for 2.0" >&2
+latest=$(git tag --list "v$major.*" --sort=-v:refname | head -1)
+allow=no
+if [ -z "$latest" ]; then
+    latest=$(git tag --list "v$((major - 1)).*" --sort=-v:refname | head -1)
+    allow=yes
+fi
+if [ -z "$latest" ]; then
+    echo "no v$major.x or v$((major - 1)).x tag is in this checkout (CI fetches tags with the history)" >&2
     exit 1
+fi
+# the first section of CHANGELOG.md, up to the next release heading: where a new major names its breaking changes
+section=$(awk 'NR > 1 && /^## [0-9]/ { n++ } n == 1 && /^## [0-9]/ { p = 1 } n == 2 { exit } p' CHANGELOG.md)
+breaking=$(printf '%s\n' "$section" | awk '/^### / { p = ($0 ~ /^### Breaking changes/) ; next } p')
+
+# digest PRODUCT LOG: the digester against $latest; with $allow, its breaks pass when the changelog names each
+digest() {
+    product=$1 log=$2
+    if swift package diagnose-api-breaking-changes "$latest" --products "$product" > "$log" 2>&1; then
+        echo "$product: no breaking change against $latest"
+        return 0
+    fi
+    if [ $allow = no ]; then
+        command grep -vE '^\[|^Building|^Build complete|^Compiling|^Planning|^Fetching|^Computing' "$log" >&2
+        echo "$product's public interface breaks code written against $latest: within $major.x that waits for $((major + 1)).0" >&2
+        exit 1
+    fi
+    # each "API breakage: <kind> <name> ..." line of the digester's summary, by name
+    names=$(sed -n 's/.*API breakage: [A-Za-z]* \([^ ]*\) .*/\1/p' "$log" | sort -u)
+    if [ -z "$names" ]; then
+        command grep -vE '^\[|^Building|^Build complete|^Compiling|^Planning|^Fetching|^Computing' "$log" >&2
+        echo "$product: the digester failed against $latest and named no break" >&2
+        exit 1
+    fi
+    for name in $names; do
+        if ! printf '%s\n' "$breaking" | command grep -qF "\`$name\`"; then
+            echo "$product: \`$name\` breaks code written against $latest, and CHANGELOG.md's $major.0.0 \"Breaking changes\" does not name it" >&2
+            exit 1
+        fi
+        echo "$product: \`$name\` breaks code written against $latest, as CHANGELOG.md's $major.0.0 says"
+    done
 }
-echo "no breaking change against $latest"
+digest GPKit "$out/digester.log"
 # GPKitSources is held to the promise from its first release, 1.1.0: from the first tag that holds it
 if git cat-file -e "$latest:Sources/GPKitSources" 2>/dev/null; then
-    swift package diagnose-api-breaking-changes "$latest" --products GPKitSources > "$out/digester-sources.log" 2>&1 || {
-        command grep -vE '^\[|^Building|^Build complete|^Compiling|^Planning|^Fetching|^Computing' "$out/digester-sources.log" >&2
-        echo "GPKitSources' interface breaks code written against $latest: within 1.x that waits for 2.0" >&2
-        exit 1
-    }
-    echo "GPKitSources: no breaking change against $latest"
+    digest GPKitSources "$out/digester-sources.log"
 else
     echo "GPKitSources: $latest does not hold it, so its changes are allowed and said in CHANGELOG.md"
 fi

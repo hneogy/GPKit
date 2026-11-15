@@ -1,0 +1,98 @@
+GPKit against gpconf 0.9.0 as released: the full run, offline.
+Run on 2026-11-15 (UTC), 03:52:17Z (vallado) and 03:52:53Z (exact), macOS 27.2.1 arm64, Apple Swift version 6.4.2,
+debug build on branch release-2.0.0 at ad131a1. gpconf 0.9.0 was installed from PyPI into a fresh virtual environment
+(Python 3.14.6), pinned to the wheel's hash: gpconf-0.9.0-py3-none-any.whl, SHA-256
+fc38255d8f70df02bb8e16bd9d0dbd90a5fddc5d38839bf23571e4314f5c5ab5. The report says "gpconf 0.9.0, corpus 0.9.0".
+The network was closed to the run (every proxy variable set to a port nothing listens on). The provider files are
+the maintainer's fetch of 2026-09-21, the same 128 files as conformance/gpconf-0.9.0-candidate-2026-11-11.txt
+(fingerprint below, equal to that record's). Vallado's SGP4-VER.TLE and tcppver.out were given with --sgp4-ver from
+the corpus's copy.
+A correction to the candidate record (line 9, "neither is in GPKit"): GPKit ships SGP4-VER.TLE as a test resource
+(Tests/GPKitTests/Resources/SGP4-VER.TLE, tracked since 8a444eb and credited in NOTICE), and not tcppver.out.
+Statuses and counts only; the full reports are not kept here, since an item's detail can quote provider values.
+
+How it was run (GPKIT this checkout, GPCONF the venv's gpconf, CORPUS a copy of the corpus holding its provider files
+under fixtures/<case>/raw/, SGP4VER the folder holding Vallado's pair):
+
+  swift build --product gpkit-gpconf
+  GPCONF run --data CORPUS --sgp4-ver SGP4VER --no-fetch-hint \
+    --cmd "'$GPKIT/.build/debug/gpkit-gpconf' --epoch vallado parse {fmt}" \
+    --vectors-cmd "'$GPKIT/.build/debug/gpkit-gpconf' --epoch vallado vectors" \
+    --write-cmd "'$GPKIT/.build/debug/gpkit-gpconf' --epoch vallado write" \
+    --json report.json
+  python3 $GPKIT/tools/check_gpconf.py report.json --gate
+
+and again without --epoch vallado (the exact epoch, the adapter's default).
+
+== the vallado epoch (gpkit-gpconf --epoch vallado)
+gpconf 0.9.0, corpus 0.9.0
+  epoch-year-19xx                          pass             info 9, pass 34
+  baseline-iss-five-formats                pass             info 9, pass 27
+  six-digit-omm-saramago                   pass             info 10, pass 28
+  tle-omits-six-digit-objects              pass             info 3, pass 6
+  analyst-objects                          pass             info 14, pass 66
+  nine-digit-supgp-launch-nominals         pass             info 6, pass 26
+  supgp-celestrak-classification-c         pass             info 6, pass 24
+  bstar-and-derivative-forms               pass             info 8, pass 24
+  satcat-70000-cutoff                      not-exercised    info 6, not-exercised 1
+  csv-json-omitted-mandatory-fields        pass             pass 26
+  mean-motion-derivative-convention        pass             pass 6
+  tle-vs-omm-precision-loss                pass             pass 6
+  omm-xml-schema                           pass             info 8, pass 16
+  alpha5-encoding-vectors                  pass             pass 5
+  alpha5-tle-derived                       pass             info 16, pass 24
+  kvn-syntax-variants                      pass             info 7, pass 34
+  tle-writer-alpha5                        pass             info 2, pass 6
+  corrupt-input                            pass             info 12, pass 39
+  sgp4-ver-propagation                     pass-tolerance   info 1, pass 1, pass-tolerance 1
+  propagation-tle-omm-twins                pass-tolerance   info 1, pass 1, pass-tolerance 2
+  ephemeris-type-4-refused                 pass-tolerance   info 1, pass 1, pass-tolerance 1
+  cases 21, pass 17, pass-tolerance 3, fail 0, skip 0, not-fetched 0, not-available 0, not-exercised 1
+  gate, this month's launches, tle: 256 of 256 loaded, 0 refused, 0 misidentified, 0 dropped
+  gate, this month's launches, csv: 256 of 256 loaded, 0 refused, 0 misidentified, 0 dropped
+  tools/check_gpconf.py --gate: met (exit 0)
+  report SHA-256: 3695ef261b75d18d903b75ded1205980cd20e95b2249ded579a26b16a446af9d
+  without its run time (generated_at removed, keys sorted): dcf4796d1e9876964347884e7b6312e1748299e9b6f37d3e352b260efba85cb0
+
+== the exact epoch (gpkit-gpconf)
+gpconf 0.9.0, corpus 0.9.0
+  every case as in the vallado epoch, except:
+  sgp4-ver-propagation                     fail             fail 1, info 1, pass 1
+  propagation-tle-omm-twins                pass-tolerance   info 1, pass 1, pass-tolerance 2
+  ephemeris-type-4-refused                 pass-tolerance   info 1, pass 1, pass-tolerance 1
+  cases 21, pass 17, pass-tolerance 2, fail 1, skip 0, not-fetched 0, not-available 0, not-exercised 1
+  gate, this month's launches, tle: 256 of 256 loaded, 0 refused, 0 misidentified, 0 dropped
+  gate, this month's launches, csv: 256 of 256 loaded, 0 refused, 0 misidentified, 0 dropped
+  tools/check_gpconf.py --gate: not met (exit 1), on sgp4-ver-propagation alone
+  report SHA-256: 7cba204d977cda74145e851b7fcb3db0e8b0fae5d59696c42d6445bd9524bc17
+  without its run time: 4dd47e143261d6d3252e27305d91bb4af4d3b073aa726bc93c8defa44d695084
+
+provider files: 128, fingerprint dd088d563aa52b90d2e0e5cb39417e476e0cceaf290778948cd955c2c0dd1e0d
+  (SHA-256 over the sorted paths fixtures/*/raw/*, each line "path NUL sha256-of-file LF")
+
+The propagation tier, item by item (largest differences; the bar is 2e-7 km and km/s per component):
+  sgp4-ver-propagation, vallado: positions within the bar, 1.17e-7 km and 5e-10 km/s at the most over 666 steps;
+    the error codes pass.
+  sgp4-ver-propagation, exact: positions fail on set 23333, 4.11e-6 km; the error codes pass.
+  propagation-tle-omm-twins: within the bar of the corpus's reference vectors (9.71e-10 km with vallado, 1.13e-9 km
+    exact) over 42 steps, and the TLE's and the OMM's answers agree.
+  ephemeris-type-4-refused: the SGP4-XP set refused, and its type-0 twins within the bar (6.64e-11 km) over 36 steps.
+
+The run as CI makes it (no provider files, no --sgp4-ver, the exact epoch; the same package, offline):
+  cases 21, pass 5, pass-tolerance 2, fail 0, skip 0, not-fetched 11, not-available 1, not-exercised 2
+  - the 13 cases that read provider files: 11 not-fetched, supgp-celestrak-classification-c not-available (launch-
+    window files only), satcat-70000-cutoff not-exercised;
+  - the 8 that need none: the 5 in tools/check_gpconf.py's OFFLINE list pass; the twins and the type-4 refusal pass
+    within tolerance; sgp4-ver-propagation is not exercised, Vallado's pair not being given;
+  - tools/check_gpconf.py (no --gate): met (exit 0).
+  report without its run time: 268cecbf7859476c435c776d8660e37ae6c14d0a5be1bf7457113a5356ca6e9d
+
+A rehearsal on gpconf's candidate wheel (built from its a283888, SHA-256 d8f91f29…e705, whose files equal this
+package's) gave the same three reports: with generated_at removed, each hashes as above.
+
+Against the candidate record (2026-11-11): every case status, both summaries, both gates, the provider files and
+every propagation figure are the same. Two counts differ, in both epochs: mean-motion-derivative-convention and
+tle-vs-omm-precision-loss grade 6 items each, where the candidate graded 7. The candidate ran gpconf's private
+development tree; the package withholds SupGP-derived pairs (gpconf's D-049, tools/public_scrub.py since 4db7d2a,
+2026-09-20: the pair from starlink-g15-27, recorded in each case's pairs_withheld), so the package grades one
+object fewer in each. gpconf 0.8.0 from PyPI graded 6 in both as well (conformance/gpconf-0.8.0-2026-11-05.txt:58-59).

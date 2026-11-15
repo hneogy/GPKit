@@ -62,7 +62,7 @@ struct SkyfieldReference: Decodable {
         #expect(kind { _ = try Propagator(set) } == .notSGP4)
         set.meanElementTheory = "SGP/SGP4"
         set.ephemerisType = 4
-        #expect(kind { _ = try Propagator(set) } == .notSGP4)
+        #expect(kind { _ = try Propagator(set) } == .sgp4XP)
         set.ephemerisType = 0
         #expect(kind { _ = try Propagator(set).state(minutesFromEpoch: .nan) } == .time)
         // the verification cases that end in an error end in the same one here
