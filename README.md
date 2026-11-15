@@ -176,7 +176,7 @@ exercised. With the default epoch, `gpconf run` exits 1 and `--gate` isn't met, 
 
 To propagate from the epoch as Vallado's C++ reader makes it, give `--epoch vallado` before each command: the adapter
 then uses `Propagator.EpochReading.vallado`, which is how his `tcppver.out` was made, and declares
-`"epoch": "vallado"` in gpconf's constants declaration. That run is the second one recorded, and `--gate` is met:
+`"epoch": "vallado"` in gpconf's constants declaration. That run is the other one recorded, and `--gate` is met:
 
 ```bash
 gpconf run --data path/to/provider-files --sgp4-ver path/to/sgp4-verification-files --cmd "'$PWD/.build/debug/gpkit-gpconf' --epoch vallado parse {fmt}" --vectors-cmd "'$PWD/.build/debug/gpkit-gpconf' --epoch vallado vectors" --write-cmd "'$PWD/.build/debug/gpkit-gpconf' --epoch vallado write" --json gpconf-report-vallado.json
