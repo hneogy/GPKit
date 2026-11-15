@@ -101,12 +101,12 @@ object fewer in each. gpconf 0.8.0 from PyPI graded 6 in both as well (conforman
 Correction (2026-11-15, after the release). This record first said the exact epoch fails "on set 23333", as the README
 and the changelog did. gpconf's report lists only the first six failing steps, and all six are 23333's.
 The exact epoch was run again on 2026-11-15, 20:00:26Z to 20:00:50Z, with the network closed as above:
-- the adapter built at a9ae7e8, whose tree (f7e9f095) is v2.0.0's;
-- the gpconf 0.9.0 installed from PyPI with the wheel's hash pinned, as above (its 171 hashed files still match its
-  RECORD);
-- the same provider files, read from the folder given with --data (128 files, fingerprint dd088d56..., checked during
-  the run and after it);
-- Vallado's pair.
+  - the adapter built at a9ae7e8, whose tree (f7e9f095) is v2.0.0's;
+  - the gpconf 0.9.0 installed from PyPI with the wheel's hash pinned, as above (its 171 hashed files still match its
+    RECORD);
+  - the same provider files, read from the folder given with --data (128 files, fingerprint dd088d56..., checked after
+    the run);
+  - Vallado's pair.
 The counts are the same: cases 21, pass 17, pass-tolerance 2, fail 1, not-exercised 1.
 Every set of SGP4-VER.TLE was then graded through gpconf 0.9.0's own functions, propagation.locate, reference and
 grade_set, with runner.CommandParser calling this adapter's vectors op, as gpconf run does. In the exact epoch two
