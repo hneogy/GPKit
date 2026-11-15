@@ -10,19 +10,64 @@ written record never taken for an absent field. Every integer of every operation
 two_digit_year's year, and write's norad_cat_id, ephemeris_type, element_set_no and rev_at_epoch.
 parse_catalog_id is not among them: its text goes to the library's own reader, OMM.catalogNumber, which gpconf
 grades. Every check must hold; the first that does not ends the run with exit 1.
+
+The element set used is Vallado's set 00005 (Vanguard 1), read at run time from SGP4-VER.TLE: the package's test
+resource, or the file GPKIT_SGP4_VER_TLE names. Its two lines are held to a SHA-256, so this check runs on the same
+set wherever the file comes from. No line of the file is written here.
 """
+import datetime
+import decimal
+import hashlib
 import json
+import os
 import subprocess
 import sys
 
-LINE1 = "1 00005U 58002B   00179.78495062  .00000023  00000-0  28098-4 0  4753"
-LINE2 = "2 00005  34.2682 348.7242 1859667 331.7664  19.3264 10.82419157413667"
-RECORD = ('{"norad_cat_id": %s, "object_name": "VANGUARD 1", "object_id": "1958-002B", '
-          '"epoch": "2000-06-27T18:50:19.733568", "mean_motion": "10.82419157", "eccentricity": "0.1859667", '
-          '"inclination": "34.2682", "ra_of_asc_node": "348.7242", "arg_of_pericenter": "331.7664", '
-          '"mean_anomaly": "19.3264", "bstar": "0.000028098", "mean_motion_dot": "0.00000023", '
-          '"mean_motion_ddot": "0", "ephemeris_type": %s, "classification_type": "U", "element_set_no": %s, '
-          '"rev_at_epoch": %s}')
+SGP4_VER = os.environ.get("GPKIT_SGP4_VER_TLE") or os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "..", "Tests", "GPKitTests", "Resources", "SGP4-VER.TLE")
+SET_SHA256 = "b2285e2be534dc6d0e02c6b708ffe7d062a638017158f51550cee4e999e2727d"  # lines 1 and 2, 69 columns, LF
+
+
+def the_set(path):
+    """Set 00005's two lines from SGP4-VER.TLE, to column 69 (the file adds Vallado's run columns after line 2)."""
+    try:
+        with open(path, encoding="ascii") as f:
+            lines = [line.rstrip("\r\n") for line in f]
+    except OSError as error:
+        print("NOT RUN: SGP4-VER.TLE is needed for the element set (%s)" % error)
+        sys.exit(2)
+    one = [line[:69] for line in lines if line.startswith("1 00005")]
+    two = [line[:69] for line in lines if line.startswith("2 00005")]
+    if len(one) != 1 or len(two) != 1 or hashlib.sha256((one[0] + "\n" + two[0]).encode()).hexdigest() != SET_SHA256:
+        print("NOT RUN: %s does not hold set 00005 as this check knows it" % path)
+        sys.exit(2)
+    return one[0], two[0]
+
+
+def record_of(line1, line2):
+    """The set as a written record's fields, its four integers left as %s for the checks to fill."""
+    year = 1900 + int(line1[18:20]) if int(line1[18:20]) >= 57 else 2000 + int(line1[18:20])
+    day = decimal.Decimal(line1[20:32])
+    micro = int((day - int(day)) * 86400 * 1000000)
+    epoch = datetime.datetime(year, 1, 1) + datetime.timedelta(days=int(day) - 1, microseconds=micro)
+    bstar = decimal.Decimal("0." + line1[54:59]) * decimal.Decimal(10) ** int(line1[59:61])
+    designator = line1[9:17].strip()
+    fields = {
+        "norad_cat_id": "%s", "object_name": "VANGUARD 1",
+        "object_id": "%s-%s" % (1900 + int(designator[:2]) if int(designator[:2]) >= 57 else 2000 + int(designator[:2]),
+                                designator[2:]),
+        "epoch": epoch.isoformat(timespec="microseconds"), "mean_motion": line2[52:63].strip(),
+        "eccentricity": "0." + line2[26:33], "inclination": line2[8:16].strip(),
+        "ra_of_asc_node": line2[17:25].strip(), "arg_of_pericenter": line2[34:42].strip(),
+        "mean_anomaly": line2[43:51].strip(), "bstar": format(bstar, "f"),
+        "mean_motion_dot": "0" + line1[33:43].strip(), "mean_motion_ddot": "0", "ephemeris_type": "%s",
+        "classification_type": line1[7], "element_set_no": "%s", "rev_at_epoch": "%s",
+    }
+    return "{" + ", ".join('"%s": %s' % (k, v if v == "%s" else json.dumps(v)) for k, v in fields.items()) + "}"
+
+
+LINE1, LINE2 = the_set(SGP4_VER)
+RECORD = record_of(LINE1, LINE2)
 
 
 def call(adapter, args, stdin):
