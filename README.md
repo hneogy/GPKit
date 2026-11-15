@@ -147,40 +147,43 @@ element set number or revolution number as 0.
 [gpconf](https://github.com/hneogy/gp-omm-conformance) is a conformance corpus for GP data, built from what providers
 serve. GPKit's adapter for its runner is in this package (`Sources/gpconf-adapter`), and CI runs it on every push.
 
-With gpconf 0.9.0, on 2026-11-15, with the adapter's `--epoch vallado`: **17 cases pass on every item exactly, the
-three propagation cases pass within gpconf's tolerance, and none fails or is skipped.** The twenty-first,
-`satcat-70000-cutoff`, checks data and runs no parser; it reports not exercised for every library. With the exact
-epoch, GPKit's default, the result is the same but for `sgp4-ver-propagation`, which fails on two of Vallado's sets:
-23333, by 4.11e-6 km, and 20413, by up to 4.63e-7 km on 7 of the 70 steps of its second entry in the file. His
-verification output was made from his reader's epoch, which rounds it, so that case is judged in his reading. The
-run's summary is in [`conformance/`](conformance/).
+With gpconf 0.9.0, on 2026-11-15, with GPKit's default, the exact epoch: **17 cases pass on every item exactly, 2
+pass within gpconf's tolerance, and `sgp4-ver-propagation` fails** on two of Vallado's sets: 23333, by 4.11e-6 km,
+and 20413, by up to 4.63e-7 km on 7 of the 70 steps of its second entry in the file. His verification output was made
+from his reader's epoch, which rounds it. With the adapter's `--epoch vallado`, which propagates from that epoch, the
+three propagation cases pass within gpconf's tolerance and none fails or is skipped. The twenty-first,
+`satcat-70000-cutoff`, checks data and runs no parser; it reports not exercised for every library. The runs' summary
+is in [`conformance/`](conformance/).
 
-The judged run propagates from the epoch as Vallado's C++ reader makes it: `--epoch vallado` before each command
-makes the adapter use `Propagator.EpochReading.vallado`, which is how his `tcppver.out` was made, and declares
-`"epoch": "vallado"` in gpconf's constants declaration. Give it to `--cmd` and `--vectors-cmd` alike.
+The full run, with GPKit's default epoch, as recorded:
 
 ```bash
 swift build
-gpconf run --cmd "'$PWD/.build/debug/gpkit-gpconf' --epoch vallado parse {fmt}" --vectors-cmd "'$PWD/.build/debug/gpkit-gpconf' --epoch vallado vectors" --write-cmd "'$PWD/.build/debug/gpkit-gpconf' write" --json gpconf-report.json
+gpconf run --data path/to/provider-files --sgp4-ver path/to/sgp4-verification-files --cmd "'$PWD/.build/debug/gpkit-gpconf' parse {fmt}" --vectors-cmd "'$PWD/.build/debug/gpkit-gpconf' vectors" --write-cmd "'$PWD/.build/debug/gpkit-gpconf' write" --json gpconf-report.json
+python3 tools/check_gpconf.py gpconf-report.json --gate
 ```
 
+`--data` names the folder holding the provider files, which `gpconf fetch` downloads once to your machine; left out,
+gpconf looks in `$GPCONF_DATA`, then in the per-user folder `gpconf fetch` writes to by default. `--sgp4-ver` names
+the folder holding the SGP4 verification files, Vallado's `SGP4-VER.TLE` and `tcppver.out`, which
+`gpconf fetch --include-propagation` downloads. Without the provider files, 11 cases report that they need fetched
+data and one that its files aren't available; without the verification files, `sgp4-ver-propagation` isn't exercised.
+A fresh fetch can't get every recorded file: `supgp-celestrak-classification-c`'s are launch-window captures, so it
+reports not available there. With the default epoch, `--gate` isn't met, on `sgp4-ver-propagation` alone.
+
+To propagate from the epoch as Vallado's C++ reader makes it, give `--epoch vallado` before each command: the adapter
+then uses `Propagator.EpochReading.vallado`, which is how his `tcppver.out` was made, and declares
+`"epoch": "vallado"` in gpconf's constants declaration. That run is the second one recorded, and `--gate` is met:
+
 ```bash
-python3 tools/check_gpconf.py gpconf-report.json --gate
+gpconf run --data path/to/provider-files --sgp4-ver path/to/sgp4-verification-files --cmd "'$PWD/.build/debug/gpkit-gpconf' --epoch vallado parse {fmt}" --vectors-cmd "'$PWD/.build/debug/gpkit-gpconf' --epoch vallado vectors" --write-cmd "'$PWD/.build/debug/gpkit-gpconf' --epoch vallado write" --json gpconf-report-vallado.json
 ```
 
 Thirteen of the cases read provider files, which the corpus fetches once to your machine and does not ship. CI
 never fetches, and `tools/check_gpconf.py` without `--gate` is its bar: of the eight cases that need no provider
 file, the five that parse files shipped with the corpus must pass, and no case may fail. The three propagation cases
 are held only to not failing there. The full run is made before a release, from a copy of the corpus that holds its
-files.
-
-GPKit itself propagates from the exact epoch by default. Without `--epoch`, the adapter does too, and declares
-`"epoch": "exact"`; that run is the second one recorded, and `sgp4-ver-propagation` fails in it as said above.
-`tools/check_adapter_epoch.py` checks both readings, and CI runs it.
-
-```bash
-gpconf run --cmd "'$PWD/.build/debug/gpkit-gpconf' parse {fmt}" --vectors-cmd "'$PWD/.build/debug/gpkit-gpconf' vectors" --write-cmd "'$PWD/.build/debug/gpkit-gpconf' write" --json gpconf-report-exact.json
-```
+files. `tools/check_adapter_epoch.py` checks both epoch readings, and CI runs it.
 
 ## Propagating
 
