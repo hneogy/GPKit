@@ -108,3 +108,8 @@ Run again after the adapter's change (daf6a0e: request numbers read as the digit
 Each report equals the one above in every status and every figure; only generated_at and the adapter's path differ.
 The times this corpus sends lose nothing at gpconf's printed digits, so no result moved where gpconf reports it.
 A time of 17 significant digits now reaches the propagator as sent (1440.0000000000002 is no longer read as 1440).
+
+Correction (2026-11-15). "Fails on set 23333 alone" and "fails on one set" above were read from gpconf's report, which
+lists only the first six failing steps. The run on gpconf 0.9.0 as released, graded set by set, found 20413's second
+entry failing in the exact epoch too (conformance/gpconf-0.9.0-2026-11-15.txt, its correction). This candidate run
+was not graded set by set, so whether 20413 failed here is not known.
