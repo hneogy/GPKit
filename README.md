@@ -165,11 +165,11 @@ python3 tools/check_gpconf.py gpconf-report.json --gate
 
 `--data` names the folder holding the provider files. `gpconf fetch` downloads them once, by default to a per-user
 folder that `gpconf run` then finds by itself, so after a default fetch `--data` can be left out (gpconf looks in
-`$GPCONF_DATA`, then a corpus clone, then that folder). The recorded runs read the maintainer's own capture of
-2026-09-21, which holds launch-window files no fetch can get: from a fresh fetch, `supgp-celestrak-classification-c`
+`$GPCONF_DATA`, then a corpus clone, then that folder). The recorded runs read the maintainer's copy of 2026-09-21,
+which holds launch-window files no fetch can get: from a fresh fetch, `supgp-celestrak-classification-c`
 reports not available and three other cases are judged without their launch-window files, so 17 exact passes can't
 be reached that way. `--sgp4-ver` names the folder holding the SGP4 verification files, Vallado's `SGP4-VER.TLE` and
-`tcppver.out`; left out, gpconf looks for them in an installed python-sgp4, then in what
+`tcppver.out`; left out, gpconf looks for them in an installed python-sgp4 2.27, then in what
 `gpconf fetch --include-propagation` downloaded. With none of the provider files, 11 cases report that they need
 fetched data and one that its files aren't available; with no verification files, `sgp4-ver-propagation` isn't
 exercised. With the default epoch, `gpconf run` exits 1 and `--gate` isn't met, on `sgp4-ver-propagation` alone.
