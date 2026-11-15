@@ -2,8 +2,8 @@
 
 [![CI](https://github.com/hneogy/GPKit/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/hneogy/GPKit/actions/workflows/ci.yml)
 
-GPKit reads GP data — OMM and TLE, including six-digit catalog numbers. Against gpconf 0.9.0 it passes ⟦20 of the
-21⟧ cases, and none fails, with Vallado's verification case run in his epoch reading (below); the ⟦twenty-first⟧
+GPKit reads GP data — OMM and TLE, including six-digit catalog numbers. Against gpconf 0.9.0 it passes 20 of the
+21 cases, and none fails, with Vallado's verification case run in his epoch reading (below); the twenty-first
 checks data and runs no parser.
 
 ```swift
@@ -147,11 +147,11 @@ element set number or revolution number as 0.
 [gpconf](https://github.com/hneogy/gp-omm-conformance) is a conformance corpus for GP data, built from what providers
 serve. GPKit's adapter for its runner is in this package (`Sources/gpconf-adapter`), and CI runs it on every push.
 
-With gpconf 0.9.0, on ⟦date⟧, with the adapter's `--epoch vallado`: **⟦17⟧ cases pass on every item exactly, the
-⟦three⟧ propagation cases pass within gpconf's tolerance, and none fails or is skipped.** The ⟦twenty-first⟧,
+With gpconf 0.9.0, on 2026-11-15, with the adapter's `--epoch vallado`: **17 cases pass on every item exactly, the
+three propagation cases pass within gpconf's tolerance, and none fails or is skipped.** The twenty-first,
 `satcat-70000-cutoff`, checks data and runs no parser; it reports not exercised for every library. With the exact
 epoch, GPKit's default, the result is the same but for `sgp4-ver-propagation`, which fails on one of Vallado's sets,
-23333, by ⟦4.11e-6⟧ km: his verification output was made from his reader's epoch, which rounds it, so that case is
+23333, by 4.11e-6 km: his verification output was made from his reader's epoch, which rounds it, so that case is
 judged in his reading. The run's summary is in [`conformance/`](conformance/).
 
 The judged run propagates from the epoch as Vallado's C++ reader makes it: `--epoch vallado` before each command
@@ -167,9 +167,9 @@ gpconf run --cmd "'$PWD/.build/debug/gpkit-gpconf' --epoch vallado parse {fmt}" 
 python3 tools/check_gpconf.py gpconf-report.json --gate
 ```
 
-⟦Thirteen⟧ of the cases read provider files, which the corpus fetches once to your machine and does not ship. CI
-never fetches, and `tools/check_gpconf.py` without `--gate` is its bar: of the ⟦eight⟧ cases that need no provider
-file, the ⟦five⟧ that parse files shipped with the corpus must pass, and no case may fail. The three propagation cases
+Thirteen of the cases read provider files, which the corpus fetches once to your machine and does not ship. CI
+never fetches, and `tools/check_gpconf.py` without `--gate` is its bar: of the eight cases that need no provider
+file, the five that parse files shipped with the corpus must pass, and no case may fail. The three propagation cases
 are held only to not failing there. The full run is made before a release, from a copy of the corpus that holds its
 files.
 

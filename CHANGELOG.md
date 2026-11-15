@@ -5,7 +5,7 @@ the interface, and CI stops a change to it that this file does not say (`tools/p
 major version nothing public is removed or changed in a way that breaks code written against an earlier release of
 it; a break waits for the next major version, whose entry names each one under "Breaking changes".
 
-## 2.0.0 (⟦release date⟧)
+## 2.0.0 (2026-11-15)
 
 GPKit 2.0. One change breaks code written against 1.x: an SGP4-XP element set is refused with a kind of its own.
 Everything else is added. How to move a 1.x program: the article "Migrating to GPKit 2.0"
@@ -73,7 +73,10 @@ the measurement waits for gpconf 0.9.0's re-measure fetch, with medium-Earth and
   - The test oracle exposes Vallado's `rv2coe`, `invjday` and the reader's epoch for it.
 - The gpconf adapter reads a set for its `propagate` op with its checksums unchecked, as Vallado's reader does;
   `parse` still verifies them. An SGP4-XP set is an error for the call, now as `.sgp4XP`.
-- gpconf 0.9.0 as released, from PyPI, in both epoch readings (`conformance/gpconf-0.9.0-⟦date⟧.txt`): ⟦the counts⟧;
+- gpconf 0.9.0 as released, from PyPI, in both epoch readings (`conformance/gpconf-0.9.0-2026-11-15.txt`): in the
+  vallado epoch 17 of the 21 cases pass and the three propagation cases pass within gpconf's tolerance, none fails,
+  and the twenty-first, a data check, is not exercised; in the exact epoch the same but `sgp4-ver-propagation`, which
+  fails on set 23333 by 4.11e-6 km;
   CI runs gpconf 0.9.0 in place of 0.8.0. Before its release, the current corpus run in full, offline, in both epoch
   readings (`conformance/gpconf-0.9.0-candidate-2026-11-11.txt`). `tools/check_gpconf.py` lets its three propagation cases
   meet the bar within gpconf's tolerance, as gpconf grades them, and every other case still only as a plain pass.
