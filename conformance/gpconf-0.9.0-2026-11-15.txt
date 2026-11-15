@@ -73,7 +73,8 @@ provider files: 128, fingerprint dd088d563aa52b90d2e0e5cb39417e476e0cceaf2907789
 The propagation tier, item by item (largest differences; the bar is 2e-7 km and km/s per component):
   sgp4-ver-propagation, vallado: positions within the bar, 1.17e-7 km and 5e-10 km/s at the most over 666 steps;
     the error codes pass.
-  sgp4-ver-propagation, exact: positions fail on set 23333, 4.11e-6 km; the error codes pass.
+  sgp4-ver-propagation, exact: positions fail on two sets, 23333 by 4.11e-6 km (15 of its 15 steps) and 20413's
+    second entry by up to 4.63e-7 km (7 of its 70 steps); the error codes pass. (Corrected; see the end.)
   propagation-tle-omm-twins: within the bar of the corpus's reference vectors (9.71e-10 km with vallado, 1.13e-9 km
     exact) over 42 steps, and the TLE's and the OMM's answers agree.
   ephemeris-type-4-refused: the SGP4-XP set refused, and its type-0 twins within the bar (6.64e-11 km) over 36 steps.
@@ -96,3 +97,13 @@ tle-vs-omm-precision-loss grade 6 items each, where the candidate graded 7. The 
 development tree; the package withholds SupGP-derived pairs (gpconf's D-049, tools/public_scrub.py since 4db7d2a,
 2026-09-20: the pair from starlink-g15-27, recorded in each case's pairs_withheld), so the package grades one
 object fewer in each. gpconf 0.8.0 from PyPI graded 6 in both as well (conformance/gpconf-0.8.0-2026-11-05.txt:58-59).
+
+Correction (2026-11-15, after the release). This record first said the exact epoch fails "on set 23333", as the README
+and the changelog did. gpconf's report lists only the first six failing steps, and all six are 23333's. The exact
+epoch was run again on 2026-11-15, 20:00Z, on v2.0.0's tree (f7e9f095), the same gpconf 0.9.0 from PyPI, the same
+provider files (fingerprint dd088d56...) and Vallado's pair, offline: the same counts (cases 21, pass 17,
+pass-tolerance 2, fail 1, not-exercised 1). Every set of SGP4-VER.TLE was then graded with gpconf 0.9.0's own
+reference and grade_set, calling this adapter. In the exact epoch two fail: 23333 (15 of 15 steps, up to 4.11e-6 km)
+and 20413's second entry in the file (7 of 70 steps, up to 4.63e-7 km). Every other set is within the bar, the
+largest 1.61e-7 km (20413's first entry). With --epoch vallado none fails, the largest 1.17e-7 km, as recorded above.
+The counts above are unchanged: one case fails, now said on both of its sets.

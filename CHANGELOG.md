@@ -76,7 +76,8 @@ the measurement waits for gpconf 0.9.0's re-measure fetch, with medium-Earth and
 - gpconf 0.9.0 as released, from PyPI, in both epoch readings (`conformance/gpconf-0.9.0-2026-11-15.txt`): in the
   vallado epoch 17 of the 21 cases pass and the three propagation cases pass within gpconf's tolerance, none fails,
   and the twenty-first, a data check, is not exercised; in the exact epoch the same but `sgp4-ver-propagation`, which
-  fails on set 23333 by 4.11e-6 km;
+  fails on two sets, 23333 by 4.11e-6 km and 20413 (its second entry in the file) by up to 4.63e-7 km (corrected
+  after the release: this entry first named 23333 alone; `conformance/gpconf-0.9.0-2026-11-15.txt` says how);
   CI runs gpconf 0.9.0 in place of 0.8.0. Before its release, the current corpus run in full, offline, in both epoch
   readings (`conformance/gpconf-0.9.0-candidate-2026-11-11.txt`). `tools/check_gpconf.py` lets its three propagation cases
   meet the bar within gpconf's tolerance, as gpconf grades them, and every other case still only as a plain pass.
