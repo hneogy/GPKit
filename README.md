@@ -150,9 +150,10 @@ serve. GPKit's adapter for its runner is in this package (`Sources/gpconf-adapte
 With gpconf 0.9.0, on 2026-11-15, with the adapter's `--epoch vallado`: **17 cases pass on every item exactly, the
 three propagation cases pass within gpconf's tolerance, and none fails or is skipped.** The twenty-first,
 `satcat-70000-cutoff`, checks data and runs no parser; it reports not exercised for every library. With the exact
-epoch, GPKit's default, the result is the same but for `sgp4-ver-propagation`, which fails on one of Vallado's sets,
-23333, by 4.11e-6 km: his verification output was made from his reader's epoch, which rounds it, so that case is
-judged in his reading. The run's summary is in [`conformance/`](conformance/).
+epoch, GPKit's default, the result is the same but for `sgp4-ver-propagation`, which fails on two of Vallado's sets:
+23333, by 4.11e-6 km, and 20413, by up to 4.63e-7 km on 7 of the 70 steps of its second entry in the file. His
+verification output was made from his reader's epoch, which rounds it, so that case is judged in his reading. The
+run's summary is in [`conformance/`](conformance/).
 
 The judged run propagates from the epoch as Vallado's C++ reader makes it: `--epoch vallado` before each command
 makes the adapter use `Propagator.EpochReading.vallado`, which is how his `tcppver.out` was made, and declares
