@@ -2,9 +2,13 @@
 
 [![CI](https://github.com/hneogy/GPKit/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/hneogy/GPKit/actions/workflows/ci.yml)
 
-GPKit reads GP data — OMM and TLE, including six-digit catalog numbers. Against gpconf 0.9.0 it passes 20 of the
-21 cases, and none fails, with Vallado's verification case run in his epoch reading (below); the twenty-first
-checks data and runs no parser.
+GPKit reads GP data — OMM and TLE, including six-digit catalog numbers. Against gpconf 0.9.0, with GPKit's default
+(the exact epoch), 17 of the 21 cases pass exactly and 2 more within gpconf's tolerance; one, `sgp4-ver-propagation`,
+fails on two of the SGP4 verification sets, 23333 and 20413, because the reference output was made from the reference
+reader's rounded epoch and GPKit keeps the exact one. With the other epoch reading, described below, 17 pass exactly,
+3 within tolerance, and none fails. The twenty-first checks data only. The figures are from the
+[record](conformance/gpconf-0.9.0-2026-11-15.txt): lines 63, 76-77 and 113 for the default, 50 for the other reading,
+and 37 for the twenty-first. More in [gpconf](#gpconf) below.
 
 ```swift
 let iss = try ElementSets.read(csv, as: .csv).elementSets[0]
