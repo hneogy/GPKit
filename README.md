@@ -30,8 +30,8 @@ Foundation's `Date`, and the rest builds without Foundation. CI builds and tests
 (in an emulator) and WebAssembly, builds it for iOS, tvOS, watchOS and visionOS, and checks that the core compiles
 with no Foundation and with a 32-bit `Int`.
 
-Built with AI assistance (Claude); reading, propagation and pass prediction are checked against gpconf, the C++
-reference and Skyfield.
+Built with AI assistance under human direction; reading, propagation and pass prediction are checked against
+gpconf, the C++ reference and Skyfield.
 
 ## Installing
 
@@ -151,13 +151,14 @@ element set number or revolution number as 0.
 [gpconf](https://github.com/hneogy/gp-omm-conformance) is a conformance corpus for GP data, built from what providers
 serve. GPKit's adapter for its runner is in this package (`Sources/gpconf-adapter`), and CI runs it on every push.
 
-With gpconf 0.9.0, on 2026-11-15, with GPKit's default, the exact epoch: **17 cases pass on every item exactly, 2
-pass within gpconf's tolerance, and `sgp4-ver-propagation` fails** on two of Vallado's sets: 23333, by 4.11e-6 km,
-and 20413, by up to 4.63e-7 km on 7 of the 70 steps of its second entry in the file. His verification output was made
-from his reader's epoch, which rounds it. With the adapter's `--epoch vallado`, which propagates from that epoch, the
-three propagation cases pass within gpconf's tolerance and none fails or is skipped. The twenty-first,
-`satcat-70000-cutoff`, checks data and runs no parser; it reports not exercised for every library. The runs' summary
-is in [`conformance/`](conformance/).
+With gpconf 0.9.0, on 2026-11-15, with GPKit's default, the exact epoch: **17 cases pass on every item exactly, 2 pass
+within gpconf's tolerance, and `sgp4-ver-propagation` fails** on two of the SGP4 verification sets: 23333, by 4.11e-6
+km, and 20413, by up to 4.63e-7 km on 7 of the 70 steps of its second entry in the file. The reference output was made
+from the reference C++ reader's epoch, which rounds it. With the adapter's `--epoch vallado`, which propagates from that
+epoch, the three propagation cases pass within gpconf's tolerance and none fails or is skipped. The twenty-first,
+`satcat-70000-cutoff`, checks data and runs no parser; it reports not exercised for every library. The runs' summary is
+in [`conformance/`](conformance/). GPKit's SGP4 is a port to Swift of the propagation routines of David Vallado's
+`SGP4.cpp` ([NOTICE](NOTICE)).
 
 The full run, with GPKit's default epoch, as recorded:
 
@@ -172,15 +173,16 @@ folder that `gpconf run` then finds by itself, so after a default fetch `--data`
 `$GPCONF_DATA`, then a corpus clone, then that folder). The recorded runs read the maintainer's copy of 2026-09-21,
 which holds launch-window files no fetch can get: from a fresh fetch, `supgp-celestrak-classification-c`
 reports not available and three other cases are judged without their launch-window files, so 17 exact passes can't
-be reached that way. `--sgp4-ver` names the folder holding the SGP4 verification files, Vallado's `SGP4-VER.TLE` and
+be reached that way. `--sgp4-ver` names the folder holding the SGP4 verification files, `SGP4-VER.TLE` and
 `tcppver.out`; left out, gpconf looks for them in an installed python-sgp4 2.27, then in what
 `gpconf fetch --include-propagation` downloaded. With none of the provider files, 11 cases report that they need
 fetched data and one that its files aren't available; with no verification files, `sgp4-ver-propagation` isn't
 exercised. With the default epoch, `gpconf run` exits 1 and `--gate` isn't met, on `sgp4-ver-propagation` alone.
 
-To propagate from the epoch as Vallado's C++ reader makes it, give `--epoch vallado` before each command: the adapter
-then uses `Propagator.EpochReading.vallado`, which is how his `tcppver.out` was made, and declares
-`"epoch": "vallado"` in gpconf's constants declaration. That run is the other one recorded, and `--gate` is met:
+To propagate from the epoch as the reference C++ reader makes it, give `--epoch vallado` before each command: the
+adapter then uses `Propagator.EpochReading.vallado`, which is how the reference output, `tcppver.out`, was made, and
+declares `"epoch": "vallado"` in gpconf's constants declaration. That run is the other one recorded, and `--gate` is
+met:
 
 ```bash
 gpconf run --data path/to/provider-files --sgp4-ver path/to/sgp4-verification-files --cmd "'$PWD/.build/debug/gpkit-gpconf' --epoch vallado parse {fmt}" --vectors-cmd "'$PWD/.build/debug/gpkit-gpconf' --epoch vallado vectors" --write-cmd "'$PWD/.build/debug/gpkit-gpconf' --epoch vallado write" --json gpconf-report-vallado.json
