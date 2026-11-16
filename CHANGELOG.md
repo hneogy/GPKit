@@ -5,6 +5,19 @@ the interface, and CI stops a change to it that this file does not say (`tools/p
 major version nothing public is removed or changed in a way that breaks code written against an earlier release of
 it; a break waits for the next major version, whose entry names each one under "Breaking changes".
 
+## 2.0.1 (2026-11-16)
+
+Nothing in the public interface is added, removed or changed; `docs/public-api.swift` is as in 2.0.0. The code is
+2.0.0's but for `DataAge.gpkitVersion`, which is `"2.0.1"`, so a data-age table built with this release records it.
+
+- The README's gpconf section gives the full recorded command, with `--data` and `--sgp4-ver` and what each needs,
+  and leads with the result in GPKit's default, the exact epoch: 17 of the 21 cases pass exactly, 2 within gpconf's
+  tolerance, and `sgp4-ver-propagation` fails on sets 23333 and 20413. The `--epoch vallado` run follows: 17, 3,
+  none failing. The README's opening lines say the same, each figure cited to `conformance/gpconf-0.9.0-2026-11-15.txt`.
+- The gpconf 0.9.0 record and the 2.0.0 entry below name both sets that fail in the exact epoch, 23333 and 20413.
+  They first named 23333 alone, since gpconf's report lists only the first six failing steps; the record has the
+  re-run. The candidate record of 2026-11-11 and the roadmap point at it.
+
 ## 2.0.0 (2026-11-15)
 
 GPKit 2.0. One change breaks code written against 1.x: an SGP4-XP element set is refused with a kind of its own.
