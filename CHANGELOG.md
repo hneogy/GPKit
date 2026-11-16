@@ -17,6 +17,15 @@ it; a break waits for the next major version, whose entry names each one under "
   itself, so that a compiler, toolchain or system library that moves the last place is seen in CI and said here.
   Recorded for macOS on arm64 and checked in the macOS CI job; Linux and Windows have no record yet.
 
+- The bit record on Linux and Windows: the Linux and Windows CI jobs run `tools/bit-record/check.sh` too (Windows
+  with the native build system, in Git Bash), each against a record of its own, `linux-x86_64.txt` and
+  `windows-x86_64.txt`. Until a platform's record is committed, its step fails and uploads the record it made, to be
+  read and committed. The check now also tests itself on every platform: the ULP arithmetic on fixed pairs
+  (`--self-test`), a planted one-digit change that must fail as one number moved, and the record made twice in one
+  run. `--compare` reports, for information only, how far this build is from another platform's record. A record
+  gains `# swift` and `# made` lines, which the check doesn't compare; records are read with any line ending, and
+  `.gitattributes` keeps git from converting them.
+
 ## 2.0.1 (2026-11-16)
 
 Nothing in the public interface is added, removed or changed; `docs/public-api.swift` is as in 2.0.0. The code is

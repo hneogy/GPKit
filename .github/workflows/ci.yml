@@ -164,6 +164,19 @@ jobs:
       - name: The article's code
         run: sh tools/check-article-code.sh
 
+      # the release build's propagate outputs against this platform's record, to the bit (tools/bit-record); with no
+      # record yet, the step fails and the record it made is uploaded, for the owner to read and commit
+      - name: The bit record
+        run: sh tools/bit-record/check.sh
+
+      - name: The bit record made here, if there is none committed
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bit-record-linux-x86_64
+          path: tools/bit-record/.build/bit-record-new-*.txt
+          if-no-files-found: ignore
+
   # WebAssembly (WASI), with swift.org's Wasm SDK for the pinned release, its checksum the one swift.org lists for
   # 6.4.2: the package built and its tests run.
   wasm:
@@ -213,6 +226,19 @@ jobs:
 
       - name: Unit tests
         run: swift test --build-system native
+
+      # as on Linux; Git Bash, and the native build system as above
+      - name: The bit record
+        shell: bash
+        run: sh tools/bit-record/check.sh --build-system native
+
+      - name: The bit record made here, if there is none committed
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bit-record-windows-x86_64
+          path: tools/bit-record/.build/bit-record-new-*.txt
+          if-no-files-found: ignore
 
   # Android, with swift.org's Android SDK for the pinned release: the package built and its tests run in an emulator.
   android:
