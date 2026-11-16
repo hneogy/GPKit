@@ -10,7 +10,9 @@ bin=$(swift build -c release --package-path tools/bit-record "$@" --show-bin-pat
 work=tools/bit-record/.build
 platform=$("$bin" --platform)
 record=conformance/bit-records/$platform.txt
-GPKIT_SWIFT_VERSION=$(swift --version 2>&1 | head -n 1)
+# the toolchain's own line ("Apple Swift version …" or "Swift version …"), not the driver's line before it on macOS
+GPKIT_SWIFT_VERSION=$(swift --version 2>&1 | sed 's/^swift-driver version: [^ ]* //' | /usr/bin/grep -m 1 'Swift version') \
+  || GPKIT_SWIFT_VERSION="unknown: swift --version gave no 'Swift version' line"
 export GPKIT_SWIFT_VERSION
 
 # the ULP arithmetic, on fixed pairs, before any record is trusted
