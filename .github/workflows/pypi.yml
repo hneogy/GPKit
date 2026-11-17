@@ -1,0 +1,65 @@
+name: pygpkit to PyPI
+
+# pygpkit's wheels, built and tested exactly as in CI (pygpkit-wheels.yml) from a release's tag, and published to PyPI
+# with Trusted Publishing: PyPI trusts this workflow file, in this repository, in the environment "pypi", by the
+# short-lived OIDC token GitHub gives the publish job. No PyPI token or password is stored anywhere.
+# Run by hand from the Actions tab, on a release tag (v*), giving pygpkit's version; the environment "pypi" waits for
+# the owner's approval before the publish job starts. Nothing here runs on a push, a pull request or a release.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "pygpkit's version, as python/src/pygpkit/__init__.py states it (for example 0.1.0)"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: on a release tag, at the package's version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The run is on a tag, and the version given is the package's
+        env:
+          WANT: ${{ inputs.version }}
+        run: |
+          case "$GITHUB_REF" in refs/tags/v*) ;; *) echo "run this on a release tag (v*), not $GITHUB_REF" >&2; exit 1 ;; esac
+          have=$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' python/src/pygpkit/__init__.py)
+          [ "$have" = "$WANT" ] || { echo "the package says $have, the run was given $WANT" >&2; exit 1; }
+          echo "pygpkit $have from $GITHUB_REF"
+
+  wheels:
+    needs: check
+    uses: ./.github/workflows/pygpkit-wheels.yml
+
+  publish:
+    name: publish pygpkit to PyPI
+    needs: wheels
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/pygpkit/
+    permissions:
+      id-token: write   # the OIDC token PyPI's Trusted Publishing reads; nothing else
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: pygpkit-*
+          path: dist
+          merge-multiple: true
+
+      # the three wheels CI tested, Linux, macOS and Windows, all of the version given, and nothing else
+      - name: Three wheels, of this version
+        env:
+          WANT: ${{ inputs.version }}
+        run: |
+          ls -l dist
+          [ "$(ls dist | wc -l)" = 3 ] || { echo "dist holds $(ls dist | wc -l) files, not three wheels" >&2; exit 1; }
+          for w in dist/*; do
+            case "$(basename "$w")" in "pygpkit-$WANT-py3-none-"*.whl) ;; *) echo "$w is not a pygpkit $WANT wheel" >&2; exit 1 ;; esac
+          done
+
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
