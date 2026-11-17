@@ -28,6 +28,13 @@
 // what that costs. The stream is checked first against one propagator at a time,
 // to the bit, on a few instants of every set.
 //
+// --sets full makes the made-up sets with every keyword of CCSDS 502.0-B-3's OMM that GPKit reads filled in, as text
+// GPKit keeps: the header (CCSDS_OMM_VERS, CREATION_DATE, ORIGINATOR), the metadata (CENTER_NAME, REF_FRAME, TIME_SYSTEM,
+// MEAN_ELEMENT_THEORY) and the spacecraft parameters (MASS, SOLAR_RAD_AREA, SOLAR_RAD_COEFF, DRAG_AREA, DRAG_COEFF),
+// with a 24-character name (a TLE's line 0), an 11-character international designator and every number to 12
+// decimals. Its lengths come from the format and nothing else; it is not shaped after any provider's file. The default,
+// --sets minimal, is the 17 columns above, as before.
+//
 // Each figure is the median of N runs (5 by default) after one run to warm up. The batch's results are checked
 // against the one-at-a-time results, to the bit, before anything is timed. With --file the element sets are read
 // from that file instead, and only their count and the times are printed.
@@ -42,6 +49,7 @@ func fail(_ message: String) -> Never {
 /// The made-up constellation as CSV: element sets that look like a large constellation's, made from a rule, the same
 /// on every run and every machine. No provider's data is in it.
 func constellation(_ count: Int, from first: Int = 0) -> String {
+    if fullSets { return fullConstellation(count, from: first) }
     var csv = "OBJECT_NAME,OBJECT_ID,EPOCH,MEAN_MOTION,ECCENTRICITY,INCLINATION,RA_OF_ASC_NODE,ARG_OF_PERICENTER,MEAN_ANOMALY,"
         + "EPHEMERIS_TYPE,CLASSIFICATION_TYPE,NORAD_CAT_ID,ELEMENT_SET_NO,REV_AT_EPOCH,BSTAR,MEAN_MOTION_DOT,MEAN_MOTION_DDOT\n"
     // revolutions a day and inclination: about 550 km at 53 degrees, 540 at 53.2, 570 at 70, 560 at 97.6
@@ -54,6 +62,29 @@ func constellation(_ count: Int, from first: Int = 0) -> String {
         let anomaly = (Double(slot) * 10.4 + Double(plane) * 0.7).truncatingRemainder(dividingBy: 360)
         csv += "MADE-UP \(i),2026-000A,2026-11-01T00:00:00.000000,\(shell.motion),.0001500,\(shell.inclination),"
             + "\(String(format: "%.4f", node)),90.0000,\(String(format: "%.4f", anomaly)),0,U,\(100_000 + i),999,1,.10000E-3,.00001000,0\n"
+    }
+    return csv
+}
+
+/// The same constellation, the same orbits, with every OMM keyword GPKit reads filled in (`--sets full`).
+func fullConstellation(_ count: Int, from first: Int = 0) -> String {
+    var csv = "CCSDS_OMM_VERS,CREATION_DATE,ORIGINATOR,OBJECT_NAME,OBJECT_ID,CENTER_NAME,REF_FRAME,TIME_SYSTEM,"
+        + "MEAN_ELEMENT_THEORY,EPOCH,MEAN_MOTION,ECCENTRICITY,INCLINATION,RA_OF_ASC_NODE,ARG_OF_PERICENTER,MEAN_ANOMALY,"
+        + "EPHEMERIS_TYPE,CLASSIFICATION_TYPE,NORAD_CAT_ID,ELEMENT_SET_NO,REV_AT_EPOCH,BSTAR,MEAN_MOTION_DOT,"
+        + "MEAN_MOTION_DDOT,MASS,SOLAR_RAD_AREA,SOLAR_RAD_COEFF,DRAG_AREA,DRAG_COEFF\n"
+    let shells: [(motion: Double, inclination: Double)] = [(15.06, 53.0), (15.10, 53.2), (14.98, 70.0), (15.02, 97.6)]
+    func d(_ x: Double) -> String { String(format: "%.12f", x) }
+    for i in first..<(first + count) {
+        let shell = shells[i % 4]
+        let plane = (i / 4) % 72, slot = i / 288
+        let node = Double(plane) * 5.0 + Double(i % 4) * 1.25
+        let anomaly = (Double(slot) * 10.4 + Double(plane) * 0.7).truncatingRemainder(dividingBy: 360)
+        let name = "MADE-UP FULL " + String(format: "%011d", i)          // 24 characters
+        let id = String(format: "2026-%03d", i % 1000) + ["A", "B", "C", "D"][i % 4] + "AA"  // 11 characters
+        csv += "3.0,2026-11-01T00:00:00.000000,MADE-UP ORIGINATOR 00000,\(name),\(id),EARTH,TEME,UTC,SGP4,"
+            + "2026-11-01T00:00:00.000000,\(d(shell.motion)),\(d(0.00015)),\(d(shell.inclination)),\(d(node)),\(d(90)),"
+            + "\(d(anomaly)),0,U,\(100_000 + i),999,1,\(d(0.0001)),\(d(0.00001)),\(d(0)),"
+            + "\(d(260)),\(d(10)),\(d(1.2)),\(d(10)),\(d(2.2))\n"
     }
     return csv
 }
@@ -73,11 +104,14 @@ let workloads = arguments.contains("--workloads")
 let streaming = arguments.contains("--stream")
 let budgetMiB = option("--budget").flatMap(Int.init)
 let memoryStage = option("--memory")
+let setKind = option("--sets") ?? "minimal"
+guard setKind == "minimal" || setKind == "full" else { fail("--sets takes minimal or full") }
+let fullSets = setKind == "full"
 let unreserved = CommandLine.arguments.contains("--unreserved")
 arguments.removeAll { $0 == "--unreserved" }
 arguments.removeAll { $0 == "--workloads" || $0 == "--stream" }
 guard arguments.isEmpty, runs > 0, count > 0 else {
-    fail("usage: benchmark [--file PATH --format csv|json|xml|kvn|tle] [--runs N] [--count N] [--workloads [--screen-count N]] [--stream [--budget MiB]] [--memory none|text|file|all|sets-only|propagators-only|pieces|check-pieces [--unreserved]]")
+    fail("usage: benchmark [--file PATH --format csv|json|xml|kvn|tle] [--runs N] [--count N] [--workloads [--screen-count N]] [--stream [--budget MiB]] [--memory none|text|file|all|sets-only|propagators-only|pieces|check-pieces [--unreserved]] [--sets minimal|full]")
 }
 
 func sysctl(_ name: String) -> String? {
@@ -175,7 +209,7 @@ if let stage = memoryStage {
         guard let data = FileManager.default.contents(atPath: path) else { fail("\(path): cannot be read") }
         return String(decoding: data, as: UTF8.self)
     }
-    print("--memory \(stage), " + (path == nil ? "\(count) made-up element sets" : "a file read as \(readAs.rawValue) (its name and contents are not printed)"))
+    print("--memory \(stage), " + (path == nil ? "\(count) made-up element sets" + (fullSets ? " (full)" : "") : "a file read as \(readAs.rawValue) (its name and contents are not printed)"))
     print("sizes: Propagator \(MemoryLayout<Propagator>.stride) bytes, ElementSet \(MemoryLayout<ElementSet>.stride), "
         + "the propagator's SGP4 state and gravity \(MemoryLayout<Propagator>.stride - MemoryLayout<ElementSet>.stride) (a Propagator holds its ElementSet)")
     var kept: [Any] = []
@@ -314,7 +348,7 @@ do {
     let sets = file.elementSets
     let propagators = try sets.map { try Propagator($0) }
     let instant = try Epoch(ccsds: path == nil ? "2026-11-01T06:00:00" : sets[0].epoch.description).advanced(by: 0)
-    print("\(path == nil ? "made-up element sets" : "element sets read"): \(sets.count) (\(file.refusals.count) refused)")
+    print("\(path == nil ? (fullSets ? "made-up element sets (full)" : "made-up element sets") : "element sets read"): \(sets.count) (\(file.refusals.count) refused)")
 
     if streaming {
         let day = 1440
