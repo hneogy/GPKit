@@ -5,6 +5,27 @@ the interface, and CI stops a change to it that this file does not say (`tools/p
 major version nothing public is removed or changed in a way that breaks code written against an earlier release of
 it; a break waits for the next major version, whose entry names each one under "Breaking changes".
 
+## Unreleased
+
+- The bit record (`tools/bit-record`, a package of its own): the release build's `Propagator.state` outputs for 39
+  made-up element sets, three in each of thirteen regimes SGP4 treats apart (near-Earth with and without the
+  simplified drag, equatorial, retrograde, decaying; the 12- and 24-hour resonances, Lyddane's case, deep space with
+  no resonance), at 22 times from a day before the epoch to ten days after, every number as its IEEE 754 bit
+  pattern. A platform's record is in `conformance/bit-records/`, and `tools/bit-record/check.sh` fails if any number
+  moves, by however little, with the count and the largest difference. GPKit still does not promise the same bits
+  on every platform or build (2.0.0, "Known platform difference"): the record holds one platform's release build to
+  itself, so that a compiler, toolchain or system library that moves the last place is seen in CI and said here.
+  Recorded for macOS on arm64 and checked in the macOS CI job; Linux and Windows have no record yet.
+
+- The bit record on Linux and Windows: the Linux and Windows CI jobs run `tools/bit-record/check.sh` too (Windows
+  with the native build system, in Git Bash), each against a record of its own, `linux-x86_64.txt` and
+  `windows-x86_64.txt`. Until a platform's record is committed, its step fails and uploads the record it made, to be
+  read and committed. The check now also tests itself on every platform: the ULP arithmetic on fixed pairs
+  (`--self-test`), a planted one-digit change that must fail as one number moved, and the record made twice in one
+  run. `--compare` reports, for information only, how far this build is from another platform's record. A record
+  gains `# swift` and `# made` lines, which the check doesn't compare; records are read with any line ending, and
+  `.gitattributes` keeps git from converting them.
+
 ## 2.0.1 (2026-11-16)
 
 Nothing in the public interface is added, removed or changed; `docs/public-api.swift` is as in 2.0.0. The code is

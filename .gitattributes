@@ -1,0 +1,2 @@
+# the bit records are compared line by line on every platform: never convert their line endings
+conformance/bit-records/*.txt -text
