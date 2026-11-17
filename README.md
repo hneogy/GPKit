@@ -225,6 +225,34 @@ An `Epoch` is UTC. `Epoch(date)` and `epoch.date` go to and from Foundation's `D
 `Epoch(unixTime:)` and `unixTime` do the same with a count of seconds, where there is no Foundation; and
 `advanced(by:)` and `seconds(since:)` move and measure in seconds. A date outside the years 1 to 9999 is refused.
 
+## Data age
+
+How far off is a position from an element set that is days old? GPKit measures it rather than quoting a figure.
+`DataAge.measure` takes the sets you hold for each satellite and propagates every older set to each newer set's
+epoch, up to `maximumAge` days, then compares the two positions there. A `DataAgeTable` sums the differences up by
+orbit class and age, as percentiles.
+
+```swift
+let measurement = DataAge.measure(history, maximumAge: 30)  // history: [ElementSet], several sets of each satellite
+if let provenance = DataAgeTable.Provenance(source: "my fetches, 1 to 30 November", measurement: measurement) {
+    let table = DataAgeTable(measurement, provenance: provenance)  // rows by orbit class and span of age, in days
+    if case .row(let row) = table.estimate(for: set, at: time) {
+        row.positionError.median; row.positionError.p95  // kilometres, for sets of that class at that age
+    }
+}
+set.orbitClass                                          // ESA's orbit class: LEO, MEO, GEO, HEO and the rest
+```
+
+The newer set at its own epoch stands in for the truth, but it is only the provider's next fit, with errors of its
+own. So a table says how far an old set drifts from the fits that follow it, not from where the satellite was. GPKit
+ships no table: a table is only as good as the sets it was measured from, and it records them in its provenance
+(where they came from, their epochs, how many of each class, the GPKit version and the method). A table is `Codable`,
+so a published one is read back with any decoder, and a damaged one is refused. An estimate never extrapolates: a set
+older than the table's last span, or of a class it has no rows for, gets no row and is told why.
+
+The orbit classes are those of ESA's *Annual Space Environment Report* (Issue 10.0, 2026); `OrbitClass` gives the
+ranges and the source.
+
 ## Passes and Doppler
 
 ```swift
