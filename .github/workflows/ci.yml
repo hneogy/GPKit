@@ -175,7 +175,8 @@ jobs:
         with:
           name: bit-record-linux-x86_64
           path: tools/bit-record/.build/bit-record-new-*.txt
-          if-no-files-found: ignore
+          if-no-files-found: error
+          include-hidden-files: true   # .build is a hidden folder, which upload-artifact@v4 skips by default
 
   # WebAssembly (WASI), with swift.org's Wasm SDK for the pinned release, its checksum the one swift.org lists for
   # 6.4.2: the package built and its tests run.
@@ -238,7 +239,8 @@ jobs:
         with:
           name: bit-record-windows-x86_64
           path: tools/bit-record/.build/bit-record-new-*.txt
-          if-no-files-found: ignore
+          if-no-files-found: error
+          include-hidden-files: true   # .build is a hidden folder, which upload-artifact@v4 skips by default
 
   # Android, with swift.org's Android SDK for the pinned release: the package built and its tests run in an emulator.
   android:
