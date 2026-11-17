@@ -16,6 +16,8 @@ Nothing in the public interface is added, removed or changed; `docs/public-api.s
   tag, builds and tests the three wheels as CI does and publishes them from the environment `pypi`, which waits for
   the maintainer's approval; no token is stored. `python/README.md` says which systems the wheels cover: the Linux
   wheel needs glibc 2.39 or newer.
+- `conformance/benchmark-2026-11-07.txt` no longer compares its times with a run on a privately held file: figures
+  derived from private data are not published. A dated line says so; the made-up sets' figures are unchanged.
 
 - The bit record (`tools/bit-record`, a package of its own): the release build's `Propagator.state` outputs for 39
   made-up element sets, three in each of thirteen regimes SGP4 treats apart (near-Earth with and without the
