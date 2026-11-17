@@ -30,6 +30,12 @@ Times are UTC: CCSDS text (`2026-11-07T12:00:00.000000`) or timezone-aware `date
 a time zone is refused rather than guessed at. A refusal to read or write raises `pygpkit.Refusal`, and SGP4
 stopping raises `pygpkit.PropagationFailure`, each with GPKit's kind and message.
 
+## Systems
+
+There are three wheels: macOS 13 or later (arm64 and x86_64 in one), Windows on x86_64, and Linux on x86_64. The
+Linux wheel is built on Ubuntu 24.04 and tagged `manylinux_2_39`, so it installs only where glibc is 2.39 or newer
+(Ubuntu 24.04, Debian 13 and later). A wheel for older Linux systems isn't made yet.
+
 ## How it is built and checked
 
 - `Sources/PyGPKitCore` is the native library: one C function, `pygpkit_call`, takes a request as JSON and gives the
