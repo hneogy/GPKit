@@ -54,12 +54,12 @@ this benchmark]**.
 
 ## What the bound does not cover
 
-- **The propagators themselves.** A propagator costs about 3 KB a set (real capture of 11,141 sets), with about 2 KB
-  for made-up sets as a lower bound (`conformance/memory-split-2026-11-10.txt`). In this tool, 40,000 made-up sets
-  held 174 MB at the peak once read and made. Measured apart since, that is the propagators with their element sets,
-  55 per cent, plus the input text and the file read from it. Reading in pieces and keeping only the propagators
-  gives 87 to 89 MB (the article "Working with a whole catalogue"). Per the owner's rulings, no smaller propagator is
-  designed; it is recorded as an option, not a goal.
+- **The propagators themselves.** A propagator costs about 2.4 KB a set with plain made-up sets and about 3.2 KB with
+  made-up sets that fill in every OMM keyword GPKit reads (10,000 sets, `conformance/memory-set-kinds-2026-11-19.txt`).
+  In this tool, 40,000 made-up sets held 174 MB at the peak once read and made. Measured apart since, that is the
+  propagators with their element sets, 55 per cent, plus the input text and the file read from it. Reading in pieces
+  and keeping only the propagators gives 87 to 89 MB (the article "Working with a whole catalogue"). Per the owner's
+  rulings, no smaller propagator is designed; it is recorded as an option, not a goal.
 - **What `body` keeps.** A program that copies every block keeps the run again.
 
 ## Speed

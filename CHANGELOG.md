@@ -7,6 +7,23 @@ it; a break waits for the next major version, whose entry names each one under "
 
 ## Unreleased
 
+Nothing in the public interface is added, removed or changed; `docs/public-api.swift` is as in 2.0.1.
+
+- The README has a section on data age: how `DataAge.measure` and a `DataAgeTable` measure the error to expect
+  from an element set as it ages, what the measurement stands on (the newer set is the provider's next fit, not
+  the truth), and why GPKit ships no table. Until now the API was described only in the documentation.
+- pygpkit can be published to PyPI by Trusted Publishing: `.github/workflows/pypi.yml`, run by hand on a release
+  tag, builds and tests the three wheels as CI does and publishes them from the environment `pypi`, which waits for
+  the maintainer's approval; no token is stored. `python/README.md` says which systems the wheels cover: the Linux
+  wheel needs glibc 2.39 or newer.
+- `conformance/benchmark-2026-11-07.txt` gives the made-up sets' times alone: a comparison with a second run is cut,
+  with a dated line saying so, and the made-up sets' figures are unchanged.
+- A propagator's memory, in the article "Working with a whole catalogue", the roadmap and the streaming design, is
+  now given from made-up sets alone: about 2.4 KB a set with plain made-up sets and 3.2 KB with every OMM keyword
+  GPKit reads filled in (10,000 sets, `conformance/memory-set-kinds-2026-11-19.txt`, new). The figures they gave
+  before are no longer in them, nor are the article's figures for an array grown by doubling; the dated records
+  keep what they said. `tools/benchmark` gains `--sets full`, which makes those fuller sets.
+
 - The bit record (`tools/bit-record`, a package of its own): the release build's `Propagator.state` outputs for 39
   made-up element sets, three in each of thirteen regimes SGP4 treats apart (near-Earth with and without the
   simplified drag, equatorial, retrograde, decaying; the 12- and 24-hour resonances, Lyddane's case, deep space with
@@ -15,7 +32,7 @@ it; a break waits for the next major version, whose entry names each one under "
   moves, by however little, with the count and the largest difference. GPKit still does not promise the same bits
   on every platform or build (2.0.0, "Known platform difference"): the record holds one platform's release build to
   itself, so that a compiler, toolchain or system library that moves the last place is seen in CI and said here.
-  Recorded for macOS on arm64 and checked in the macOS CI job; Linux and Windows have no record yet.
+  Recorded first for macOS on arm64 and checked in the macOS CI job.
 
 - The bit record on Linux and Windows: the Linux and Windows CI jobs run `tools/bit-record/check.sh` too (Windows
   with the native build system, in Git Bash), each against a record of its own, `linux-x86_64.txt` and
@@ -24,7 +41,10 @@ it; a break waits for the next major version, whose entry names each one under "
   (`--self-test`), a planted one-digit change that must fail as one number moved, and the record made twice in one
   run. `--compare` reports, for information only, how far this build is from another platform's record. A record
   gains `# swift` and `# made` lines, which the check doesn't compare; records are read with any line ending, and
-  `.gitattributes` keeps git from converting them.
+  `.gitattributes` keeps git from converting them. The Linux and Windows records are committed as CI made them
+  (Swift 6.4.2). Against macOS's record, 512 (Linux) and 542 (Windows) of the 4,788 numbers differ, by at most
+  2.1e-11 km in position and 4.4e-15 km/s in velocity, and no line differs in kind: every set stops where it stops,
+  for the same reason, on all three.
 
 ## 2.0.1 (2026-11-16)
 
