@@ -16,8 +16,8 @@ Nothing in the public interface is added, removed or changed; `docs/public-api.s
   tag, builds and tests the three wheels as CI does and publishes them from the environment `pypi`, which waits for
   the maintainer's approval; no token is stored. `python/README.md` says which systems the wheels cover: the Linux
   wheel needs glibc 2.39 or newer.
-- `conformance/benchmark-2026-11-07.txt` no longer compares its times with a run on a privately held file: figures
-  derived from private data are not published. A dated line says so; the made-up sets' figures are unchanged.
+- `conformance/benchmark-2026-11-07.txt` gives the made-up sets' times alone: a comparison with a second run is cut,
+  with a dated line saying so, and the made-up sets' figures are unchanged.
 - A propagator's memory, in the article "Working with a whole catalogue", the roadmap and the streaming design, is
   now given from made-up sets alone: about 2.4 KB a set with plain made-up sets and 3.2 KB with every OMM keyword
   GPKit reads filled in (10,000 sets, `conformance/memory-set-kinds-2026-11-19.txt`, new). The figures they gave

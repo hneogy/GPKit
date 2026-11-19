@@ -26,8 +26,8 @@ What it printed:
   a day at one-minute steps, the batch: 0.3705 s, 26 ns a state, 38.87 million states a second
   load at the end: 3.16 2.91 2.99
 
-(Removed 2026-11-17, for GPKit 2.0.2: a comparison with a privately held file, under the owner's rule that figures
-derived from private data stay private. The figures above are for the made-up sets alone.)
+(Removed 2026-11-17, for GPKit 2.0.2: a comparison of these times with a second run. The figures above are for the
+made-up sets alone.)
 
 The Mac was not otherwise idle: the load averages are printed at the start and the end. A state is a position and
 velocity in TEME; the times do not include turning them into looks or map positions.
