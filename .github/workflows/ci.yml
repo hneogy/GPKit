@@ -217,8 +217,16 @@ jobs:
           swift-version: swift-6.4.2-release
           swift-build: 6.4.2-RELEASE
 
+      # MSVC 14.44 for the C++ in the tests (the SGP4 oracle): the image's default MSVC, 14.52 since image
+      # 20261116, refuses any Clang older than 22 (STL1000), and Swift 6.4.2's Clang is 21. Exports INCLUDE, LIB
+      # and the rest for the steps below; fails if the image no longer has 14.44.
+      - name: MSVC toolset
+        uses: compnerd/gha-setup-vsdevenv@f1ba60d553a3216ce1b89abe0201213536bc7557 # v6
+        with:
+          toolset_version: '14.44'
+
       - name: Toolchain version
-        run: swift --version
+        run: swift --version; echo "VCToolsInstallDir=$env:VCToolsInstallDir"
 
       # the native build system: Swift 6.4's default touches a test target's resource bundle on Windows with
       # `copy /b BUNDLE +,,`, which fails on a folder, once more than one test target has resources
