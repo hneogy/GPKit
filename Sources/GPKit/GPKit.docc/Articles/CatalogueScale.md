@@ -15,9 +15,10 @@ It also pays for the states it asks for. Two habits keep all of it bounded:
 - **stream a run of states instead of keeping it.**
 
 The figures below are for 40,000 made-up element sets on an Apple M5, from the records in GPKit's `conformance/`
-folder. Each propagator holds its ``ElementSet``, and a propagator costs **about 3 KB a set** in all. That figure is
-from a real capture of 11,141 sets, a provider's supplemental GP CSV of one constellation. Made-up sets cost about
-2 KB, a lower bound. The extra in real data is in the element sets' own text; the SGP4 state is the same.
+folder. Each propagator holds its ``ElementSet``. Kept alone, a propagator costs **about 2.4 KB a set** with plain
+made-up sets and **about 3.2 KB** with made-up sets that fill in every OMM keyword GPKit reads (10,000 sets,
+`conformance/memory-set-kinds-2026-11-19.txt`). The difference is in the element sets' own text; the SGP4 state,
+about 1 KB a set, is the same. A provider's file can carry more text than either, and GPKit keeps it.
 
 | At 40,000 sets | Most memory held |
 |---|---|
@@ -31,8 +32,8 @@ from a real capture of 11,141 sets, a provider's supplemental GP CSV of one cons
 Reading a whole file holds its text, and every record read from it, until the program lets them go. Reading about a
 thousand records at a time and keeping only what is propagated halves the most memory held. It gives the same element
 sets as reading the file whole, in the same order. Make the array of propagators at its full size if you can count
-the records first. An array that grows by doubling can hold up to twice what it keeps, and with the real file above
-that undid most of the saving: 59 MB at the peak, against 61 MB for reading it whole and 40 MB made at full size.
+the records first. An array that grows by doubling can hold up to twice what it keeps, which can undo most of the
+saving.
 For a CSV, each piece carries the header line:
 
 ```swift
