@@ -1,6 +1,6 @@
 # GPKit 2.0: roadmap
 
-A draft for the owner's review (2026-11-05), brought up to date on 2026-11-10 (GPKit 1.4.0) and on 2026-11-11 (branch `release-2.0.0`, 2.0.0 ready and not released); the owner's rulings of 2026-11-05 are in. The milestones and items are the owner's list of
+A draft for the owner's review (2026-11-05), brought up to date on 2026-11-10 (GPKit 1.4.0), on 2026-11-11 (branch `release-2.0.0`, 2.0.0 ready and not released) and for 2.0.2 (2.0.0, 2.0.1 and 2.0.2 released; the plans after 2.0.2 in "After 2.0.2" below); the owner's rulings of 2026-11-05 are in. The milestones and items are the owner's list of
 2026-11-01; nothing is promised beyond it. Each item gives what it is, what it depends on, and what proves it done.
 Status: **done** (merged), **in progress** (a branch or pull request exists), or blank (not started).
 
@@ -61,7 +61,7 @@ code waits for 2.0 itself and is named in the changelog.
 | Item | Status | What it is | Depends on | Done when |
 |---|---|---|---|---|
 | Android | done (#18, 2026-11-07: built and tested in an emulator with swift.org's Android SDK for 6.4.2) | through Swift 6.3's official Android SDK; a path to GP Passes on Android | Linux CI | GPKit builds and its tests run for Android in CI |
-| A Python package | done but for PyPI (#20, 2026-11-07: pygpkit, wheels for Linux, macOS and Windows tested in CI; nothing published without the owner's word) | `pip install gpkit` | the stable API | the package's results match GPKit's in a test |
+| A Python package | done but for PyPI (#20, 2026-11-07: pygpkit, wheels for Linux, macOS and Windows tested in CI; nothing published without the owner's word); a hand-run workflow publishes the wheels to PyPI from a release tag (#36), first as pygpkit 0.1.0 from 2.0.2 | `pip install pygpkit` | the stable API | the package's results match GPKit's in a test |
 | Hamlib rotator output | done (#23, 2026-11-07: Hamlib 4.5.5's dummy rotator follows a pass in CI) | rotator commands from a pass | coordinate frames | a Hamlib rotator simulator follows a recorded pass |
 | CCSDS OEM export | done (#24, 2026-11-07: OEM 2.0 KVN in TEME; the oem package for Python reads it in CI) | an ephemeris in CCSDS OEM | coordinate frames | a written OEM read back by a named OEM reader |
 | A rough close-approach screen | done (#25, 2026-11-07: candidates only, no probability; held to closest approaches by formula and by brute force) | clearly labelled as limited by SGP4's accuracy | fast propagation | the label in the API's documentation and output; tests on recorded pairs |
@@ -78,8 +78,21 @@ Each row is checked against `CHANGELOG.md` and the release on GitHub.
 | 1.2.1 | 2026-11-10 | released | the gpconf adapter answers gpconf's `propagate` op |
 | 1.3.0 | 2026-11-10 | released | `Propagator.EpochReading`, with the opt-in `.vallado` epoch that matches `tcppver.out` |
 | 1.4.0 | 2026-11-10 | released | streamed batch propagation; GPKitSources' `ElementSetStore`, `FolderSource` and `Ledger.nextAsk`; the catalogue-scale article; the benchmark's workloads, stream and memory modes with their records; the Android note; the documentation fix held from 1.3.0 (there was no 1.3.1) |
-| 2.0.0 | with gpconf 0.9.0 | ready on branch `release-2.0.0`, not released | data age with option B (`v2-data-age`), the type-4 refusal, the one change that breaks 1.x code (`v2-type4-refusal`), gpconf 0.9.0's full run and its badge (`docs/design/release-2.0-plan.md`, branch `v2-plans`) |
-| gpkit-core 0.1 | later | planned | Phase 1 of GPKit everywhere: the Rust core, SGP4 first, held to Swift GPKit by gpconf, once Phase 0 is done and its gate is met (`docs/design/gpkit-everywhere.md`) |
+| 2.0.0 | 2026-11-15 | released, with gpconf 0.9.0 | data age's API with option B and no table, the type-4 refusal (the one change that breaks 1.x code), gpconf 0.9.0's full run (`conformance/gpconf-0.9.0-2026-11-15.txt`) |
+| 2.0.1 | 2026-11-16 | released | the README's gpconf section with the full recorded command, led by the result in the exact epoch; both sets that fail in it, 23333 and 20413, named |
+| 2.0.2 | 2026-11-22 | released, with gpconf 0.10.0 | the README's data-age section; pygpkit's PyPI workflow; a propagator's memory given from made-up sets alone, and `tools/benchmark --sets full`; the bit record: on macOS, Linux and Windows, CI holds the release build's outputs to that platform's own record, to the bit |
+| gpkit-core 0.1 | later | in development (gpkit-everywhere) | Phase 1 of GPKit everywhere: the Rust core, SGP4 first, held to Swift GPKit by gpconf (`docs/design/gpkit-everywhere.md`) |
+
+## After 2.0.2
+
+The owner's plan (2026-11-19). Nothing here has a date.
+
+| Version | What it holds | Depends on |
+|---|---|---|
+| 2.0.x | the data-age table: measured from older and newer sets of the same satellites, published as percentiles by orbit regime with its method and data, so that `DataAge.Estimate` reads from it | gpconf's re-measure data, with medium-Earth and geosynchronous sets; no request to CelesTrak or Space-Track |
+| 2.1 | the offline gpconf check holds the TLE/OMM twins and the type-4 refusal to pass within tolerance, not only to not failing; the list of checks CI runs, read from its workflows, failing if a check script in `tools/` runs in no job; WebAssembly far from epoch: deep-space sets propagated up to six years either side of their epochs in the playground module's check, with a bar per platform | 2.0.2 released; no 2.1 work starts before |
+| pygpkit 0.x | pygpkit stays a package over Swift GPKit, versioned 0.x, starting with 0.1.0 from 2.0.2 | each GPKit release it is built from |
+| pygpkit 1.0 | the Python package over the Rust `gpkit-core` (Phase 2 below), under the same name | Phase 1, then Phase 2's proof: gpconf passing in Python and the parity test green to the bit |
 
 ## After 2.0: GPKit everywhere
 
