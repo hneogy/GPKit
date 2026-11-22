@@ -80,7 +80,7 @@ Each row is checked against `CHANGELOG.md` and the release on GitHub.
 | 1.4.0 | 2026-11-10 | released | streamed batch propagation; GPKitSources' `ElementSetStore`, `FolderSource` and `Ledger.nextAsk`; the catalogue-scale article; the benchmark's workloads, stream and memory modes with their records; the Android note; the documentation fix held from 1.3.0 (there was no 1.3.1) |
 | 2.0.0 | 2026-11-15 | released, with gpconf 0.9.0 | data age's API with option B and no table, the type-4 refusal (the one change that breaks 1.x code), gpconf 0.9.0's full run (`conformance/gpconf-0.9.0-2026-11-15.txt`) |
 | 2.0.1 | 2026-11-16 | released | the README's gpconf section with the full recorded command, led by the result in the exact epoch; both sets that fail in it, 23333 and 20413, named |
-| 2.0.2 | 2026-11-22 | released, with gpconf 0.10.0 | the README's data-age section; pygpkit's PyPI workflow; a propagator's memory given from made-up sets alone, and `tools/benchmark --sets full`; the bit record: on macOS, Linux and Windows, CI holds the release build's outputs to that platform's own record, to the bit |
+| 2.0.2 | 2026-11-22 | released, with gpconf 0.10.0 | the README's data-age section; pygpkit's PyPI workflow; a propagator's memory given from made-up sets alone, and `tools/benchmark --sets full`; the bit record: on macOS, Linux and Windows, CI checks the release build's outputs against that platform's own record and fails if any number moves |
 | gpkit-core 0.1 | later | in development (gpkit-everywhere) | Phase 1 of GPKit everywhere: the Rust core, SGP4 first, held to Swift GPKit by gpconf (`docs/design/gpkit-everywhere.md`) |
 
 ## After 2.0.2
