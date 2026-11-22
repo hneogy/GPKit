@@ -5,9 +5,12 @@ the interface, and CI stops a change to it that this file does not say (`tools/p
 major version nothing public is removed or changed in a way that breaks code written against an earlier release of
 it; a break waits for the next major version, whose entry names each one under "Breaking changes".
 
-## Unreleased
+## 2.0.2 (2026-11-22)
 
-Nothing in the public interface is added, removed or changed; `docs/public-api.swift` is as in 2.0.1.
+Nothing in the public interface is added, removed or changed; `docs/public-api.swift` is as in 2.0.1. The code is
+2.0.1's but for `DataAge.gpkitVersion`, which is `"2.0.2"`, so a data-age table built with this release records it.
+Released together with [gpconf 0.10.0](https://github.com/hneogy/gp-omm-conformance/releases/tag/v0.10.0) (DOI
+[10.5281/zenodo.24447791](https://doi.org/10.5281/zenodo.24447791)).
 
 - The README has a section on data age: how `DataAge.measure` and a `DataAgeTable` measure the error to expect
   from an element set as it ages, what the measurement stands on (the newer set is the provider's next fit, not
