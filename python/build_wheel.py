@@ -4,7 +4,7 @@
     python3 build_wheel.py --library PATH --platform TAG [--out DIR]
 
 PATH is the native library built from this folder (swift build -c release --product pygpkit_core), and TAG the
-wheel's platform tag, such as macosx_13_0_universal2, manylinux_2_39_x86_64 or win_amd64. The wheel holds the
+wheel's platform tag, such as macosx_13_0_universal2, manylinux_2_38_x86_64 or win_amd64. The wheel holds the
 Python package, the library beside it, and GPKit's LICENSE and NOTICE. A wheel is a zip file with three files of
 metadata (PEP 427 and the core metadata specification); nothing more is needed to write one, so no build tool is
 installed for it.

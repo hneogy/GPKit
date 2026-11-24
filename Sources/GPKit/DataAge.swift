@@ -161,7 +161,7 @@ public enum DataAge {
     public static let method = "GPKit DataAge 1: older set at newer set's epoch, nearest-rank percentiles"
 
     /// GPKit's version, as a table built here records it.
-    public static let gpkitVersion = "2.0.2"
+    public static let gpkitVersion = "2.0.3"
 
     /// One older set of a satellite at the epoch of one newer set of the same satellite.
     public struct Sample: Sendable, Hashable {

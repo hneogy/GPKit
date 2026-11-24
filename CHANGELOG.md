@@ -5,6 +5,18 @@ the interface, and CI stops a change to it that this file does not say (`tools/p
 major version nothing public is removed or changed in a way that breaks code written against an earlier release of
 it; a break waits for the next major version, whose entry names each one under "Breaking changes".
 
+## 2.0.3 (unreleased)
+
+Nothing in the public interface is added, removed or changed; `docs/public-api.swift` is as in 2.0.2. The only code
+change is `DataAge.gpkitVersion`, now `"2.0.3"`, so a data-age table built with this release records it.
+
+- The Linux wheel's glibc: `python/README.md` said the wheel is tagged `manylinux_2_39` and needs glibc 2.39 or
+  newer. CI tags it from the newest glibc symbol its library uses (`.github/workflows/pygpkit-wheels.yml`), and that
+  is 2.38, so the wheel is `manylinux_2_38` and installs where glibc is 2.38 or newer. The README says so now, and so
+  does the example tag in `python/build_wheel.py`. The README is the description a wheel carries
+  (`python/build_wheel.py` reads it into the wheel's metadata), so a wheel built from this release describes itself
+  rightly. The 2.0.2 entry is left as it shipped.
+
 ## 2.0.2 (2026-11-22)
 
 Nothing in the public interface is added, removed or changed; `docs/public-api.swift` is as in 2.0.1. The code is
