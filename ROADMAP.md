@@ -90,7 +90,7 @@ The owner's plan (2026-11-19). Nothing here has a date.
 
 | Version | What it holds | Depends on |
 |---|---|---|
-| 2.0.x | the data-age table: measured from older and newer sets of the same satellites, published as percentiles by orbit regime with its method and data, so that `DataAge.Estimate` reads from it | gpconf's re-measure data, with medium-Earth and geosynchronous sets; no request to CelesTrak or Space-Track |
+| 2.1 list | the data-age table: measured from older and newer sets of the same satellites, published as percentiles by orbit regime with its method and data, so that `DataAge.Estimate` reads from it; moved from 2.0.x on 2026-11-24, since it needs medium-Earth and geosynchronous sets of the same satellites at several dates, and no planned fetch gives them | gpconf's re-measure data, with medium-Earth and geosynchronous sets; no request to CelesTrak or Space-Track |
 | 2.1 | the offline gpconf check holds the TLE/OMM twins and the type-4 refusal to pass within tolerance, not only to not failing; the list of checks CI runs, read from its workflows, failing if a check script in `tools/` runs in no job; WebAssembly far from epoch: deep-space sets propagated up to six years either side of their epochs in the playground module's check, with a bar per platform | 2.0.2 released; no 2.1 work starts before |
 | pygpkit 0.x | pygpkit stays a package over Swift GPKit, versioned 0.x, starting with 0.1.0 from 2.0.3 | each GPKit release it is built from |
 | pygpkit 1.0 | the Python package over the Rust `gpkit-core` (Phase 2 below), under the same name | Phase 1, then Phase 2's proof: gpconf passing in Python and the parity test green to the bit |
