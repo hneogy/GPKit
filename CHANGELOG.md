@@ -5,7 +5,7 @@ the interface, and CI stops a change to it that this file does not say (`tools/p
 major version nothing public is removed or changed in a way that breaks code written against an earlier release of
 it; a break waits for the next major version, whose entry names each one under "Breaking changes".
 
-## 2.0.3 (unreleased)
+## 2.0.3 (2026-11-24)
 
 Nothing in the public interface is added, removed or changed; `docs/public-api.swift` is as in 2.0.2. The only code
 change is `DataAge.gpkitVersion`, now `"2.0.3"`, so a data-age table built with this release records it.
