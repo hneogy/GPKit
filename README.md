@@ -329,8 +329,8 @@ circular orbits, and by a brute-force search of the same SGP4 positions for a pa
 ## From Python
 
 `python/` is pygpkit, GPKit for Python (`import pygpkit`; not the unrelated `gpkit` on PyPI), with the numbers GPKit's
-own release build gives on the same system, to the bit. CI builds and tests its wheel on Linux, macOS and Windows; it is not on PyPI. See
-[`python/README.md`](python/README.md).
+own release build gives on the same system, to the bit. CI builds and tests its wheels on Linux, macOS and Windows, and
+they're on PyPI: `pip install pygpkit`. See [`python/README.md`](python/README.md).
 
 ## Asking CelesTrak and SatNOGS DB
 
